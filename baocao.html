@@ -18,8 +18,15 @@
     }
 </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    
+    /* Cố định kích thước chữ input trên mobile để tránh bị zoom/lệch size màn hình */
+    @media screen and (max-width: 768px) {
+        input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="month"], input[type="datetime-local"], select, textarea {
+            font-size: 16px !important;
+        }
+    }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">

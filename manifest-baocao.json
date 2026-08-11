@@ -1,7 +1,7 @@
 {
   "name": "Báo Cáo KPI Kỹ Thuật",
   "short_name": "KPI Kỹ Thuật",
-  "start_url": "/baocao.html",
+  "start_url": "./baocao.html",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#059669",

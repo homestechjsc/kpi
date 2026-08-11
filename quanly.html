@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Tính Lương & Tổng Hợp KPI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans pb-12 selection:bg-emerald-500 selection:text-white">
+
+    <!-- ================= MÀN HÌNH CHÍNH ================= -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Header chung cho cả PC và Mobile -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-base">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-black text-slate-900 tracking-tight">BÁO CÁO TÍNH LƯƠNG & KPI</h1>
+                    <p class="text-[11px] text-emerald-600 font-bold uppercase tracking-wider">Hệ Thống Đối Soát Tổng Hợp</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc thời gian trên Header -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                    <span class="text-xs font-bold text-slate-500"><i class="fa-solid fa-calendar mr-1"></i> Kỳ:</span>
+                    <input type="month" id="reportMonthInput" onchange="window.loadManagerReport()" class="bg-transparent border-none text-xs font-black text-emerald-700 outline-none cursor-pointer">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content (Tối ưu độ rộng trên PC và Mobile) -->
+        <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+            
+            <!-- THANH CHỌN NHÂN VIÊN & THẺ THỐNG KÊ TỔNG QUAN -->
+            <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/80 space-y-5">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="w-full sm:w-80">
+                        <label class="block text-xs uppercase font-extrabold text-slate-500 mb-1.5">Chọn nhân viên kỹ thuật</label>
+                        <select id="selectStaff" onchange="window.loadManagerReport()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                            <option value="">-- Tất cả nhân viên --</option>
+                        </select>
+                    </div>
+
+                    <!-- Chỉ số phụ nhanh -->
+                    <div class="flex flex-wrap gap-2 text-xs font-bold text-slate-600 w-full sm:w-auto">
+                        <div class="bg-slate-50 px-3 py-2 rounded-xl border flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-emerald-600"></i> Ảnh: <strong id="repPhotos" class="text-slate-800">0</strong>
+                        </div>
+                        <div class="bg-slate-50 px-3 py-2 rounded-xl border flex items-center gap-2">
+                            <i class="fa-solid fa-map text-blue-600"></i> Maps: <strong id="repMaps" class="text-slate-800">0</strong>
+                        </div>
+                        <div class="bg-slate-50 px-3 py-2 rounded-xl border flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-indigo-600"></i> Tư vấn: <strong id="repConsult" class="text-slate-800">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thẻ thống kê số liệu dùng để tính lương -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-blue-50/60 border border-blue-100 p-4 rounded-2xl text-center">
+                        <span class="block text-[10px] uppercase font-extrabold text-blue-600">Tổng Số CV</span>
+                        <span id="repTotalCv" class="text-xl sm:text-2xl font-black text-blue-700 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-2xl text-center">
+                        <span class="block text-[10px] uppercase font-extrabold text-indigo-600">Tổng Thời Gian</span>
+                        <span id="repTotalTime" class="text-xl sm:text-2xl font-black text-indigo-700 mt-1 block">0p</span>
+                    </div>
+                    <div class="bg-emerald-50/60 border border-emerald-100 p-4 rounded-2xl text-center">
+                        <span class="block text-[10px] uppercase font-extrabold text-emerald-600">Tổng Điểm KPI</span>
+                        <span id="repTotalScore" class="text-xl sm:text-2xl font-black text-emerald-700 mt-1 block">0</span>
+                    </div>
+                    <div class="bg-amber-50/60 border border-amber-100 p-4 rounded-2xl text-center">
+                        <span class="block text-[10px] uppercase font-extrabold text-amber-600">Điểm Trung Bình</span>
+                        <span id="repAvgScore" class="text-xl sm:text-2xl font-black text-amber-700 mt-1 block">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NHẬT KÝ CHI TIẾT CÔNG VIỆC TRONG THÁNG (Hiển thị dạng Bảng trên PC, dạng Card trên Mobile) -->
+            <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/80 space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="font-black text-slate-800 text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-600"></i> Nhật Ký Chi Tiết & Đối Soát Tính Lương
+                    </h3>
+                    <span id="taskCountBadge" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-extrabold">0 CV</span>
+                </div>
+
+                <!-- Dành cho PC: Hiển thị dạng bảng chuyên nghiệp -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold tracking-widest border-b border-slate-100">
+                            <tr>
+                                <th class="p-3.5">Ngày / Kỹ Thuật</th>
+                                <th class="p-3.5">STT & Khách Hàng</th>
+                                <th class="p-3.5">Nội Dung Công Việc & Tư Vấn</th>
+                                <th class="p-3.5 text-center">Tiêu Chí</th>
+                                <th class="p-3.5 text-center">TG (p)</th>
+                                <th class="p-3.5 text-center">Điểm KPI</th>
+                                <th class="p-3.5">Nhận Xét Quản Lý</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managerTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+                    </table>
+                </div>
+
+                <!-- Dành cho Mobile: Hiển thị dạng Card thân thiện -->
+                <div id="managerTaskList" class="md:hidden space-y-3">
+                    <!-- Render từ quanly.js -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Kết nối Script Xử Lý Báo Cáo -->
+    <script type="module" src="quanly.js"></script>
+</body>
+</html>

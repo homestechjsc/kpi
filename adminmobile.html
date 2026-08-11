@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Mobile Dashboard | Quản Trị KPI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest-admin.json">
+<meta name="theme-color" content="#059669">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="https://homestechjsc.vn/wp-content/uploads/2026/08/iconkpi.png">
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('/sw-admin.js'); });
+    }
+</script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
+
+    <!-- ================= MÀN HÌNH CHÍNH ================= -->
+    <div id="adminApp" class="min-h-screen flex flex-col">
+        <!-- Header di động -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-4 py-3 shadow-sm flex justify-between items-center">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-emerald-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-sm">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs font-black text-slate-900 tracking-tight">KPI MASTER ADMIN</h1>
+                    <p id="headerTitle" class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Duyệt & Chấm KPI</p>
+                </div>
+            </div>
+            
+            <!-- Nhóm chọn Tháng & Icon Bộ Lọc Nâng Cao -->
+            <div class="flex items-center gap-2">
+                <input type="month" id="filterMonth" class="bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-700 outline-none" onchange="window.triggerDataLoad()">
+                
+                <button onclick="window.toggleFilterBox()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 w-9 h-9 rounded-xl flex items-center justify-center transition border border-emerald-200 shadow-sm" title="Mở bộ lọc">
+                    <i class="fa-solid fa-filter text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-2xl w-full mx-auto p-4 space-y-4 mb-16">
+            
+            <!-- BỘ LỌC NÂNG CAO (Mặc định ẩn, bật khi bấm icon Filter trên Header) -->
+            <div id="filterContainer" class="hidden bg-white p-4 rounded-2xl shadow-md border border-emerald-200 space-y-3 animate-in fade-in duration-200">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc Nâng Cao
+                    </h3>
+                    <button onclick="window.toggleFilterBox()" class="text-slate-400 hover:text-slate-600 font-bold text-base">&times;</button>
+                </div>
+                
+                <div class="space-y-2.5 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật viên</label>
+                        <select id="filterStaff" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="">-- Tất cả kỹ thuật --</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
+                            <input type="date" id="filterFromDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
+                            <input type="date" id="filterToDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-1">
+                    <button onclick="window.resetFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: DUYỆT & CHẤM KPI -->
+            <div id="kpiTab" class="tab-content space-y-3 animate-in fade-in duration-200">
+                <div class="flex justify-between items-center px-1">
+                    <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh sách công việc</h2>
+                    <span id="pendingCountBadge" class="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-extrabold">0 CV</span>
+                </div>
+                <div id="adminKpiMobileList" class="space-y-3">
+                    <!-- Render từ admin_mobile.js -->
+                </div>
+            </div>
+
+            <!-- TAB 2: BÁO CÁO TỔNG HỢP THÁNG -->
+            <div id="reportTab" class="tab-content hidden space-y-4 animate-in fade-in duration-200">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <h2 class="font-extrabold text-slate-800 text-sm flex items-center gap-1.5 border-b pb-2.5">
+                        <i class="fa-solid fa-chart-line text-emerald-600"></i> Thống Kê Hiệu Suất Theo Nhân Sự
+                    </h2>
+                    <div id="mobileReportList" class="space-y-2.5">
+                        <!-- Render từ admin_mobile.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: QUẢN LÝ NHÂN SỰ -->
+            <div id="staffTab" class="tab-content hidden space-y-4 animate-in fade-in duration-200">
+                <!-- Form Thêm Nhân Sự -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-plus text-emerald-600"></i> Cấp Tài Khoản Kỹ Thuật
+                    </h3>
+                    <form id="staffForm" onsubmit="window.addStaff(event)" class="space-y-3 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-500 mb-1">Tên kỹ thuật</label>
+                                <input type="text" id="staffName" required placeholder="VD: Văn A" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-500 mb-1">Chức vụ</label>
+                                <input type="text" id="staffRole" required placeholder="VD: Kỹ thuật viên" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-500 mb-1">Tài khoản</label>
+                                <input type="text" id="staffUsername" required placeholder="username" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-500 mb-1">Mật khẩu</label>
+                                <input type="password" id="staffPassword" required placeholder="password" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-sm mt-1">
+                            <i class="fa-solid fa-save mr-1"></i> Lưu Tài Khoản Mới
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Danh sách nhân sự -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider">Danh Sách Kỹ Thuật Viên</h3>
+                    <div id="mobileStaffList" class="space-y-2.5">
+                        <!-- Render từ admin_mobile.js -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ================= BOTTOM NAVIGATION (MENU DƯỚI) ================= -->
+        <nav class="bg-white/90 backdrop-blur-md border-t border-slate-200/80 fixed bottom-0 left-0 right-0 z-40 px-6 py-2.5 flex justify-around items-center shadow-2xl">
+            <button onclick="window.switchTab('kpiTab')" id="nav_kpiTab" class="nav-btn flex flex-col items-center text-emerald-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 transition mb-0.5">
+                    <i class="fa-solid fa-clipboard-list text-sm"></i>
+                </div>
+                <span class="text-[10px] font-black">Duyệt KPI</span>
+            </button>
+            <button onclick="window.switchTab('reportTab')" id="nav_reportTab" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold">Báo Cáo</span>
+            </button>
+            <button onclick="window.switchTab('staffTab')" id="nav_staffTab" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
+                    <i class="fa-solid fa-users-gear text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold">Nhân Sự</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Kết nối Script Admin Mobile -->
+    <script type="module" src="admin_mobile.js"></script>
+</body>
+</html>

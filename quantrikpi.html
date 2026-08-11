@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Quản Trị KPI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-emerald-500 selection:text-white">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- ================= SIDEBAR MENU ================= -->
+        <aside class="w-72 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+            <div class="p-6 border-b border-slate-100 flex items-center space-x-3">
+                <div class="bg-emerald-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-md shadow-emerald-600/20 text-base">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-black text-slate-900 tracking-tight">KPI MASTER</h1>
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Hệ Thống Quản Trị</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+                <button onclick="window.switchTab('kpiTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl bg-emerald-50 text-emerald-700 font-extrabold text-xs flex items-center gap-3 transition shadow-sm" id="nav_kpiTab">
+                    <i class="fa-solid fa-clipboard-list text-base"></i> Duyệt & Chấm KPI
+                </button>
+                <button onclick="window.switchTab('reportTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-slate-50 text-slate-600 font-bold text-xs flex items-center gap-3 transition" id="nav_reportTab">
+                    <i class="fa-solid fa-chart-line text-base"></i> Báo Cáo Tổng Hợp
+                </button>
+                <button onclick="window.switchTab('staffTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-slate-50 text-slate-600 font-bold text-xs flex items-center gap-3 transition" id="nav_staffTab">
+                    <i class="fa-solid fa-users-gear text-base"></i> Quản Lý Nhân Sự
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100 text-center">
+                <span class="text-[10px] text-slate-400 font-medium">Phiên bản Quản Trị v2.0</span>
+            </div>
+        </aside>
+
+        <!-- ================= MAIN CONTENT ================= -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="h-18 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 shadow-sm">
+                <div>
+                    <h2 id="headerTitle" class="text-base font-black text-slate-800">Duyệt & Chấm Điểm KPI</h2>
+                    <p class="text-xs text-slate-400">Quản lý và đánh giá hiệu suất công việc kỹ thuật</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                        <span class="text-xs font-bold text-slate-500"><i class="fa-solid fa-calendar mr-1"></i> Kỳ:</span>
+                        <input type="month" id="filterMonth" class="bg-transparent border-none text-xs font-black text-emerald-700 outline-none cursor-pointer" onchange="window.triggerDataLoad()">
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+                
+                <!-- TAB 1: DUYỆT & CHẤM KPI -->
+                <div id="kpiTab" class="tab-content bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 class="font-extrabold text-slate-700 text-sm"><i class="fa-solid fa-list-check text-emerald-600 mr-2"></i> Danh Sách Công Việc Chờ Duyệt</h3>
+                        <span class="text-xs text-slate-400 font-medium">Nhập điểm KPI và nhận xét trực tiếp để lưu vào hệ thống</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold tracking-widest border-b border-slate-100">
+                                <tr>
+                                    <th class="p-4">Ngày / Kỹ Thuật</th>
+                                    <th class="p-4">Khách Hàng & STT</th>
+                                    <th class="p-4">Nội Dung & Tư Vấn</th>
+                                    <th class="p-4 text-center">Tiêu Chí</th>
+                                    <th class="p-4 text-center">TG</th>
+                                    <th class="p-4 text-center bg-emerald-50/50">Điểm KPI</th>
+                                    <th class="p-4 bg-emerald-50/50">Đánh Giá Từ Quản Lý</th>
+                                    <th class="p-4 text-center">Hành Động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminKpiTable" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: BÁO CÁO TỔNG HỢP THÁNG -->
+                <div id="reportTab" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-emerald-600"></i> Thống Kê Tổng Hợp Hiệu Suất Tháng
+                            </h3>
+                            <span class="text-xs text-slate-400 font-medium">Dữ liệu được tổng hợp theo từng nhân sự kỹ thuật</span>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead class="bg-slate-900 text-white text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th class="p-3.5 rounded-l-xl">Kỹ thuật viên</th>
+                                        <th class="p-3.5 text-center">Tổng CV</th>
+                                        <th class="p-3.5 text-center">Tổng TG (p)</th>
+                                        <th class="p-3.5 text-center">Ảnh</th>
+                                        <th class="p-3.5 text-center">Maps</th>
+                                        <th class="p-3.5 text-center">Tư Vấn</th>
+                                        <th class="p-3.5 text-center rounded-r-xl text-amber-300">Tổng Điểm KPI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: QUẢN LÝ NHÂN SỰ & TÀI KHOẢN -->
+                <div id="staffTab" class="tab-content hidden space-y-6">
+                    <!-- Form Thêm Nhân Sự -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 max-w-3xl">
+                        <h3 class="font-black text-slate-800 text-base mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-user-plus text-emerald-600"></i> Cấp Tài Khoản Kỹ Thuật Mới
+                        </h3>
+                        <form id="staffForm" onsubmit="window.addStaff(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Tên kỹ thuật viên <span class="text-rose-500">*</span></label>
+                                <input type="text" id="staffName" placeholder="VD: Nguyễn Văn A" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Chức vụ <span class="text-rose-500">*</span></label>
+                                <input type="text" id="staffRole" placeholder="VD: Kỹ thuật viên trưởng" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Tài khoản đăng nhập <span class="text-rose-500">*</span></label>
+                                <input type="text" id="staffUsername" placeholder="VD: nguyenvana" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Mật khẩu <span class="text-rose-500">*</span></label>
+                                <input type="password" id="staffPassword" placeholder="VD: 123456" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            </div>
+                            <div class="md:col-span-2 text-right pt-2">
+                                <button type="submit" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">
+                                    <i class="fa-solid fa-save mr-1.5"></i> Tạo Tài Khoản Mới
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Danh Sách Nhân Sự -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 overflow-hidden">
+                        <h3 class="font-black text-slate-800 text-base mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-emerald-600"></i> Danh Sách Kỹ Thuật Viên Hệ Thống
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold tracking-widest border-b border-slate-100">
+                                    <tr>
+                                        <th class="p-3.5">Tên kỹ thuật</th>
+                                        <th class="p-3.5">Chức vụ</th>
+                                        <th class="p-3.5">Tài khoản</th>
+                                        <th class="p-3.5">Mật khẩu</th>
+                                        <th class="p-3.5 text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Kết nối file Script Admin -->
+    <script type="module" src="admin.js"></script>
+</body>
+</html>

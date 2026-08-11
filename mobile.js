@@ -332,3 +332,81 @@ window.changePassword = (e) => {
         })
         .catch(err => alert("Lỗi hệ thống khi đổi mật khẩu: " + err.message));
 };
+// Đặt giá trị mặc định cho ô chọn tháng là tháng hiện tại khi mở app
+const reportMonthInputEl = document.getElementById('reportMonthInput');
+if (reportMonthInputEl) {
+    reportMonthInputEl.value = new Date().toISOString().slice(0, 7);
+}
+
+// Hàm tải và tính toán báo cáo KPI theo tháng cho Tab Báo Cáo
+window.loadMonthlyReport = () => {
+    const monthInput = document.getElementById('reportMonthInput');
+    if (!monthInput || !currentUser) return;
+    const selectedMonth = monthInput.value; // Định dạng "YYYY-MM"
+
+    let totalCv = 0;
+    let totalTime = 0;
+    let totalScore = 0;
+    let scoredCount = 0;
+
+    const monthlyTaskListEl = document.getElementById('monthlyTaskList');
+    if (monthlyTaskListEl) monthlyTaskListEl.innerHTML = '';
+
+    // Lọc các công việc trong allKpiList thuộc về user hiện tại và đúng tháng đã chọn
+    const myMonthlyTasks = Object.entries(allKpiList || {}).filter(([id, task]) => {
+        return task.ktPhuTrach === currentUser.name && 
+               task.ngayThucHien && 
+               task.ngayThucHien.startsWith(selectedMonth);
+    }).reverse(); // Mới nhất lên đầu
+
+    myMonthlyTasks.forEach(([id, task]) => {
+        totalCv++;
+        totalTime += Number(task.thoiGian) || 0;
+
+        const score = task.diemKpi !== undefined && task.diemKpi !== null ? Number(task.diemKpi) : 0;
+        if (score > 0) {
+            totalScore += score;
+            scoredCount++;
+        }
+
+        const badgeColor = score > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const statusText = score > 0 ? `Điểm KPI: ${score}` : 'Chờ chấm';
+
+        let tuVanHtml = task.coTuVanBanHang ? `<div class="text-[11px] text-indigo-700 bg-indigo-50 p-2 rounded-xl mt-1 font-medium"><i class="fa-solid fa-comments mr-1"></i> <strong>Tư vấn:</strong> ${task.noiDungTuVan || 'Có'}</div>` : '';
+        let danhGiaHtml = task.danhGiaAdmin ? `<div class="text-[11px] text-slate-600 bg-slate-100 p-2 rounded-xl mt-1 italic"><i class="fa-solid fa-user-tie text-emerald-600 mr-1"></i> ${task.danhGiaAdmin}</div>` : '';
+
+        if (monthlyTaskListEl) {
+            monthlyTaskListEl.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-extrabold text-slate-800">${task.ngayThucHien.split('-').reverse().join('/')} - <span class="text-blue-600">${task.sttCv}</span></span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}">${statusText}</span>
+                    </div>
+                    <div class="font-bold text-slate-700">${task.khachHang}</div>
+                    <div class="text-slate-600">${task.noiDung}</div>
+                    ${tuVanHtml}
+                    ${danhGiaHtml}
+                    <div class="text-slate-400 text-[11px] pt-1 border-t border-slate-200/60 flex justify-between">
+                        <span>TG: <strong>${task.thoiGian} phút</strong></span>
+                        <div class="flex gap-2">
+                            <span>Ảnh: <i class="fa-solid fa-camera ${task.chupAnh ? 'text-emerald-500':'text-slate-300'}"></i></span>
+                            <span>Maps: <i class="fa-solid fa-map ${task.danhGiaMaps ? 'text-blue-500':'text-slate-300'}"></i></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    if (myMonthlyTasks.length === 0 && monthlyTaskListEl) {
+        monthlyTaskListEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border">Không có công việc nào trong tháng này.</p>';
+    }
+
+    const avgScore = scoredCount > 0 ? (totalScore / scoredCount).toFixed(1) : 0;
+
+    // Cập nhật số liệu lên các ô tổng hợp phía trên Tab Báo Cáo
+    document.getElementById('repTotalCv').textContent = totalCv;
+    document.getElementById('repTotalTime').textContent = `${totalTime}p`;
+    document.getElementById('repTotalScore').textContent = totalScore;
+    document.getElementById('repAvgScore').textContent = avgScore;
+};

@@ -1472,7 +1472,7 @@ async function sendTimeoutTelegramNotification(taskData, freeTech, times) {
             `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
             `🛠️ *Kỹ thuật rãnh:* ${freeTech}\n` +
             `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n\n` +
-            `⚡ *Công việc đã quá hạn và chưa được xử lý. Yêu cầu tiếp nhận gấp!*`
+            `⚡ *Kỹ thuật đang rảnh việc. Yêu cầu tiếp nhận xử lý gấp CV!*`
         );
 
         // 1. Gửi vào nhóm quản trị

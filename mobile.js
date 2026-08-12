@@ -1334,3 +1334,58 @@ window.resetAssignedFilter = () => {
 window.filterAssignedTasks = () => {
     renderAssignedTasks(); // Gọi lại hàm render có kèm điều kiện lọc
 };
+// ================= TÍNH NĂNG VUỐT RELOAD (PULL TO REFRESH) =================
+let touchStartY = 0;
+let isPulling = false;
+const ptrIndicator = document.getElementById('ptrIndicator');
+
+window.addEventListener('touchstart', (e) => {
+    // Chỉ kích hoạt khi người dùng đang ở vị trí trên cùng của trang
+    if (window.scrollY === 0) {
+        touchStartY = e.touches[0].clientY;
+        isPulling = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].clientY;
+    const pullDistance = currentY - touchStartY;
+
+    // Nếu vuốt xuống dưới hơn 70px khi đang ở đỉnh trang
+    if (pullDistance > 0 && window.scrollY === 0) {
+        if (ptrIndicator) {
+            // Hiển thị hiệu ứng kéo
+            const translateVal = Math.min(pullDistance * 0.4, 60);
+            ptrIndicator.style.transform = `translateY(${translateVal}px)`;
+        }
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+    if (!isPulling) return;
+    isPulling = false;
+
+    if (ptrIndicator) {
+        const currentTransform = ptrIndicator.style.transform;
+        const match = currentTransform.match(/translateY\(([\d.]+)px\)/);
+        const pulledPx = match ? parseFloat(match[1]) : 0;
+
+        // Nếu vuốt đủ độ sâu (trên 40px) thì tiến hành làm mới
+        if (pulledPx > 40) {
+            if (ptrIndicator) ptrIndicator.style.transform = 'translateY(50px)';
+            
+            // Cập nhật trạng thái đang tải
+            const ptrText = document.getElementById('ptrText');
+            if (ptrText) ptrText.textContent = 'Đang làm mới dữ liệu...';
+
+            // Thực hiện tải lại dữ liệu các tab đang hoạt động hoặc load lại trang
+            setTimeout(() => {
+                location.reload(); // Hoặc gọi các hàm load lại dữ liệu tương ứng
+            }, 600);
+        } else {
+            // Trả về vị trí cũ nếu vuốt chưa đủ độ
+            ptrIndicator.style.transform = 'translateY(-100%)';
+        }
+    }
+}, { passive: true });

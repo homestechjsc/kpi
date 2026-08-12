@@ -192,6 +192,12 @@
     <p class="text-[10px] text-slate-400 italic">Nhắn tin cho bot trước, sau đó nhập ID và bấm Test để kiểm tra.</p>
 </div>
 </div>
+<!-- NÚT KIỂM TRA & CẬP NHẬT PHIÊN BẢN -->
+<div class="pt-3 pb-2">
+    <button onclick="window.checkForAppUpdates()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 active:scale-[0.99]">
+        <i id="updateIcon" class="fa-solid fa-arrows-rotate"></i> Kiểm tra phiên bản mới
+    </button>
+</div>
                     <!-- Form Đổi Mật Khẩu -->
                     <form onsubmit="window.changePassword(event)" class="space-y-3 text-xs">
                         <h4 class="font-black text-slate-700 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">

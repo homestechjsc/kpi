@@ -1547,3 +1547,63 @@ window.deleteAdminCameraDevice = (id) => {
         }).catch(err => alert("Lỗi: " + err.message));
     }
 };
+// ================= 1. TÍNH NĂNG SAO LƯU (BACKUP) =================
+window.backupDatabase = async () => {
+    try {
+        // Lấy toàn bộ dữ liệu từ gốc (root) của Firebase Database
+        const snapshot = await get(ref(db));
+        if (!snapshot.exists()) {
+            alert("Không có dữ liệu trên hệ thống để sao lưu!");
+            return;
+        }
+
+        const dbData = snapshot.val();
+        const jsonString = JSON.stringify(dbData, null, 2);
+        
+        // Tạo một file JSON ảo để tải về máy tự động
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileName = `kpi-backup-${dateStr}.json`;
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert("Sao lưu dữ liệu thành công!");
+    } catch (error) {
+        alert("Lỗi khi sao lưu dữ liệu: " + error.message);
+    }
+};
+
+// ================= 2. TÍNH NĂNG KHÔI PHỤC (RESTORE) =================
+window.restoreDatabase = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm("⚠️ CẢNH BÁO QUAN TRỌNG:\nViệc khôi phục sẽ GHI ĐÈ toàn bộ dữ liệu hiện tại trên hệ thống bằng dữ liệu từ file sao lưu.\n\nBạn có chắc chắn muốn tiếp tục không?")) {
+        event.target.value = ""; // Reset input file
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const jsonData = JSON.parse(e.target.result);
+
+            // Ghi đè toàn bộ dữ liệu từ file JSON lên nhánh gốc của Firebase
+            await set(ref(db), jsonData);
+
+            alert("Khôi phục dữ liệu hệ thống thành công! Trang sẽ được tải lại.");
+            location.reload();
+        } catch (error) {
+            alert("Lỗi: File dữ liệu không hợp lệ hoặc lỗi kết nối! (" + error.message + ")");
+        }
+    };
+    reader.readAsText(file);
+};

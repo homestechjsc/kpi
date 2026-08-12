@@ -268,6 +268,7 @@ window.submitKPI = (e) => {
     // Lấy dữ liệu từ form chuẩn mới
     const newTask = {
         ngayTao: document.getElementById('taskNgayTao')?.value || new Date().toISOString().split('T')[0],
+        ngayTaoTimestamp: Date.now(), // 👉 Bổ sung: Lưu mốc thời gian tạo chính xác để tính 15 phút
         maCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         sttCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         tinhTrang: document.getElementById('taskTinhTrang')?.value || 'Chờ triển khai',
@@ -284,7 +285,8 @@ window.submitKPI = (e) => {
         chupAnh: false,
         danhGiaMaps: false,
         coTuVanBanHang: false,
-        noiDungTuVan: ''
+        noiDungTuVan: '',
+        hasSentTimeoutAlert: false // 👉 Bổ sung: Đánh dấu chưa gửi cảnh báo quá hạn
     };
 
     push(ref(db, 'managementTasks'), newTask)
@@ -1389,3 +1391,151 @@ window.addEventListener('touchend', (e) => {
         }
     }
 }, { passive: true });
+
+// Kiểm tra xem một kỹ thuật viên có đang bận không (có việc nào đang "Đang thực hiện")
+function isTechnicianFree(techName) {
+    if (!techName) return false;
+    
+    // Duyệt toàn bộ danh sách công việc trên hệ thống
+    const busyTasks = Object.values(allAssignedTasks).filter(task => {
+        const isAssignedToTech = task.ktPhuTrach === techName || task.ktHoTro === techName;
+        const isInProgress = task.tinhTrang === 'Đang thực hiện';
+        return isAssignedToTech && isInProgress;
+    });
+    
+    // Nếu mảng rỗng tức là kỹ thuật không có việc nào đang làm -> Đang rãnh
+    return busyTasks.length === 0;
+}
+// Hàm kiểm tra công việc quá 15 phút mà kỹ thuật đang rãnh
+function checkPendingTasksTimeout() {
+    if (!allAssignedTasks) return;
+    
+    const now = new Date().getTime();
+    const FIFTEEN_MINUTES = 5 * 60 * 1000; // 5 phút (chu kỳ nhắc nhở)
+
+    Object.entries(allAssignedTasks).forEach(([id, task]) => {
+        // Chỉ xét các việc đang ở trạng thái "Chờ triển khai"
+        if (task.tinhTrang === 'Chờ triển khai') {
+            
+            // Nếu công việc chưa có mốc thời gian tạo, gán ngay mốc hiện tại
+            if (!task.ngayTaoTimestamp) {
+                update(ref(db, `managementTasks/${id}`), { ngayTaoTimestamp: now, alertCount: 0 });
+                return;
+            }
+
+            const createdAt = task.ngayTaoTimestamp;
+            const lastAlert = task.lastAlertTime || createdAt; // Lần báo gần nhất (hoặc thời điểm tạo nếu chưa báo lần nào)
+            const alertCount = task.alertCount || 0;
+
+            // Điều kiện để báo lần đầu: Đã qua 5 phút kể từ lúc tạo và chưa báo lần nào (alertCount === 0)
+            // Điều kiện để báo lặp lại: Đã qua ít nhất 5 phút kể từ LẦN CẢNH BÁO TRƯỚC ĐÓ và số lần báo chưa quá giới hạn (ví dụ tối đa nhắc 3 lần)
+            const isFirstAlert = (alertCount === 0 && (now - createdAt >= FIFTEEN_MINUTES));
+            const isRepeatAlert = (alertCount > 0 && alertCount < 3 && (now - lastAlert >= FIFTEEN_MINUTES));
+
+            if (isFirstAlert || isRepeatAlert) {
+                const techPhuTrach = task.ktPhuTrach;
+                const techHoTro = task.ktHoTro;
+
+                // Kiểm tra xem phụ trách hoặc hỗ trợ có đang rãnh không
+                const isPhuTrachFree = techPhuTrach ? isTechnicianFree(techPhuTrach) : false;
+                const isHoTroFree = techHoTro ? isTechnicianFree(techHoTro) : false;
+
+                // Nếu có ít nhất một kỹ thuật được gán đang rãnh
+                if (isPhuTrachFree || isHoTroFree) {
+                    let freeTechName = isPhuTrachFree ? techPhuTrach : techHoTro;
+                    
+                    // Gửi thông báo Telegram khẩn cấp (kèm số lần cảnh báo cho trực quan)
+                    sendTimeoutTelegramNotification(task, freeTechName, alertCount + 1);
+
+                    // Cập nhật lại số lần đã báo và thời gian báo gần nhất lên Firebase
+                    update(ref(db, `managementTasks/${id}`), { 
+                        alertCount: alertCount + 1,
+                        lastAlertTime: now 
+                    });
+                }
+            }
+        }
+    });
+}
+
+// Cập nhật lại hàm gửi tin nhắn để hiển thị số lần nhắc nhở
+async function sendTimeoutTelegramNotification(taskData, freeTech, times) {
+    try {
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) return;
+        const config = snapshot.val();
+        if (!config.botToken) return;
+
+        const message = encodeURIComponent(
+            `🚨 *[NHẮC NHỞ LẦN ${times}: CÔNG VIỆC BỊ TREO]*\n\n` +
+            `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
+            `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
+            `🛠️ *Kỹ thuật rãnh:* ${freeTech}\n` +
+            `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n\n` +
+            `⚡ *Công việc đã quá hạn và chưa được xử lý. Yêu cầu tiếp nhận gấp!*`
+        );
+
+        // 1. Gửi vào nhóm quản trị
+        if (config.adminChatId) {
+            const adminUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${config.adminChatId}&text=${message}&parse_mode=Markdown`;
+            fetch(adminUrl).catch(err => console.error("Lỗi gửi nhóm:", err));
+        }
+
+        // 2. Gửi riêng tư cá nhân kỹ thuật
+        onValue(ref(db, 'staffs'), (staffSnapshot) => {
+            if (!staffSnapshot.exists()) return;
+            staffSnapshot.forEach((child) => {
+                const staff = child.val();
+                if (staff.name === freeTech && staff.telegramId) {
+                    const techUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${staff.telegramId}&text=${message}&parse_mode=Markdown`;
+                    fetch(techUrl).catch(err => console.error("Lỗi gửi cá nhân:", err));
+                }
+            });
+        }, { onlyOnce: true });
+
+    } catch (error) {
+        console.error("Lỗi check timeout telegram:", error);
+    }
+}
+
+// Thiết lập tự động quét kiểm tra mỗi 1 phút một lần (60000 ms) khi ứng dụng đang mở
+setInterval(checkPendingTasksTimeout, 60000);
+
+// Hàm kiểm tra phiên bản mới thủ công khi bấm nút
+window.checkForAppUpdates = () => {
+    const updateIcon = document.getElementById('updateIcon');
+    if (updateIcon) updateIcon.classList.add('animate-spin');
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then((registration) => {
+            if (!registration) {
+                alert("Ứng dụng chưa được đăng ký Service Worker.");
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                return;
+            }
+
+            // Gọi lệnh ép Service Worker kiểm tra xem trên server có bản code mới hay không
+            registration.update().then(() => {
+                setTimeout(() => {
+                    if (updateIcon) updateIcon.classList.remove('animate-spin');
+                    
+                    // Nếu phát hiện có một worker mới đang chờ kích hoạt (đang có bản cập nhật)
+                    if (registration.waiting) {
+                        if (confirm("Đã có phiên bản mới của ứng dụng! Bạn có muốn cập nhật và tải lại ngay bây giờ không?")) {
+                            // Gửi tín hiệu đánh thức worker mới
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            window.location.reload();
+                        }
+                    } else {
+                        alert("Ứng dụng của bạn đang ở phiên bản mới nhất!");
+                    }
+                }, 1000);
+            }).catch((err) => {
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                alert("Không thể kiểm tra cập nhật lúc này (kiểm tra lại kết nối mạng).");
+            });
+        });
+    } else {
+        alert("Trình duyệt không hỗ trợ tính năng cập nhật này.");
+    }
+};

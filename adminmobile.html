@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Mobile Dashboard | Quản Trị KPI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest-admin.json">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="https://homestechjsc.vn/wp-content/uploads/2026/08/iconkpi.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw-admin.js'); });
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        /* Khóa cuộn trang nền khi mở modal hoặc thao tác */
+body.overflow-hidden {
+    overflow: hidden;
+    height: 100vh;
+    position: fixed;
+    width: 100%;
+}
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
+
+    <!-- ================= MÀN HÌNH CHÍNH ================= -->
+    <div id="adminApp" class="min-h-screen flex flex-col">
+        <!-- Header di động -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-4 py-3 shadow-sm flex justify-between items-center">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-emerald-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-sm">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs font-black text-slate-900 tracking-tight">KPI MASTER ADMIN</h1>
+                    <p id="headerTitle" class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Tổng Quan Dashboard</p>
+                </div>
+            </div>
+            
+            <!-- Nhóm chọn Tháng & Icon Bộ Lọc Nâng Cao -->
+            <div class="flex items-center gap-2">
+                <input type="month" id="filterMonth" class="bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-700 outline-none" onchange="window.triggerDataLoad()">
+                
+                <button onclick="window.toggleFilterBox()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 w-9 h-9 rounded-xl flex items-center justify-center transition border border-emerald-200 shadow-sm" title="Mở bộ lọc">
+                    <i class="fa-solid fa-filter text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-2xl w-full mx-auto p-4 space-y-4 mb-16">
+            
+            <!-- BỘ LỌC NÂNG CAO (Mặc định ẩn, bật khi bấm icon Filter trên Header) -->
+            <div id="filterContainer" class="hidden bg-white p-4 rounded-2xl shadow-md border border-emerald-200 space-y-3 animate-in fade-in duration-200">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc Nâng Cao
+                    </h3>
+                    <button onclick="window.toggleFilterBox()" class="text-slate-400 hover:text-slate-600 font-bold text-base">&times;</button>
+                </div>
+                
+                <div class="space-y-2.5 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật viên</label>
+                        <select id="filterStaff" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="">-- Tất cả kỹ thuật --</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
+                            <input type="date" id="filterFromDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
+                            <input type="date" id="filterToDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-1">
+                    <button onclick="window.resetFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 0: DASHBOARD TỔNG QUAN (Mặc định hiển thị) -->
+            <div id="dashboardTab" class="tab-content space-y-4 animate-in fade-in duration-200">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <h2 class="font-extrabold text-slate-800 text-sm flex items-center gap-2 border-b pb-2.5">
+                        <i class="fa-solid fa-chart-pie text-emerald-600"></i> Tổng Quan Trạng Thái Công Việc
+                    </h2>
+                    
+                    <!-- Lưới thống kê nhanh -->
+                    <div class="grid grid-cols-2 gap-2.5 text-xs">
+                        <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-center space-y-1">
+                            <span class="block text-[10px] uppercase font-extrabold text-amber-700">Chờ Triển Khai</span>
+                            <span id="dashChoTrienKhai" class="text-xl font-black text-amber-800">0</span>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-center space-y-1">
+                            <span class="block text-[10px] uppercase font-extrabold text-blue-700">Đang Thực Hiện</span>
+                            <span id="dashDangThucHien" class="text-xl font-black text-blue-800">0</span>
+                        </div>
+                        <div class="bg-rose-50 border border-rose-200 p-3 rounded-2xl text-center space-y-1">
+                            <span class="block text-[10px] uppercase font-extrabold text-rose-700">Tạm Ngưng</span>
+                            <span id="dashTamNgung" class="text-xl font-black text-rose-800">0</span>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center space-y-1">
+                            <span class="block text-[10px] uppercase font-extrabold text-emerald-700">Đã Hoàn Thành</span>
+                            <span id="dashHoanThanh" class="text-xl font-black text-emerald-800">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thống kê phụ (Điểm KPI & Tổng thời gian) -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-2.5">
+                    <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Chỉ Số Hoạt Động Trong Kỳ</h3>
+                    <div class="grid grid-cols-2 gap-2.5 text-xs">
+                        <div class="bg-slate-50 border border-slate-200/70 p-3 rounded-xl flex justify-between items-center">
+                            <span class="text-slate-500 font-bold">Tổng điểm KPI:</span>
+                            <span id="dashTotalScore" class="font-black text-emerald-700 text-sm">0</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200/70 p-3 rounded-xl flex justify-between items-center">
+                            <span class="text-slate-500 font-bold">Tổng thời gian:</span>
+                            <span id="dashTotalTime" class="font-black text-blue-700 text-sm">0p</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: DUYỆT & CHẤM KPI -->
+            <div id="kpiTab" class="tab-content hidden space-y-3 animate-in fade-in duration-200">
+                <div class="flex justify-between items-center px-1">
+                    <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh sách công việc</h2>
+                    <span id="pendingCountBadge" class="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-extrabold">0 CV</span>
+                </div>
+                <div id="adminKpiMobileList" class="space-y-3">
+                    <!-- Render từ admin_mobile.js -->
+                </div>
+            </div>
+
+            <!-- TAB 2: BÁO CÁO TỔNG HỢP THÁNG -->
+            <div id="reportTab" class="tab-content hidden space-y-4 animate-in fade-in duration-200">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <h2 class="font-extrabold text-slate-800 text-sm flex items-center gap-1.5 border-b pb-2.5">
+                        <i class="fa-solid fa-chart-line text-emerald-600"></i> Thống Kê Hiệu Suất Theo Nhân Sự
+                    </h2>
+                    <div id="mobileReportList" class="space-y-2.5">
+                        <!-- Render từ admin_mobile.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: QUẢN LÝ CÔNG VIỆC (Thay thế cho tab Nhân sự) -->
+            <div id="taskTab" class="tab-content hidden space-y-4 animate-in fade-in duration-200">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <div class="flex justify-between items-center border-b pb-2.5">
+                        <h2 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-emerald-600"></i> Quản Lý Công Việc Hệ Thống
+                        </h2>
+                        <span id="adminTotalTasksBadge" class="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-extrabold">0 CV</span>
+                    </div>
+
+                    <!-- Nút mở Modal Tạo Mới Công Việc -->
+                    <button onclick="window.openAdminTaskModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-black text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-[0.99]">
+                        <i class="fa-solid fa-plus text-sm"></i> Thêm Công Việc Mới
+                    </button>
+
+                    <!-- Danh sách công việc toàn hệ thống -->
+                    <div id="adminMasterTaskList" class="space-y-3">
+                        <!-- Render từ admin_mobile.js -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ================= BOTTOM NAVIGATION (MENU DƯỚI) ================= -->
+        <nav class="bg-white/90 backdrop-blur-md border-t border-slate-200/80 fixed bottom-0 left-0 right-0 z-40 px-3 py-2.5 flex justify-around items-center shadow-2xl">
+            <button onclick="window.switchTab('dashboardTab')" id="nav_dashboardTab" class="nav-btn flex flex-col items-center text-emerald-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 transition mb-0.5">
+                    <i class="fa-solid fa-chart-pie text-sm"></i>
+                </div>
+                <span class="text-[10px] font-black">Dashboard</span>
+            </button>
+            <button onclick="window.switchTab('kpiTab')" id="nav_kpiTab" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
+                    <i class="fa-solid fa-clipboard-list text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold">Duyệt KPI</span>
+            </button>
+            <!-- Tab Quản Lý Công Việc -->
+            <button onclick="window.switchTab('taskTab')" id="nav_taskTab" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
+                    <i class="fa-solid fa-list-check text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold">Công Việc</span>
+            </button>
+            <button onclick="window.switchTab('reportTab')" id="nav_reportTab" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
+                    <i class="fa-solid fa-chart-line text-sm"></i>
+                </div>
+                <span class="text-[10px] font-bold">Báo Cáo</span>
+            </button>
+        </nav>
+
+        <!-- ================= MODAL THÊM / SỬA CÔNG VIỆC ADMIN ================= -->
+    <div id="adminTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="adminTaskModalTitle" class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-600"></i> Tạo Mới Công Việc
+                </h3>
+                <button onclick="window.closeAdminTaskModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">&times;</button>
+            </div>
+
+            <form id="adminTaskForm" onsubmit="window.saveAdminTask(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="adminModalTaskId">
+                
+                <!-- Hàng 1: Ngày tạo, Mã CV tự động, Tình trạng -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Ngày tạo</label>
+                        <input type="date" id="adminTaskNgayTao" class="w-full p-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Mã CV</label>
+                        <input type="text" id="adminTaskMaCv" readonly class="w-full p-2 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Tình trạng</label>
+                        <select id="adminTaskTinhTrang" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700">
+                            <option value="Chờ triển khai">Chờ triển khai</option>
+                            <option value="Đang thực hiện">Đang thực hiện</option>
+                            <option value="Tạm ngưng">Tạm ngưng</option>
+                            <option value="Đã hoàn thành">Đã hoàn thành</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hàng 2: Tên khách hàng & Số điện thoại -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Khách hàng <span class="text-rose-500">*</span></label>
+                        <input type="text" id="adminTaskKhachHang" required placeholder="Tên khách hàng..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Số điện thoại</label>
+                        <input type="text" id="adminTaskDienThoai" placeholder="SĐT liên hệ..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                    </div>
+                </div>
+
+                <!-- Hàng 3: Loại công việc & Mức độ ưu tiên -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Loại công việc</label>
+                        <select id="adminTaskLoaiCv" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                            <option value="Bảo trì">Bảo trì</option>
+                            <option value="Lắp đặt">Lắp đặt</option>
+                            <option value="Sửa chữa">Sửa chữa</option>
+                            <option value="Tư vấn">Tư vấn</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Mức độ ưu tiên</label>
+                        <select id="adminTaskUuTien" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                            <option value="Thường">Thường</option>
+                            <option value="Trung bình">Trung bình</option>
+                            <option value="Cao">Cao</option>
+                            <option value="Khẩn cấp">Khẩn cấp</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Nội dung chi tiết -->
+                <div>
+                    <label class="block font-bold text-slate-500 mb-0.5">Nội dung công việc <span class="text-rose-500">*</span></label>
+                    <textarea id="adminTaskNoiDung" required rows="2" placeholder="Chi tiết nội dung công việc..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
+                </div>
+
+                <!-- Hàng 4: Kỹ thuật phụ trách & Kỹ thuật hỗ trợ -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">KT phụ trách</label>
+                        <select id="adminTaskKtPhuTrach" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                            <option value="">-- Chọn KT --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">KT hỗ trợ</label>
+                        <select id="adminTaskKtHoTro" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                            <option value="">-- Không có --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hàng 5: Deadline (Tự động +2 giờ) & Ghi chú -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Deadline (Tự động +2h)</label>
+                        <input type="datetime-local" id="adminTaskDeadline" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-rose-600">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-0.5">Ghi chú</label>
+                        <input type="text" id="adminTaskGhiChu" placeholder="Lưu ý thêm..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                    </div>
+                </div>
+
+                <!-- Nút thao tác -->
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="window.closeAdminTaskModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Lưu Công Việc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Kết nối Script Admin Mobile -->
+    <script type="module" src="admin_mobile.js"></script>
+</body>
+</html>

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Quản Trị KPI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-emerald-500 selection:text-white">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- ================= SIDEBAR MENU ================= -->
+        <aside class="w-72 bg-gradient-to-b from-emerald-900 to-teal-950 text-white flex flex-col shadow-xl">
+            <div class="p-6 border-b border-emerald-800/60 flex items-center space-x-3">
+                <div class="bg-white text-emerald-700 w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-lg text-base">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-black tracking-tight text-white">KPI MASTER</h1>
+                    <p class="text-[10px] text-emerald-300 font-bold uppercase tracking-wider">Hệ Thống Quản Trị</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+    <button onclick="window.switchTab('dashboardTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_dashboardTab">
+        <i class="fa-solid fa-chart-pie text-base"></i> Dashboard Tổng Quan
+    </button>
+
+    <button onclick="window.switchTab('kpiTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl bg-white text-emerald-900 font-extrabold text-sm flex items-center gap-3 transition shadow-md" id="nav_kpiTab">
+        <i class="fa-solid fa-clipboard-list text-base"></i> Duyệt & Chấm KPI
+    </button>
+
+    <button onclick="window.switchTab('taskTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_taskTab">
+        <i class="fa-solid fa-tasks text-base"></i> Quản Lý Công Việc
+    </button>
+
+    <button onclick="window.switchTab('reportTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_reportTab">
+        <i class="fa-solid fa-chart-line text-base"></i> Báo Cáo Tổng Hợp
+    </button>
+
+    <button onclick="window.switchTab('staffTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_staffTab">
+        <i class="fa-solid fa-users-gear text-base"></i> Quản Lý Nhân Sự
+    </button>
+
+    <button onclick="window.switchTab('customerTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_customerTab">
+        <i class="fa-solid fa-address-book text-base"></i> Quản Lý Khách Hàng
+    </button>
+
+    <button onclick="window.switchTab('cameraTab')" id="nav_cameraTab" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition">
+        <i class="fa-solid fa-video text-base"></i> Quản Lý Camera
+    </button>
+
+    <button onclick="window.switchTab('settingsTab')" class="nav-btn w-full text-left p-3.5 rounded-2xl hover:bg-white/10 text-emerald-100 font-bold text-sm flex items-center gap-3 transition" id="nav_settingsTab">
+        <i class="fa-solid fa-gear text-base"></i> Cài Đặt Danh Mục
+    </button>
+</nav>
+            
+            <div class="p-4 border-t border-emerald-800/60 text-center">
+                <span class="text-[10px] text-emerald-300 font-medium">Phiên bản Quản Trị v2.0</span>
+            </div>
+        </aside>
+
+        <!-- ================= MAIN CONTENT ================= -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-8 shrink-0 shadow-sm">
+    <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg border border-emerald-100 shadow-inner">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+            <h2 id="headerTitle" class="text-base font-black text-slate-900 tracking-tight">Dashboard Tổng Quan Tình Trạng Công Việc</h2>
+            <p class="text-xs text-slate-400 font-medium">Hệ thống giám sát tiến độ và đánh giá hiệu suất kỹ thuật thời gian thực</p>
+        </div>
+    </div>
+    
+    
+    <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl px-4 py-2 shadow-sm hover:border-emerald-300 transition">
+            <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-days text-emerald-600"></i> Kỳ báo cáo:
+            </span>
+            <input type="month" id="filterMonth" class="bg-transparent border-none text-xs font-black text-emerald-700 outline-none cursor-pointer" onchange="window.triggerDataLoad()">
+        </div>
+    </div>
+</header>
+
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+                
+                <!-- TAB 1: DUYỆT & CHẤM KPI -->
+<div id="kpiTab" class="tab-content bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden pb-4">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div>
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Danh Sách Công Việc Chờ Duyệt
+            </h3>
+            <p class="text-xs text-slate-400 font-medium mt-0.5">Nhập điểm KPI và nhận xét trực tiếp để lưu vào hệ thống</p>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-extrabold tracking-wider border-b border-slate-200">
+                <tr>
+                    <th class="p-4 pl-6">Ngày / Kỹ Thuật</th>
+                    <th class="p-4">Khách Hàng & STT</th>
+                    <th class="p-4">Nội Dung & Tư Vấn</th>
+                    <th class="p-4 text-center">Tiêu Chí</th>
+                    <th class="p-4 text-center">TG</th>
+                    <th class="p-4 text-center bg-emerald-50/40">Điểm KPI</th>
+                    <th class="p-4 bg-emerald-50/40">Đánh Giá Từ Quản Lý</th>
+                    <th class="p-4 pr-6 text-center">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody id="adminKpiTable" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
+        </table>
+    </div>
+</div>
+<!-- TAB: QUẢN LÝ CAMERA & THIẾT BỊ CÔNG TRÌNH -->
+<div id="cameraTab" class="tab-content hidden space-y-6 animate-in fade-in duration-200">
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 space-y-5">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="font-black text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-video text-emerald-600"></i> Quản Lý Xuất / Nhập Thiết Bị Camera Công Trình
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">Theo dõi thiết bị xuất, nhập theo từng công trình và nhà thầu</p>
+            </div>
+            <button onclick="window.openAdminCameraModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Thêm Phiếu Xuất/Nhập
+            </button>
+        </div>
+
+        <!-- Bảng danh sách thiết bị camera -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-200">
+                        <th class="p-4 pl-6">Ngày / Thao Tác</th>
+                        <th class="p-4">Tên Công Trình</th>
+                        <th class="p-4">Nhà Thầu / CĐT</th>
+                        <th class="p-4">Thiết Bị / Model</th>
+                        <th class="p-4 text-center">Số Lượng</th>
+                        <th class="p-4">Ghi Chú</th>
+                        <th class="p-4 pr-6 text-center">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody id="adminCameraTableBody" class="divide-y divide-slate-100">
+    <!-- Render từ file admin.js -->
+</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- MODAL QUẢN LÝ THIẾT BỊ CAMERA (NÂNG CẤP NHIỀU THIẾT BỊ) -->
+<div id="adminCameraModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked text-emerald-600"></i> Phiếu Xuất / Nhập Thiết Bị Camera
+            </h3>
+            <button onclick="window.closeAdminCameraModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <form id="adminCameraForm" onsubmit="window.saveAdminCameraDevice(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="adminCamId">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Loại thao tác</label>
+                    <select id="adminCamAction" onchange="window.toggleProjectField()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
+                        <option value="Nhập kho">Nhập về kho kỹ thuật</option>
+                        <option value="Xuất kho">Xuất cho công trình</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Ngày thực hiện</label>
+                    <input type="date" id="adminCamDate" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Người thực hiện</label>
+                    <input type="text" id="adminCamStaff" placeholder="Tên nhân sự..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                </div>
+            </div>
+
+            <!-- Khối thông tin công trình (Chỉ hiển thị hoặc bắt buộc khi Xuất kho) -->
+            <div id="projectInfoContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Tên công trình <span class="text-rose-500">*</span></label>
+                    <input type="text" id="adminCamProject" placeholder="VD: Tòa nhà A..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Nhà thầu / CĐT</label>
+                    <input type="text" id="adminCamContractor" placeholder="VD: Thầu xây dựng XYZ..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
+                </div>
+            </div>
+
+            <!-- DANH SÁCH NHIỀU THIẾT BỊ -->
+            <div class="space-y-2 pt-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-black text-slate-700 uppercase tracking-wide">Danh sách thiết bị trong phiếu</label>
+                    <button type="button" onclick="window.addDeviceRow()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Thêm thiết bị
+                    </button>
+                </div>
+
+                <div class="border border-slate-200 rounded-2xl overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-extrabold">
+                                <th class="p-2.5 pl-3">Tên thiết bị / Model</th>
+                                <th class="p-2.5 w-24 text-center">Số lượng</th>
+                                <th class="p-2.5">Ghi chú / Seri</th>
+                                <th class="p-2.5 w-12 text-center">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceRowsContainer" class="divide-y divide-slate-100 bg-white">
+                            <!-- Các dòng thiết bị sẽ được thêm động ở đây -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pt-3 flex gap-2.5">
+                <button type="button" onclick="window.closeAdminCameraModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Lưu Phiếu</button>
+            </div>
+        </form>
+    </div>
+</div>
+                <!-- TAB: QUẢN LÝ CÔNG VIỆC -->
+<div id="taskTab" class="tab-content hidden space-y-6 pb-12">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        
+        <!-- HEADER CỦA BẢNG -->
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+            <div>
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Quản Lý Danh Sách Công Việc
+                </h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Theo dõi, phân bổ và điều phối công việc kỹ thuật</p>
+            </div>
+            <button onclick="window.openTaskModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition shadow-md shadow-emerald-600/20 flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-plus text-xs"></i> Tạo Mới Công Việc 
+            </button>
+        </div>
+
+        <!-- BẢNG DỮ LIỆU TONE MÀU SÁNG DỊU MẮT (text-sm) -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider font-extrabold border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 pl-6">Ngày tạo / Mã CV</th>
+                        <th class="p-4">Khách hàng</th>
+                        <th class="p-4">Nội dung công việc</th>
+                        <th class="p-4 text-center">Ưu tiên</th>
+                        <th class="p-4 text-center">Tình trạng</th>
+                        <th class="p-4">Người tạo</th>
+                        <th class="p-4 pr-6 text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTaskTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                    <!-- Dữ liệu render từ admin.js -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+                <!-- TAB 2: BÁO CÁO TỔNG HỢP THÁNG -->
+<div id="reportTab" class="tab-content hidden space-y-6 pb-12">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        
+        <!-- HEADER CỦA BẢNG -->
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Thống Kê Tổng Hợp Hiệu Suất Tháng
+                </h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Dữ liệu được tổng hợp theo từng nhân sự kỹ thuật</p>
+            </div>
+        </div>
+        
+        <!-- BẢNG DỮ LIỆU TONE SÁNG DỊU MẮT, FONT TO RÕ -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-extrabold tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 pl-6">Kỹ thuật viên</th>
+                        <th class="p-4 text-center">Tổng CV</th>
+                        <th class="p-4 text-center">Tổng TG (p)</th>
+                        <th class="p-4 text-center">Ảnh</th>
+                        <th class="p-4 text-center">Maps</th>
+                        <th class="p-4 text-center">Tư Vấn</th>
+                        <th class="p-4 pr-6 text-center text-emerald-700">Tổng Điểm KPI</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTableBody" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+                <!-- TAB: DASHBOARD TÌNH TRẠNG CÔNG VIỆC (MẪU ĐẲNG CẤP & ĐỒNG TONE) -->
+<div id="dashboardTab" class="tab-content hidden space-y-6 pb-12">
+    
+    <!-- 1. HỆ THỐNG WIDGET CHỈ SỐ NHANH (CARDS) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Tổng số công việc -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between group hover:border-emerald-400 transition">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Tổng Công Việc</span>
+                <h3 id="dashTotalTasks" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-emerald-100">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+        </div>
+
+        <!-- Chờ triển khai -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between group hover:border-amber-400 transition">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-600">Chờ Triển Khai</span>
+                <h3 id="dashWaiting" class="text-3xl font-black text-amber-600 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-amber-100">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+        </div>
+
+        <!-- Đang thực hiện -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between group hover:border-blue-400 transition">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">Đang Thực Hiện</span>
+                <h3 id="dashInProgress" class="text-3xl font-black text-blue-600 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-blue-100">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+            </div>
+        </div>
+
+        <!-- Tạm ngưng -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 flex items-center justify-between group hover:border-rose-400 transition">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-rose-600">Tạm Ngưng</span>
+                <h3 id="dashPaused" class="text-3xl font-black text-rose-600 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-rose-100">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. BIỂU ĐỒ KHỐI LƯỢNG CÔNG VIỆC KỸ THUẬT -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 class="font-black text-slate-800 text-sm flex items-center gap-2.5">
+                <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Biểu Đồ Khối Lượng Công Việc Theo Kỹ Thuật Viên
+            </h3>
+            <span class="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">Thống kê theo kỳ tháng hiện tại</span>
+        </div>
+        <div id="dashWorkloadChart" class="space-y-3 pt-2 min-h-[140px] flex items-center justify-center text-xs text-slate-400">
+            <!-- Render từ admin.js -->
+        </div>
+    </div>
+
+    <!-- 3. KANBAN 3 CỘT THEO TRẠNG THÁI TỒN ĐỌNG -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Chờ triển khai -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-amber-100 pb-3">
+                <h4 class="font-extrabold text-amber-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-amber-500"></i> Chờ Triển Khai
+                </h4>
+                <span id="badgeWaitingCount" class="bg-amber-100 text-amber-800 font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
+            </div>
+            <div id="listWaitingTasks" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- Đang thực hiện -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-blue-100 pb-3">
+                <h4 class="font-extrabold text-blue-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-spinner text-blue-500"></i> Đang Thực Hiện
+                </h4>
+                <span id="badgeInProgressCount" class="bg-blue-100 text-blue-800 font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
+            </div>
+            <div id="listInProgressTasks" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- Tạm ngưng -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-5 space-y-3">
+            <div class="flex justify-between items-center border-b border-rose-100 pb-3">
+                <h4 class="font-extrabold text-rose-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Tạm Ngưng
+                </h4>
+                <span id="badgePausedCount" class="bg-rose-100 text-rose-800 font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
+            </div>
+            <div id="listPausedTasks" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+    </div>
+
+    <!-- 4. BẢNG TỔNG HỢP THỜI GIAN LÀM VIỆC & TĂNG CA -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 class="font-black text-slate-800 text-sm flex items-center gap-2.5">
+                <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Bảng Tổng Hợp Thời Gian Làm Việc & Tăng Ca Kỹ Thuật
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-emerald-950 text-white uppercase text-[10px] tracking-wider font-extrabold">
+                        <th class="p-3.5 pl-5 rounded-l-2xl">Kỹ thuật viên</th>
+                        <th class="p-3.5 text-center">Chờ triển khai</th>
+                        <th class="p-3.5 text-center">Đang làm</th>
+                        <th class="p-3.5 text-center">Hoàn thành</th>
+                        <th class="p-3.5 text-center">Tạm ngưng</th>
+                        <th class="p-3.5 text-center">Tổng TG Làm (phút)</th>
+                        <th class="p-3.5 pr-5 text-center rounded-r-2xl text-amber-300">Tổng TG Tăng Ca (phút)</th>
+                    </tr>
+                </thead>
+                <tbody id="dashStaffSummaryTable" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+                <!-- TAB: QUẢN LÝ NHÂN SỰ & TÀI KHOẢN -->
+<div id="staffTab" class="tab-content hidden space-y-6 pb-12">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        
+        <!-- HEADER CỦA BẢNG & NÚT THÊM MỚI -->
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Danh Sách Kỹ Thuật Viên Hệ Thống
+                </h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Quản lý tài khoản, thông tin phân quyền nhân sự kỹ thuật</p>
+            </div>
+            <button onclick="window.openStaffModal('add')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-2xl font-bold text-sm transition shadow-md shadow-emerald-600/20 flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-user-plus text-xs"></i> Thêm Nhân Sự Mới
+            </button>
+        </div>
+
+        <!-- BẢNG DANH SÁCH NHÂN SỰ (FONT TO RÕ, TONE DỊU MẮT) -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-extrabold tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 pl-6">Tên kỹ thuật</th>
+                        <th class="p-4">Chức vụ</th>
+                        <th class="p-4">Tài khoản</th>
+                        <th class="p-4">Mật khẩu</th>
+                        <th class="p-4">Telegram ID</th>
+                        <th class="p-4 pr-6 text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA NHÂN SỰ -->
+<div id="staffModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 id="staffModalTitle" class="font-black text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-emerald-600"></i> Thêm Tài Khoản Kỹ Thuật Mới
+            </h3>
+            <button onclick="window.closeStaffModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+        
+        <form id="staffForm" onsubmit="window.saveStaff(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="editStaffOriginalUsername"> <!-- Dùng để định danh khi sửa -->
+            
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Tên kỹ thuật viên <span class="text-rose-500">*</span></label>
+                <input type="text" id="staffName" placeholder="VD: Nguyễn Văn A" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Chức vụ <span class="text-rose-500">*</span></label>
+                <input type="text" id="staffRole" placeholder="VD: Kỹ thuật viên trưởng" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Tài khoản đăng nhập <span class="text-rose-500">*</span></label>
+                <input type="text" id="staffUsername" placeholder="VD: nguyenvana" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Mật khẩu <span class="text-rose-500">*</span></label>
+                <input type="text" id="staffPassword" placeholder="VD: 123456" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            <div class="space-y-1">
+    <label class="block font-bold text-slate-600">Chat ID Telegram</label>
+    <input type="text" id="staffTelegramId" placeholder="VD: 123456789" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+    <p class="text-[10px] text-slate-400 font-medium">Dùng để nhận thông báo công việc tự động qua Telegram.</p>
+</div>
+            
+            <div class="pt-3 flex gap-2">
+                <button type="button" onclick="window.closeStaffModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Lưu Thông Tin</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- TAB: QUẢN LÝ KHÁCH HÀNG -->
+<div id="customerTab" class="tab-content hidden space-y-6 pb-12">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Danh Sách Khách Hàng Đã Lưu
+                </h3>
+                <p class="text-xs text-slate-400 font-medium mt-0.5">Khách hàng được tự động ghi nhận từ các phiếu công việc</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-extrabold tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 pl-6">Tên Khách Hàng</th>
+                        <th class="p-4">Số Điện Thoại</th>
+                        <th class="p-4">Tổng Số Công Việc</th>
+                        <th class="p-4 pr-6 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTableBody" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+               <!-- TAB: CÀI ĐẶT DANH MỤC -->
+<div id="settingsTab" class="tab-content hidden space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Cài đặt loại công việc -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-list text-emerald-600"></i> Cài Đặt Loại Công Việc 
+            </h3>
+            <form onsubmit="window.addSettingItem(event, 'taskTypes')" class="flex gap-2">
+                <input type="text" id="newSettingTaskType" placeholder="Nhập loại công việc mới..." required class="flex-1 border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-emerald-700 transition">Thêm</button>
+            </form>
+            <div id="settingTaskTypeList" class="space-y-2 pt-2"></div>
+        </div>
+
+        <!-- Cài đặt mức độ ưu tiên -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-flag text-emerald-600"></i> Cài Đặt Mức Độ Ưu Tiên 
+            </h3>
+            <form onsubmit="window.addSettingItem(event, 'priorities')" class="flex gap-2">
+                <input type="text" id="newSettingPriority" placeholder="Nhập mức độ ưu tiên mới..." required class="flex-1 border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-emerald-700 transition">Thêm</button>
+            </form>
+            <div id="settingPriorityList" class="space-y-2 pt-2"></div>
+        </div>
+    </div>
+
+    <!-- KHỐI CÀI ĐẶT THÔNG BÁO TELEGRAM (CẬP NHẬT ĐẦY ĐỦ TRẠNG THÁI) -->
+<div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-5">
+    <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+        <div>
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Cấu Hình Bot Telegram & Thông Báo Đầy Đủ
+            </h3>
+            <p class="text-xs text-slate-400 font-medium mt-0.5">Tùy chỉnh bật/tắt thông báo tự động cho từng trạng thái công việc</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <!-- Bot Token -->
+        <div class="space-y-1.5">
+            <label class="block font-bold text-slate-600">Telegram Bot Token <span class="text-rose-500">*</span></label>
+            <input type="text" id="settingBotToken" placeholder="VD: 681234567:AAH..." class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition font-mono">
+        </div>
+
+        <!-- Chat ID Nhóm Quản Lý Chung -->
+        <div class="space-y-1.5">
+            <label class="block font-bold text-slate-600">Chat ID Nhóm Quản Lý (Group/Channel)</label>
+            <input type="text" id="settingAdminChatId" placeholder="VD: -100123456789" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition font-mono">
+        </div>
+    </div>
+    <button onclick="window.testBotGroup()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold text-xs transition shadow-md shadow-blue-600/20 flex items-center gap-2 active:scale-95">
+        <i class="fa-solid fa-paper-plane"></i> Test Bot Nhóm
+    </button>
+
+    <!-- Tùy chọn sự kiện chi tiết -->
+    <div class="space-y-3 pt-2">
+        <label class="block font-bold text-slate-700 text-xs uppercase tracking-wider">Chọn Các Trạng Thái Cần Gửi Thông Báo</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+                <input type="checkbox" id="notifOnCreate" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                <span class="font-bold text-slate-700 text-xs">✨ Tạo mới công việc</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+                <input type="checkbox" id="notifOnInProgress" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                <span class="font-bold text-slate-700 text-xs">🚀 Bắt đầu thực hiện</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+                <input type="checkbox" id="notifOnPause" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                <span class="font-bold text-slate-700 text-xs">⏸️ Tạm ngưng công việc</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+        <input type="checkbox" id="notifOnStartOvertime" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+        <span class="font-bold text-slate-700 text-xs">⏱️ Bắt đầu tăng ca</span>
+    </label>
+    <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+        <input type="checkbox" id="notifOnEndOvertime" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+        <span class="font-bold text-slate-700 text-xs">🏁 Kết thúc tăng ca</span>
+    </label>
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+                <input type="checkbox" id="notifOnComplete" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                <span class="font-bold text-slate-700 text-xs">✅ Hoàn thành công việc</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl cursor-pointer hover:border-emerald-300 transition">
+                <input type="checkbox" id="notifOnKpi" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                <span class="font-bold text-slate-700 text-xs">⭐ Quản lý chấm KPI</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Nút lưu cài đặt -->
+    <div class="pt-2 flex justify-end">
+        <button onclick="window.saveTelegramSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-2 active:scale-95">
+            <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Telegram
+        </button>
+    </div>
+</div>
+</div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODAL TẠO / SỬA CÔNG VIỆC ================= -->
+    <div id="taskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="taskModalTitle" class="font-extrabold text-slate-800 text-base"><i class="fa-solid fa-tasks text-emerald-600 mr-2"></i> Tạo Mới Công Việc</h3>
+                <button onclick="window.closeTaskModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+            </div>
+            <form id="taskForm" onsubmit="window.saveTask(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="editTaskId">
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
+                        <input type="date" id="taskNgayTao" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Mã CV (Tự động)</label>
+                        <input type="text" id="taskMaCv" readonly class="w-full p-2 bg-slate-100 text-emerald-700 font-extrabold border border-slate-200 rounded-xl outline-none cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Tình trạng CV</label>
+                        <select id="taskTinhTrang" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
+                            <option value="Chờ triển khai">Chờ triển khai</option>
+                            <option value="Đang thực hiện">Đang thực hiện</option>
+                            <option value="Tạm ngưng">Tạm ngưng</option>
+                            <option value="Đã hoàn thành">Đã hoàn thành</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cụm thông tin khách hàng trong Modal Tạo/Sửa công việc -->
+<div class="grid grid-cols-2 gap-3">
+    <!-- Tên khách hàng có hỗ trợ gợi ý dropdown -->
+    <div class="relative">
+        <label class="block font-bold text-slate-500 mb-1">Tên khách hàng <span class="text-rose-500">*</span></label>
+        <input type="text" id="taskKhachHang" required placeholder="Nhập hoặc chọn tên..." autocomplete="off" oninput="window.filterCustomerSuggestions(this.value)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+        
+        <!-- Khung dropdown gợi ý -->
+        <div id="customerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
+    </div>
+
+    <!-- Trường Số điện thoại hiển thị rõ ràng -->
+    <div>
+        <label class="block font-bold text-slate-500 mb-1">Số điện thoại</label>
+        <input type="text" id="taskDienThoai" placeholder="Số điện thoại KH" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+    </div>
+</div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Loại công việc</label>
+                        <select id="taskLoaiCv" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                            <!-- Load động từ cài đặt -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Mức độ ưu tiên</label>
+                        <select id="taskUuTien" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                            <!-- Load động từ cài đặt -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Nội dung công việc</label>
+                    <textarea id="taskNoiDung" required rows="2" placeholder="Chi tiết nội dung..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật phụ trách</label>
+                        <select id="taskKtPhuTrach" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                            <!-- Load động từ danh sách nhân sự -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật hỗ trợ</label>
+                        <select id="taskKtHoTro" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                            <option value="">-- Không có hỗ trợ --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Deadline CV</label>
+                        <input type="datetime-local" id="taskDeadline" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Người tạo CV</label>
+                        <input type="text" id="taskNguoiTao" required placeholder="Người tạo" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Ghi chú</label>
+                        <input type="text" id="taskGhiChu" placeholder="Lưu ý..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Các trường thời gian & GPS được ẩn đi, sẽ tự động cập nhật khi kỹ thuật bấm thực hiện trên app mobile -->
+                <div class="hidden">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="datetime-local" id="taskThoiGianBatDau">
+                        <input type="datetime-local" id="taskThoiGianKetThuc">
+                        <input type="datetime-local" id="taskBatDauTangCa">
+                        <input type="datetime-local" id="taskKetThucTangCa">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" id="taskGpsThucHien">
+                        <input type="text" id="taskGpsTamNgung">
+                        <input type="text" id="taskGpsHoanThanh">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="window.closeTaskModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Lưu Công Việc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+
+    <!-- Kết nối file Script Admin -->
+    <script type="module" src="admin.js"></script>
+</body>
+</html>

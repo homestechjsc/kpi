@@ -30,6 +30,13 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
+    <!-- ================= HIỆU ỨNG VUỐT RELOAD (PULL TO REFRESH) ================= -->
+    <div id="ptrIndicator" class="absolute top-0 left-0 right-0 flex justify-center items-center h-12 -translate-y-full transition-transform duration-200 z-50 pointer-events-none">
+        <div class="bg-white px-4 py-1.5 rounded-full shadow-md border border-slate-200 text-xs font-bold text-emerald-600 flex items-center gap-2">
+            <i id="ptrIcon" class="fa-solid fa-rotate-right animate-spin"></i>
+            <span id="ptrText">Thả để làm mới...</span>
+        </div>
+    </div>
 
     <!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
     <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-600 to-teal-900 z-50 fixed inset-0">

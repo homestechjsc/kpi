@@ -137,7 +137,66 @@
                 <i class="fa-solid fa-plus"></i> Thêm Phiếu Xuất/Nhập
             </button>
         </div>
+        <!-- 4 THẺ THỐNG KÊ TỔNG QUAN KHO -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <!-- Đang lắp Camera -->
+    <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+        <div class="text-[10px] font-bold text-amber-600 uppercase">Camera Đang Lắp Công Trình</div>
+        <div id="statInstalledCam" class="text-xl font-black text-amber-900">0</div>
+    </div>
+    <!-- Tồn kho Camera -->
+    <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+        <div class="text-[10px] font-bold text-emerald-600 uppercase">Tồn Kho Camera Thực Tế</div>
+        <div id="statRemainingCam" class="text-xl font-black text-emerald-900">0</div>
+    </div>
+    <!-- Đang lắp Thẻ nhớ -->
+    <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+        <div class="text-[10px] font-bold text-blue-600 uppercase">Thẻ Nhớ Đang Lắp Công Trình</div>
+        <div id="statInstalledCard" class="text-xl font-black text-blue-900">0</div>
+    </div>
+    <!-- Tồn kho Thẻ nhớ -->
+    <div class="bg-teal-50 border border-teal-200 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+        <div class="text-[10px] font-bold text-teal-600 uppercase">Tồn Kho Thẻ Nhớ Thực Tế</div>
+        <div id="statRemainingCard" class="text-xl font-black text-teal-900">0</div>
+    </div>
+</div>
+<!-- ================= MODAL XÁC NHẬN THU HỒI / NHẬP VỀ KHO ================= -->
+<div id="returnCameraModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-rotate-left text-emerald-600"></i> Xác Nhận Thu Hồi Thiết Bị Về Kho
+            </h3>
+            <button onclick="window.closeReturnModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
 
+        <div class="text-xs text-slate-500">
+            Kiểm tra lại số lượng thực tế thu hồi từ công trình. Bạn có thể điều chỉnh giảm số lượng nếu có thiết bị hư hỏng hoặc thất lạc trước khi bấm xác nhận.
+        </div>
+
+        <input type="hidden" id="returnReceiptId">
+
+        <div class="border border-slate-200 rounded-2xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-extrabold">
+                        <th class="p-2.5 pl-3">Tên thiết bị / Model</th>
+                        <th class="p-2.5 w-32 text-center">SL Thực Tế Thu Hồi</th>
+                        <th class="p-2.5">Ghi chú / Tình trạng</th>
+                    </tr>
+                </thead>
+                <tbody id="returnDeviceRowsContainer" class="divide-y divide-slate-100 bg-white">
+                    <!-- Render động danh sách thiết bị cần thu hồi -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pt-3 flex gap-2.5">
+            <button type="button" onclick="window.closeReturnModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+            <button type="button" onclick="window.confirmReturnToStock(event)" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Xác Nhận Nhập Kho</button>
+        </div>
+    </div>
+</div>
         <!-- Bảng danh sách thiết bị camera -->
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">

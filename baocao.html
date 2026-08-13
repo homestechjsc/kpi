@@ -320,6 +320,28 @@
         </form>
     </div>
 </div>
+<!-- MODAL LÝ DO TẠM NGƯNG CÔNG VIỆC -->
+<div id="pauseReasonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Nhập Lý Do Tạm Ngưng
+            </h3>
+            <button onclick="window.closePauseModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+        </div>
+        <div class="space-y-3 text-xs">
+            <input type="hidden" id="pauseTaskId">
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Lý do tạm ngưng <span class="text-rose-500">*</span></label>
+                <textarea id="inputPauseReason" required rows="3" placeholder="Nhập lý do tạm ngưng công việc..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-medium"></textarea>
+            </div>
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="window.closePauseModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                <button type="button" onclick="window.submitPauseTaskWithReason()" class="flex-1 bg-amber-500 text-white py-2.5 rounded-xl font-bold hover:bg-amber-600 transition shadow-md">Xác Nhận Tạm Ngưng</button>
+            </div>
+        </div>
+    </div>
+</div>
         </main>
 
         <!-- ================= BOTTOM NAVIGATION (MENU DƯỚI) ================= -->
@@ -630,53 +652,26 @@
 
         <form id="paymentForm" onsubmit="window.submitCompleteTaskWithPayment(event)" class="space-y-3.5 text-xs">
             <input type="hidden" id="payTaskId">
-
-            <!-- Nhóm Tính Phí -->
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <h4 class="font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i> Thông Tin Tính Phí</h4>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-500 mb-1">Hình thức thanh toán</label>
-                        <select id="payHinhThuc" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="Tiền mặt">Tiền mặt</option>
-                            <option value="Chuyển khoản">Chuyển khoản</option>
-                            <option value="Quẹt thẻ">Quẹt thẻ</option>
-                            <option value="Miễn phí">Miễn phí / Bảo hành</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-500 mb-1">Số tiền (VNĐ)</label>
-                        <input type="number" id="paySoTien" placeholder="VD: 500000" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ghi chú thanh toán</label>
-                    <input type="text" id="payGhiChuPhi" placeholder="Chi tiết phí dịch vụ..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
-                </div>
+            
+            <!-- 3 NÚT LỰA CHỌN HÌNH THỨC HOÀN THÀNH -->
+            <div class="grid grid-cols-3 gap-2 pt-1">
+                <button type="button" onclick="window.switchCompletionMode('tinhphi')" id="btnModeTinhPhi" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-emerald-600 text-white shadow-md">
+                    <i class="fa-solid fa-file-invoice-dollar text-sm"></i> Tính Phí
+                </button>
+                <button type="button" onclick="window.switchCompletionMode('baohanh')" id="btnModeBaoHanh" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-shield-halved text-sm"></i> Bảo Hành
+                </button>
+                <button type="button" onclick="window.switchCompletionMode('hotro')" id="btnModeHoTro" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-handshake-angle text-sm"></i> Hỗ Trợ
+                </button>
             </div>
 
-            <!-- Các thông tin bổ sung: Hỗ trợ, Công nợ, Bảo hành -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Hỗ trợ</label>
-                    <input type="text" id="payHoTro" placeholder="Người hỗ trợ thêm" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Công nợ</label>
-                    <select id="payCongNo" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
-                        <option value="Không">Không nợ</option>
-                        <option value="Có nợ">Có ghi nợ</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Bảo hành</label>
-                    <input type="text" id="payBaoHanh" placeholder="VD: 3 tháng, 6 tháng" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
+            <!-- KHU VỰC NỘI DUNG FORM ĐỘNG TÙY THEO NÚT ĐƯỢC BẤM -->
+            <div id="completionFormContainer" class="space-y-3 text-xs pt-2">
+                <!-- Nội dung form động được render bằng JavaScript -->
             </div>
 
-            <!-- Nút bấm hành động -->
+            <!-- Nút bấm hành động chung -->
             <div class="pt-3 flex gap-2.5">
                 <button type="button" onclick="window.closePaymentModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
                 <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Xác Nhận Hoàn Thành</button>

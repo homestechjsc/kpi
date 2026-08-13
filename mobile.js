@@ -1127,88 +1127,7 @@ window.openEditTaskModal = (id) => {
 
     document.getElementById('editTaskModal').classList.remove('hidden');
 };
-// Mở modal thanh toán khi bấm Hoàn Thành
-window.openPaymentModal = (id) => {
-    const modal = document.getElementById('paymentModal');
-    const taskIdInput = document.getElementById('payTaskId');
-    if (taskIdInput) taskIdInput.value = id;
-    
-    const form = document.getElementById('paymentForm');
-    if (form) form.reset();
-    
-    if (modal) modal.classList.remove('hidden');
-};
 
-// Đóng modal thanh toán
-window.closePaymentModal = () => {
-    const modal = document.getElementById('paymentModal');
-    if (modal) modal.classList.add('hidden');
-};
-
-// Lưu thông tin thanh toán và chuyển trạng thái thành Đã hoàn thành lên Firebase
-window.submitCompleteTaskWithPayment = (e) => {
-    e.preventDefault();
-    const id = document.getElementById('payTaskId').value;
-    if (!id) return;
-
-    // Lấy GPS mới nhất ngay tại thời điểm bấm hoàn thành
-    getFreshGPS((freshGps) => {
-        const task = allAssignedTasks[id] || {};
-        let tangCaList = task.tangCaList || [];
-        const nowISO = new Date().toISOString();
-
-        // Tự động kết thúc các ca tăng ca đang chạy và gán GPS kết thúc mới nhất
-        if (tangCaList.length > 0) {
-            tangCaList = tangCaList.map(s => {
-                if (s.trangThai === 'Đang tăng ca') {
-                    return {
-                        ...s,
-                        ketThuc: nowISO,
-                        gpsKetThuc: freshGps,
-                        trangThai: 'Đã kết thúc'
-                    };
-                }
-                return s;
-            });
-        }
-
-        const paymentData = {
-            tinhTrang: 'Đã hoàn thành',
-            thoiGianKetThuc: nowISO,
-            gpsHoanThanh: freshGps, // Cập nhật GPS hoàn thành mới nhất
-            tangCaList: tangCaList,
-            hinhThucThanhToan: document.getElementById('payHinhThuc')?.value || 'Tiền mặt',
-            soTienThanhToan: Number(document.getElementById('paySoTien')?.value) || 0,
-            ghiChuThanhToan: document.getElementById('payGhiChuPhi')?.value.trim() || '',
-            thongTinHoTroThem: document.getElementById('payHoTro')?.value.trim() || '',
-            tinhTrangCongNo: document.getElementById('payCongNo')?.value || 'Không',
-            thoiGianBaoHanh: document.getElementById('payBaoHanh')?.value.trim() || ''
-        };
-
-        update(ref(db, `managementTasks/${id}`), paymentData)
-            .then(() => {
-                alert("Đã hoàn thành công việc và cập nhật GPS mới nhất thành công!");
-                window.closePaymentModal();
-                // 👉 GỬI THÔNG BÁO TELEGRAM KHI HOÀN THÀNH
-                const mergedData = { ...task, ...paymentData };
-                sendMobileTelegramNotification('complete', mergedData, `Đã hoàn thành. Thanh toán: ${paymentData.soTienThanhToan.toLocaleString()} VNĐ (${paymentData.hinhThucThanhToan})`);
-            })
-            .catch(err => {
-                alert("Lỗi: " + err.message);
-            });
-    });
-    // Tiến hành lấy vị trí GPS trước khi lưu dữ liệu
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const gps = `${position.coords.latitude}, ${position.coords.longitude}`;
-            executeUpdate(gps);
-        }, () => {
-            executeUpdate("Không lấy được GPS");
-        }, { enableHighAccuracy: true });
-    } else {
-        executeUpdate("Không hỗ trợ GPS");
-    }
-};
 // Hàm hỗ trợ lấy GPS chính xác và mới nhất (không dùng cache cũ)
 const getFreshGPS = (callback) => {
     if (!navigator.geolocation) {
@@ -1538,4 +1457,213 @@ window.checkForAppUpdates = () => {
     } else {
         alert("Trình duyệt không hỗ trợ tính năng cập nhật này.");
     }
+};
+
+// ================= 1. XỬ LÝ TẠM NGƯNG CÓ LÝ DO =================
+let currentPauseTaskId = null;
+
+window.promptPauseTask = (taskId) => {
+    currentPauseTaskId = taskId;
+    const input = document.getElementById('inputPauseReason');
+    if (input) input.value = '';
+    const modal = document.getElementById('pauseReasonModal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closePauseModal = () => {
+    const modal = document.getElementById('pauseReasonModal');
+    if (modal) modal.classList.add('hidden');
+    currentPauseTaskId = null;
+};
+
+window.submitPauseTaskWithReason = () => {
+    const reason = document.getElementById('inputPauseReason')?.value.trim();
+    if (!reason) {
+        alert("Vui lòng nhập lý do tạm ngưng công việc!");
+        return;
+    }
+    if (!currentPauseTaskId) return;
+
+    // Lấy GPS thực tế khi tạm ngưng nếu có thể, sau đó cập nhật Firebase
+    getFreshGPS((freshGps) => {
+        update(ref(db, `managementTasks/${currentPauseTaskId}`), {
+            tinhTrang: 'Tạm ngưng',
+            lyDoTamNgung: reason,
+            gpsTamNgung: freshGps
+        }).then(() => {
+            alert("Đã cập nhật trạng thái tạm ngưng thành công!");
+            window.closePauseModal();
+        }).catch(err => {
+            alert("Lỗi: " + err.message);
+        });
+    });
+};
+
+
+// ================= 2. XỬ LÝ 3 NÚT HOÀN THÀNH (TÍNH PHÍ, BẢO HÀNH, HỖ TRỢ) =================
+let activeCompletionMode = 'tinhphi'; // Mặc định là tính phí
+
+window.openPaymentModal = (id) => {
+    const modal = document.getElementById('paymentModal');
+    const taskIdInput = document.getElementById('payTaskId');
+    if (taskIdInput) taskIdInput.value = id;
+    
+    // Mặc định mở ở chế độ Tính Phí
+    window.switchCompletionMode('tinhphi');
+    
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closePaymentModal = () => {
+    const modal = document.getElementById('paymentModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.switchCompletionMode = (mode) => {
+    activeCompletionMode = mode;
+    const btnTinhPhi = document.getElementById('btnModeTinhPhi');
+    const btnBaoHanh = document.getElementById('btnModeBaoHanh');
+    const btnHoTro = document.getElementById('btnModeHoTro');
+    const container = document.getElementById('completionFormContainer');
+
+    const activeClass = "py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-emerald-600 text-white shadow-md";
+    const inactiveClass = "py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200";
+
+    if (btnTinhPhi) btnTinhPhi.className = mode === 'tinhphi' ? activeClass : inactiveClass;
+    if (btnBaoHanh) btnBaoHanh.className = mode === 'baohanh' ? activeClass : inactiveClass;
+    if (btnHoTro) btnHoTro.className = mode === 'hotro' ? activeClass : inactiveClass;
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (mode === 'tinhphi') {
+        container.innerHTML = `
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <h4 class="font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i> Thông Tin Tính Phí & Thanh Toán</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Hình thức thanh toán</label>
+                        <select id="payHinhThuc" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="Tiền mặt">Tiền mặt</option>
+                            <option value="Chuyển khoản">Chuyển khoản</option>
+                            <option value="Quẹt thẻ">Quẹt thẻ</option>
+                            <option value="Công nợ">Công nợ (Ghi sổ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Số tiền (VNĐ)</label>
+                        <input type="number" id="paySoTien" placeholder="VD: 500000" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Ghi chú thanh toán</label>
+                    <input type="text" id="payGhiChuPhi" placeholder="Chi tiết phí dịch vụ..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
+                </div>
+            </div>
+        `;
+    } else if (mode === 'baohanh') {
+        container.innerHTML = `
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-200 space-y-3 text-blue-900">
+                <div class="font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-blue-600"></i> Xác Nhận Bảo Hành (Miễn Phí)</div>
+                <p class="text-[11px] text-blue-700">Công việc này nằm trong diện bảo hành, hệ thống ghi nhận chi phí bằng 0 và không tính phí khách hàng.</p>
+                <div>
+                    <label class="block font-bold text-blue-900 mb-1">Ghi chú bảo hành</label>
+                    <input type="text" id="payGhiChuBaoHanh" placeholder="VD: Bảo hành thiết bị thay thế..." class="w-full p-2.5 bg-white border border-blue-200 rounded-xl font-medium text-slate-700">
+                </div>
+            </div>
+        `;
+    } else if (mode === 'hotro') {
+        container.innerHTML = `
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 space-y-3 text-indigo-900">
+                <div class="font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-handshake-angle text-indigo-600"></i> Hỗ Trợ Kỹ Thuật (Miễn Phí)</div>
+                <div>
+                    <label class="block font-bold text-indigo-900 mb-1">Nhập lý do hỗ trợ <span class="text-rose-500">*</span></label>
+                    <textarea id="payLyDoHoTro" rows="3" placeholder="Nhập chi tiết nội dung hỗ trợ..." class="w-full p-2.5 bg-white border border-indigo-200 rounded-xl outline-none font-medium text-slate-700"></textarea>
+                </div>
+            </div>
+        `;
+    }
+};
+
+window.submitCompleteTaskWithPayment = (e) => {
+    e.preventDefault();
+    const id = document.getElementById('payTaskId').value;
+    if (!id) return;
+
+    if (activeCompletionMode === 'hotro') {
+        const lyDoHt = document.getElementById('payLyDoHoTro')?.value.trim();
+        if (!lyDoHt) {
+            alert("Vui lòng nhập lý do hỗ trợ!");
+            return;
+        }
+    }
+
+    // Lấy GPS mới nhất ngay tại thời điểm bấm hoàn thành
+    getFreshGPS((freshGps) => {
+        const task = allAssignedTasks[id] || {};
+        let tangCaList = task.tangCaList || [];
+        const nowISO = new Date().toISOString();
+
+        // Tự động kết thúc các ca tăng ca đang chạy nếu có
+        if (tangCaList.length > 0) {
+            tangCaList = tangCaList.map(s => {
+                if (s.trangThai === 'Đang tăng ca') {
+                    return {
+                        ...s,
+                        ketThuc: nowISO,
+                        gpsKetThuc: freshGps,
+                        trangThai: 'Đã kết thúc'
+                    };
+                }
+                return s;
+            });
+        }
+
+        let paymentData = {
+            tinhTrang: 'Đã hoàn thành',
+            thoiGianKetThuc: nowISO,
+            gpsHoanThanh: freshGps,
+            tangCaList: tangCaList,
+            hinhThucXuLy: activeCompletionMode
+        };
+
+        if (activeCompletionMode === 'tinhphi') {
+            const hinhThuc = document.getElementById('payHinhThuc')?.value || 'Tiền mặt';
+            const soTien = Number(document.getElementById('paySoTien')?.value) || 0;
+            const ghiChu = document.getElementById('payGhiChuPhi')?.value.trim() || '';
+
+            paymentData.chiPhi = soTien;
+            paymentData.soTienThanhToan = soTien;
+            paymentData.hinhThucThanhToan = hinhThuc; // Hỗ trợ cả 'Công nợ'
+            paymentData.ghiChuThanhToan = ghiChu;
+            paymentData.tinhTrangCongNo = (hinhThuc === 'Công nợ') ? 'Có nợ' : 'Không';
+        } else if (activeCompletionMode === 'baohanh') {
+            const ghiChuBh = document.getElementById('payGhiChuBaoHanh')?.value.trim() || '';
+            paymentData.chiPhi = 0;
+            paymentData.soTienThanhToan = 0;
+            paymentData.hinhThucThanhToan = 'Bảo hành (Miễn phí)';
+            paymentData.ghiChuBaoHanh = ghiChuBh;
+            paymentData.tinhTrangCongNo = 'Không';
+        } else if (activeCompletionMode === 'hotro') {
+            const lyDoHt = document.getElementById('payLyDoHoTro')?.value.trim() || '';
+            paymentData.chiPhi = 0;
+            paymentData.soTienThanhToan = 0;
+            paymentData.hinhThucThanhToan = 'Hỗ trợ (Miễn phí)';
+            paymentData.lyDoHoTro = lyDoHt;
+            paymentData.tinhTrangCongNo = 'Không';
+        }
+
+        update(ref(db, `managementTasks/${id}`), paymentData)
+            .then(() => {
+                alert("Đã xác nhận hoàn thành công việc thành công!");
+                window.closePaymentModal();
+                
+                // Gửi thông báo Telegram khi hoàn thành
+                const mergedData = { ...task, ...paymentData };
+                sendMobileTelegramNotification('complete', mergedData, `Đã hoàn thành theo hình thức: ${paymentData.hinhThucThanhToan}`);
+            })
+            .catch(err => {
+                alert("Lỗi: " + err.message);
+            });
+    });
 };

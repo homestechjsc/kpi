@@ -737,9 +737,9 @@
                 
                 <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
-                        <input type="date" id="taskNgayTao" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
+    <label class="block font-bold text-slate-500 mb-1">Thời gian tạo</label>
+    <input type="datetime-local" id="taskNgayTao" onchange="window.updateDeadlineAutomatically()" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+</div>
                     <div>
                         <label class="block font-bold text-slate-500 mb-1">Mã CV (Tự động)</label>
                         <input type="text" id="taskMaCv" readonly class="w-full p-2 bg-slate-100 text-emerald-700 font-extrabold border border-slate-200 rounded-xl outline-none cursor-not-allowed">

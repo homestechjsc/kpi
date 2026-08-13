@@ -279,6 +279,30 @@ function renderAdminTasks() {
             return timeStr.replace('T', ' ').substring(0, 16);
         };
 
+        // Khối hiển thị thông tin thanh toán & hoàn thành công việc
+        let paymentDetailsHtml = '';
+        if (task.tinhTrang === 'Đã hoàn thành') {
+            const xuLyText = task.hinhThucXuLy === 'baohanh' ? 'Bảo hành (Miễn phí)' : (task.hinhThucXuLy === 'hotro' ? 'Hỗ trợ kỹ thuật' : (task.hinhThucXuLy === 'tinhphi' ? 'Tính phí dịch vụ' : (task.hinhThucThanhToan || 'N/A')));
+            const soTienVal = Number(task.soTienThanhToan || task.chiPhi || 0).toLocaleString();
+            
+            paymentDetailsHtml = `
+                <div class="bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="font-extrabold text-emerald-900 border-b border-emerald-200 pb-1.5 flex items-center gap-1.5 text-xs">
+                        <i class="fa-solid fa-receipt text-emerald-600"></i> Thông Tin Thanh Toán & Hoàn Thành Công Việc
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] text-slate-700">
+                        <div><strong class="text-slate-500 block">Hình thức xử lý:</strong> <span class="font-bold text-emerald-700">${xuLyText}</span></div>
+                        <div><strong class="text-slate-500 block">Thanh toán:</strong> <span class="font-medium">${task.hinhThucThanhToan || 'N/A'}</span></div>
+                        <div><strong class="text-slate-500 block">Số tiền:</strong> <span class="font-black text-emerald-800 text-xs">${soTienVal} VNĐ</span></div>
+                        <div><strong class="text-slate-500 block">Công nợ:</strong> <span class="${task.tinhTrangCongNo === 'Có nợ' ? 'text-rose-600 font-bold' : 'text-slate-700'}">${task.tinhTrangCongNo || 'Không'}</span></div>
+                    </div>
+                    ${task.ghiChuThanhToan ? `<div class="text-[11px] text-slate-600 pt-1"><strong>Ghi chú thanh toán:</strong> ${task.ghiChuThanhToan}</div>` : ''}
+                    ${task.lyDoHoTro ? `<div class="text-[11px] text-indigo-700 pt-1"><strong>Lý do hỗ trợ:</strong> ${task.lyDoHoTro}</div>` : ''}
+                    ${task.ghiChuBaoHanh ? `<div class="text-[11px] text-blue-700 pt-1"><strong>Ghi chú bảo hành:</strong> ${task.ghiChuBaoHanh}</div>` : ''}
+                </div>
+            `;
+        }
+
         // Tính tổng thời gian tăng ca từ danh sách tangCaList
         let totalTangCaMinutes = 0;
         let tangCaDetailsHtml = '';
@@ -377,9 +401,12 @@ function renderAdminTasks() {
                                 <div><strong class="text-slate-500">Bắt đầu CV:</strong> ${formatTime(task.thoiGianBatDau)}</div>
                                 <div><strong class="text-slate-500">Kết thúc CV:</strong> ${formatTime(task.thoiGianKetThuc)}</div>
                                 <div><strong class="text-slate-500">GPS Thực hiện:</strong> ${task.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsThucHien)}" target="_blank" class="font-mono text-[11px] text-blue-600 underline font-bold hover:text-blue-800"><i class="fa-solid fa-map-location-dot mr-1"></i>${task.gpsThucHien} (Xem Map)</a>` : '<span class="text-slate-400 italic">Chưa có</span>'}</div>
-<div><strong class="text-slate-500">GPS Hoàn thành:</strong> ${task.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsHoanThanh)}" target="_blank" class="font-mono text-[11px] text-emerald-600 underline font-bold hover:text-emerald-800"><i class="fa-solid fa-map-location-dot mr-1"></i>${task.gpsHoanThanh} (Xem Map)</a>` : '<span class="text-slate-400 italic">Chưa có</span>'}</div>
+                                <div><strong class="text-slate-500">GPS Hoàn thành:</strong> ${task.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsHoanThanh)}" target="_blank" class="font-mono text-[11px] text-emerald-600 underline font-bold hover:text-emerald-800"><i class="fa-solid fa-map-location-dot mr-1"></i>${task.gpsHoanThanh} (Xem Map)</a>` : '<span class="text-slate-400 italic">Chưa có</span>'}</div>
                             </div>
                         </div>
+
+                        <!-- Khối Thông Tin Thanh Toán & Hoàn Thành (Nếu có) -->
+                        ${paymentDetailsHtml}
 
                         <!-- Khối Quản lý Tăng Ca -->
                         <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/60 shadow-sm space-y-3">

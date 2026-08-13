@@ -1381,172 +1381,8 @@ function renderAdminCameraTable(entries) {
         `;
     });
 }
-// 2. Mở Modal chế độ Sửa
-window.openEditAdminCameraModal = (id) => {
-    const item = allCameraDevices[id];
-    if (!item) return;
 
-    const setVal = (elementId, val) => {
-        const el = document.getElementById(elementId);
-        if (el) el.value = val !== undefined && val !== null ? val : '';
-    };
 
-    setVal('adminCamId', id);
-    setVal('adminCamAction', item.action || 'Nhập kho');
-    setVal('adminCamDate', item.date || '');
-    setVal('adminCamStaff', item.staff || '');
-    setVal('adminCamProject', item.projectName || '');
-    setVal('adminCamContractor', item.contractor || '');
-    setVal('adminCamNote', item.note || '');
-
-    window.toggleProjectField();
-
-    const container = document.getElementById('deviceRowsContainer');
-    if (container) {
-        container.innerHTML = '';
-        if (item.devices && Array.isArray(item.devices) && item.devices.length > 0) {
-            item.devices.forEach(d => {
-                window.addDeviceRow(d.deviceName, d.quantity, d.note);
-            });
-        } else {
-            window.addDeviceRow();
-        }
-    }
-
-    const modal = document.getElementById('adminCameraModal');
-    if (modal) modal.classList.remove('hidden');
-};
-
-// 3. Ẩn hiện ô nhập Tên công trình tùy theo chọn Nhập hay Xuất
-window.toggleProjectField = () => {
-    const action = document.getElementById('adminCamAction').value;
-    const projectContainer = document.getElementById('projectInfoContainer');
-    const projectInput = document.getElementById('adminCamProject');
-
-    if (action === 'Nhập kho') {
-        projectContainer.classList.add('hidden');
-        if (projectInput) projectInput.required = false;
-    } else {
-        projectContainer.classList.remove('hidden');
-        if (projectInput) projectInput.required = true;
-    }
-};
-
-// 4. Thêm dòng thiết bị động trong Modal
-window.addDeviceRow = (deviceName = '', quantity = 1, note = '') => {
-    const container = document.getElementById('deviceRowsContainer');
-    if (!container) return;
-
-    const tr = document.createElement('tr');
-    tr.className = 'border-b border-slate-100 device-row';
-    tr.innerHTML = `
-        <td class="p-2 pl-3">
-            <input type="text" placeholder="Tên thiết bị / Model..." value="${deviceName}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium device-name" required>
-        </td>
-        <td class="p-2">
-            <input type="number" min="1" value="${quantity}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-emerald-700 device-qty" required>
-        </td>
-        <td class="p-2">
-            <input type="text" placeholder="Ghi chú / Số seri..." value="${note}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium device-note">
-        </td>
-        <td class="p-2 text-center">
-            <button type="button" onclick="this.closest('tr').remove()" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
-        </td>
-    `;
-    container.appendChild(tr);
-};
-
-// 5. Mở Modal
-window.openAdminCameraModal = () => {
-    document.getElementById('adminCamId').value = '';
-    document.getElementById('adminCameraForm').reset();
-    document.getElementById('adminCamDate').value = new Date().toISOString().split('T')[0];
-    
-    // Xóa sạch bảng thiết bị cũ và mặc định thêm sẵn 1 dòng trống
-    const container = document.getElementById('deviceRowsContainer');
-    if (container) container.innerHTML = '';
-    window.addDeviceRow(); 
-
-    window.toggleProjectField();
-    document.getElementById('adminCameraModal').classList.remove('hidden');
-};
-
-window.closeAdminCameraModal = () => {
-    document.getElementById('adminCameraModal').classList.add('hidden');
-};
-
-// 6. Lưu phiếu (Gom tất cả các dòng thiết bị thành một mảng gửi lên Firebase)
-window.saveAdminCameraDevice = (e) => {
-    e.preventDefault();
-    
-    const getVal = (elementId) => {
-        const el = document.getElementById(elementId);
-        return el ? el.value.trim() : '';
-    };
-
-    const id = getVal('adminCamId');
-    const action = getVal('adminCamAction') || 'Nhập kho';
-    const date = getVal('adminCamDate') || new Date().toISOString().split('T')[0];
-    const staff = getVal('adminCamStaff') || 'Admin';
-    const project = getVal('adminCamProject');
-    const contractor = getVal('adminCamContractor');
-    const note = getVal('adminCamNote');
-
-    // Thu thập danh sách thiết bị từ các dòng động
-    const deviceRows = document.querySelectorAll('.device-row');
-    const devicesList = [];
-
-    deviceRows.forEach(row => {
-        const nameInput = row.querySelector('.device-name');
-        const qtyInput = row.querySelector('.device-qty');
-        const noteInput = row.querySelector('.device-note');
-
-        if (nameInput) {
-            const name = nameInput.value.trim();
-            const qty = qtyInput ? Number(qtyInput.value) || 1 : 1;
-            const deviceNote = noteInput ? noteInput.value.trim() : '';
-
-            if (name) {
-                devicesList.push({ deviceName: name, quantity: qty, note: deviceNote });
-            }
-        }
-    });
-
-    if (devicesList.length === 0) {
-        alert("Vui lòng nhập ít nhất một thiết bị!");
-        return;
-    }
-
-    const deviceData = {
-        action: action,
-        date: date,
-        projectName: action === 'Xuất kho' ? (project || 'Chưa rõ') : 'Kho kỹ thuật',
-        contractor: action === 'Xuất kho' ? (contractor || 'N/A') : 'N/A',
-        devices: devicesList,
-        note: note,
-        staff: staff
-    };
-
-    if (id) {
-        update(ref(db, `cameraDevices/${id}`), deviceData).then(() => {
-            alert("Cập nhật phiếu thành công!");
-            window.closeAdminCameraModal();
-        }).catch(err => alert("Lỗi: " + err.message));
-    } else {
-        push(ref(db, 'cameraDevices'), deviceData).then(() => {
-            alert("Tạo phiếu thành công!");
-            window.closeAdminCameraModal();
-        }).catch(err => alert("Lỗi: " + err.message));
-    }
-};
-// 7. Xóa phiếu
-window.deleteAdminCameraDevice = (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa phiếu thiết bị này không?")) {
-        remove(ref(db, `cameraDevices/${id}`)).then(() => {
-            alert("Đã xóa thành công!");
-        }).catch(err => alert("Lỗi: " + err.message));
-    }
-};
 // ================= 1. TÍNH NĂNG SAO LƯU (BACKUP) =================
 window.backupDatabase = async () => {
     try {
@@ -1606,4 +1442,418 @@ window.restoreDatabase = (event) => {
         }
     };
     reader.readAsText(file);
+};
+
+// ================= QUẢN LÝ CAMERA & THIẾT BỊ CÔNG TRÌNH (TỐI ƯU THEO TÊN & TỒN KHO) =================
+let allCameraReceipts = {}; 
+
+onValue(ref(db, 'cameraDevices'), (snapshot) => {
+    allCameraReceipts = snapshot.exists() ? snapshot.val() : {};
+    renderAdminCameraManagement();
+});
+
+// Hàm render bảng và tính toán thống kê chuẩn xác theo "Camera" và "Thẻ"
+function renderAdminCameraManagement() {
+    const tableBody = document.getElementById('adminCameraTableBody');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+
+    let totalCameraInStock = 0;      // Tổng Camera nhập kho ban đầu
+    let installedCameraCount = 0;    // Camera đang lắp công trình
+
+    let totalCardInStock = 0;        // Tổng Thẻ nhớ nhập kho ban đầu
+    let installedCardCount = 0;      // Thẻ nhớ đang lắp công trình
+
+    const entries = Object.entries(allCameraReceipts).reverse();
+
+    if (entries.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400 font-medium">Chưa có phiếu xuất/nhập thiết bị nào.</td></tr>`;
+        updateCameraStatsUI(0, 0, 0, 0);
+        return;
+    }
+
+    entries.forEach(([id, item]) => {
+        const isExport = item.action === 'Xuất kho';
+        const isReturnNote = item.projectName && item.projectName.includes('Thu hồi'); // Nhận diện phiếu thu hồi
+        
+        let actionBadge = '';
+        if (isExport) {
+            actionBadge = `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full font-black text-[10px]"><i class="fa-solid fa-arrow-up-from-bracket mr-1"></i> Xuất công trình</span>`;
+        } else if (isReturnNote) {
+            actionBadge = `<span class="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-black text-[10px]"><i class="fa-solid fa-rotate-left mr-1"></i> Thu hồi về kho</span>`;
+        } else {
+            actionBadge = `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-black text-[10px]"><i class="fa-solid fa-arrow-down-to-bracket mr-1"></i> Nhập kho kỹ thuật</span>`;
+        }
+
+        let devicesHtml = '';
+        let totalQtyInReceipt = 0;
+
+        if (item.devices && Array.isArray(item.devices)) {
+            item.devices.forEach(d => {
+                const deviceName = (d.deviceName || d.name || '').trim();
+                const qty = Number(d.quantity || d.qty) || 0;
+                totalQtyInReceipt += qty;
+
+                devicesHtml += `<div class="text-slate-700">• ${deviceName} (<strong class="text-emerald-700">${qty} cái</strong>) ${d.note ? '- ' + d.note : ''}</div>`;
+
+                const lowerName = deviceName.toLowerCase();
+                const isCamera = lowerName.startsWith('camera');
+                const isCard = lowerName.startsWith('thẻ') || lowerName.startsWith('the');
+
+                if (isExport) {
+                    // Nếu là phiếu xuất công trình -> Cộng dồn vào số lượng đang lắp
+                    if (isCamera) installedCameraCount += qty;
+                    if (isCard) installedCardCount += qty;
+                } else {
+                    // Nếu là phiếu Nhập kho chuẩn (không tính phiếu thu hồi để tránh bị cộng lặp 2 lần)
+                    if (!isReturnNote) {
+                        if (isCamera) totalCameraInStock += qty;
+                        if (isCard) totalCardInStock += qty;
+                    }
+                }
+            });
+        }
+
+        // Nút hành động Nhập Về Kho khi xuất đi
+        let actionButtons = '';
+        if (isExport) {
+            actionButtons = `
+                <button onclick="window.returnCameraToStock('${id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1 shadow-sm mx-auto mb-1">
+                    <i class="fa-solid fa-rotate-left"></i> Nhập Về Kho
+                </button>`;
+        } else {
+            actionButtons = `<span class="text-slate-400 text-[10px]">Phiếu kho</span>`;
+        }
+
+        tableBody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <td class="p-4 pl-6 align-top">
+                    <div class="font-black text-slate-800">${item.date ? item.date.split('-').reverse().join('/') : ''}</div>
+                    <div class="mt-1">${actionBadge}</div>
+                </td>
+                <td class="p-4 font-bold text-slate-900 align-top">${isExport ? (item.projectName || 'N/A') : '<span class="text-emerald-600 italic">Kho kỹ thuật</span>'}</td>
+                <td class="p-4 font-semibold text-blue-600 align-top">${isExport ? (item.contractor || 'Không có') : 'N/A'}</td>
+                <td class="p-4 align-top">
+                    <div class="space-y-0.5">${devicesHtml}</div>
+                    <div class="text-[10px] text-slate-400 mt-1">Người lập: ${item.staff || 'Admin'}</div>
+                </td>
+                <td class="p-4 text-center font-black text-emerald-700 text-sm align-top">${totalQtyInReceipt} cái</td>
+                <td class="p-4 text-slate-600 align-top">${item.note || 'Không có'}</td>
+                <td class="p-4 pr-6 text-center align-top">
+                    ${actionButtons}
+                    <div class="flex items-center justify-center gap-1.5 mt-1">
+                        <button onclick="window.openEditAdminCameraModal('${id}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-pen"></i> Sửa
+                        </button>
+                        <button onclick="window.deleteAdminCameraDevice('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash"></i> Xóa
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    updateCameraStatsUI(totalCameraInStock, installedCameraCount, totalCardInStock, installedCardCount);
+}
+
+// Cập nhật 4 chỉ số lên giao diện thẻ thống kê
+function updateCameraStatsUI(totalCam, installedCam, totalCard, installedCard) {
+    const remainingCam = Math.max(0, totalCam - installedCam);
+    const remainingCard = Math.max(0, totalCard - installedCard);
+
+    const el1 = document.getElementById('statInstalledCam');     // Đang lắp Camera
+    const el2 = document.getElementById('statRemainingCam');     // Tồn kho Camera
+    const el3 = document.getElementById('statInstalledCard');    // Đang lắp Thẻ nhớ
+    const el4 = document.getElementById('statRemainingCard');    // Tồn kho Thẻ nhớ
+
+    if (el1) el1.textContent = installedCam;
+    if (el2) el2.textContent = remainingCam;
+    if (el3) el3.textContent = installedCard;
+    if (el4) el4.textContent = remainingCard;
+}
+
+// Hàm thu hồi thiết bị về kho
+// 1. Khi bấm nút "Nhập Về Kho" trên bảng danh sách, mở modal hiển thị danh sách để kiểm tra
+window.returnCameraToStock = (receiptId) => {
+    const item = allCameraReceipts[receiptId];
+    if (!item) return;
+
+    document.getElementById('returnReceiptId').value = receiptId;
+    const container = document.getElementById('returnDeviceRowsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Đổ danh sách thiết bị của phiếu xuất đó ra bảng xác nhận
+    if (item.devices && Array.isArray(item.devices)) {
+        item.devices.forEach((d, index) => {
+            const devName = d.deviceName || d.name || '';
+            const qty = Number(d.quantity || d.qty) || 1;
+            const note = d.note || '';
+
+            container.innerHTML += `
+                <tr class="border-b border-slate-100 return-device-row" data-index="${index}">
+                    <td class="p-3 pl-3 font-bold text-slate-800">
+                        ${devName}
+                        <input type="hidden" class="ret-name" value="${devName}">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" value="${qty}" class="w-24 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-emerald-700 ret-qty" required>
+                    </td>
+                    <td class="p-3">
+                        <input type="text" placeholder="VD: Hư hỏng, bể vỡ..." value="${note}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium ret-note">
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    const modal = document.getElementById('returnCameraModal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeReturnModal = () => {
+    const modal = document.getElementById('returnCameraModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+// 2. Khi bấm "Xác Nhận Nhập Kho": Xóa phiếu xuất công trình và cộng dồn thiết bị thực tế về kho
+window.confirmReturnToStock = (e) => {
+    e.preventDefault();
+    const receiptId = document.getElementById('returnReceiptId').value;
+    if (!receiptId) return;
+
+    // Lấy chính xác dữ liệu gốc của phiếu xuất đó để tham chiếu
+    const originalReceipt = allCameraReceipts[receiptId];
+    if (!originalReceipt) {
+        alert("Không tìm thấy dữ liệu phiếu xuất!");
+        return;
+    }
+
+    const rows = document.querySelectorAll('.return-device-row');
+    const updatedDevices = [];
+
+    rows.forEach((row, index) => {
+        const name = row.querySelector('.ret-name').value.trim();
+        const qty = Number(row.querySelector('.ret-qty').value) || 0;
+        const note = row.querySelector('.ret-note').value.trim();
+
+        if (qty > 0) {
+            updatedDevices.push({
+                deviceName: name,
+                quantity: qty, // Lấy đúng số lượng người dùng xác nhận trong modal
+                note: note ? `Thu hồi: ${note}` : 'Thu hồi về kho'
+            });
+        }
+    });
+
+    if (updatedDevices.length === 0) {
+        alert("Số lượng thu hồi thực tế bằng 0 hoặc không có thiết bị hợp lệ!");
+        return;
+    }
+
+    // Tạo phiếu nhập kho mới ghi nhận ĐÚNG số lượng thực tế thu hồi
+    const returnReceiptData = {
+        action: 'Nhập kho',
+        date: new Date().toISOString().split('T')[0],
+        projectName: `Kho kỹ thuật (Thu hồi từ: ${originalReceipt.projectName || 'Công trình'})`,
+        contractor: 'N/A',
+        devices: updatedDevices, // Mảng thiết bị chuẩn xác không bị nhân đôi
+        note: `Thu hồi từ phiếu công trình: ${originalReceipt.projectName || ''}`,
+        staff: 'Admin'
+    };
+
+    // Tiến hành đẩy phiếu nhập mới vào Firebase và XÓA phiếu xuất cũ đi
+    Promise.all([
+        push(ref(db, 'cameraDevices'), returnReceiptData), 
+        remove(ref(db, `cameraDevices/${receiptId}`))     
+    ])
+    .then(() => {
+        alert("Xác nhận nhập kho thành công! Số lượng tồn kho đã được cộng đúng chuẩn thực tế.");
+        window.closeReturnModal();
+    })
+    .catch((err) => {
+        alert("Lỗi khi xác nhận nhập kho: " + err.message);
+    });
+};
+// Mở Modal chế độ Sửa phiếu camera
+window.openEditAdminCameraModal = (id) => {
+    const item = allCameraReceipts[id];
+    if (!item) return;
+
+    const setVal = (elementId, val) => {
+        const el = document.getElementById(elementId);
+        if (el) el.value = val !== undefined && val !== null ? val : '';
+    };
+
+    setVal('adminCamId', id);
+    setVal('adminCamAction', item.action || 'Nhập kho');
+    setVal('adminCamDate', item.date || '');
+    setVal('adminCamStaff', item.staff || '');
+    setVal('adminCamProject', item.projectName || '');
+    setVal('adminCamContractor', item.contractor || '');
+    setVal('adminCamNote', item.note || '');
+
+    window.toggleProjectField();
+
+    const container = document.getElementById('deviceRowsContainer');
+    if (container) {
+        container.innerHTML = '';
+        if (item.devices && Array.isArray(item.devices) && item.devices.length > 0) {
+            item.devices.forEach(d => {
+                window.addDeviceRow(d.deviceName || d.name, d.quantity || d.qty, d.note);
+            });
+        } else {
+            window.addDeviceRow();
+        }
+    }
+
+    const modal = document.getElementById('adminCameraModal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.toggleProjectField = () => {
+    const action = document.getElementById('adminCamAction').value;
+    const projectContainer = document.getElementById('projectInfoContainer');
+    const projectInput = document.getElementById('adminCamProject');
+
+    if (action === 'Nhập kho') {
+        projectContainer.classList.add('hidden');
+        if (projectInput) projectInput.required = false;
+    } else {
+        projectContainer.classList.remove('hidden');
+        if (projectInput) projectInput.required = true;
+    }
+};
+
+// Thêm dòng thiết bị động (Có tích hợp gợi ý tên thiết bị từ lịch sử đã lưu)
+window.addDeviceRow = (deviceName = '', quantity = 1, note = '') => {
+    const container = document.getElementById('deviceRowsContainer');
+    if (!container) return;
+
+    // Tự động thu thập tất cả các tên thiết bị từng dùng để làm danh sách gợi ý (datalist)
+    let uniqueDeviceNames = new Set();
+    Object.values(allCameraReceipts).forEach(receipt => {
+        if (receipt.devices && Array.isArray(receipt.devices)) {
+            receipt.devices.forEach(d => {
+                if (d.deviceName || d.name) uniqueDeviceNames.add(d.deviceName || d.name);
+            });
+        }
+    });
+
+    let datalistOptions = '';
+    uniqueDeviceNames.forEach(name => {
+        datalistOptions += `<option value="${name}">`;
+    });
+
+    const datalistId = 'suggestions_' + Date.now() + Math.random().toString(36).substr(2, 5);
+
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-slate-100 device-row';
+    tr.innerHTML = `
+        <td class="p-2 pl-3">
+            <input type="text" list="${datalistId}" placeholder="Tên thiết bị / Model..." value="${deviceName}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium device-name" required>
+            <datalist id="${datalistId}">
+                ${datalistOptions}
+            </datalist>
+        </td>
+        <td class="p-2">
+            <input type="number" min="1" value="${quantity}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-emerald-700 device-qty" required>
+        </td>
+        <td class="p-2">
+            <input type="text" placeholder="Ghi chú / Số seri..." value="${note}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium device-note">
+        </td>
+        <td class="p-2 text-center">
+            <button type="button" onclick="this.closest('tr').remove()" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+        </td>
+    `;
+    container.appendChild(tr);
+};
+
+window.openAdminCameraModal = () => {
+    document.getElementById('adminCamId').value = '';
+    document.getElementById('adminCameraForm').reset();
+    document.getElementById('adminCamDate').value = new Date().toISOString().split('T')[0];
+    
+    const container = document.getElementById('deviceRowsContainer');
+    if (container) container.innerHTML = '';
+    window.addDeviceRow(); // Tự động bật 1 dòng trống (có gợi ý thiết bị cũ)
+
+    window.toggleProjectField();
+    document.getElementById('adminCameraModal').classList.remove('hidden');
+};
+
+window.closeAdminCameraModal = () => {
+    document.getElementById('adminCameraModal').classList.add('hidden');
+};
+
+window.saveAdminCameraDevice = (e) => {
+    e.preventDefault();
+    
+    const getVal = (elementId) => {
+        const el = document.getElementById(elementId);
+        return el ? el.value.trim() : '';
+    };
+
+    const id = getVal('adminCamId');
+    const action = getVal('adminCamAction') || 'Nhập kho';
+    const date = getVal('adminCamDate') || new Date().toISOString().split('T')[0];
+    const staff = getVal('adminCamStaff') || 'Admin';
+    const project = getVal('adminCamProject');
+    const contractor = getVal('adminCamContractor');
+    const note = getVal('adminCamNote');
+
+    const deviceRows = document.querySelectorAll('.device-row');
+    const devicesList = [];
+
+    deviceRows.forEach(row => {
+        const nameInput = row.querySelector('.device-name');
+        const qtyInput = row.querySelector('.device-qty');
+        const noteInput = row.querySelector('.device-note');
+
+        if (nameInput) {
+            const name = nameInput.value.trim();
+            const qty = qtyInput ? Number(qtyInput.value) || 1 : 1;
+            const deviceNote = noteInput ? noteInput.value.trim() : '';
+
+            if (name) {
+                devicesList.push({ deviceName: name, quantity: qty, note: deviceNote });
+            }
+        }
+    });
+
+    if (devicesList.length === 0) {
+        alert("Vui lòng nhập ít nhất một thiết bị!");
+        return;
+    }
+
+    const deviceData = {
+        action: action,
+        date: date,
+        projectName: action === 'Xuất kho' ? (project || 'Chưa rõ') : 'Kho kỹ thuật',
+        contractor: action === 'Xuất kho' ? (contractor || 'N/A') : 'N/A',
+        devices: devicesList,
+        note: note,
+        staff: staff
+    };
+
+    if (id) {
+        update(ref(db, `cameraDevices/${id}`), deviceData).then(() => {
+            alert("Cập nhật phiếu thành công!");
+            window.closeAdminCameraModal();
+        }).catch(err => alert("Lỗi: " + err.message));
+    } else {
+        push(ref(db, 'cameraDevices'), deviceData).then(() => {
+            alert("Tạo phiếu thành công!");
+            window.closeAdminCameraModal();
+        }).catch(err => alert("Lỗi: " + err.message));
+    }
+};
+
+window.deleteAdminCameraDevice = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa phiếu thiết bị này không?")) {
+        remove(ref(db, `cameraDevices/${id}`)).then(() => {
+            alert("Đã xóa thành công!");
+        }).catch(err => alert("Lỗi: " + err.message));
+    }
 };

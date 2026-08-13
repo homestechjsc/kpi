@@ -488,28 +488,37 @@ window.openTaskModal = (id = null) => {
         document.getElementById('taskGpsTamNgung').value = t.gpsTamNgung || '';
         document.getElementById('taskGpsHoanThanh').value = t.gpsHoanThanh || '';
     } else {
-        // --- PHẦN TẠO MỚI CÔNG VIỆC ---
-        document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-tasks text-emerald-600 mr-2"></i> Tạo Mới Công Việc';
-        document.getElementById('taskTinhTrang').value = 'Chờ triển khai';
-        
-        // 👉 1. Tự động gán Deadline CV là thời gian hiện tại CỘNG THÊM 2 GIỜ
-        const now = new Date(new Date().getTime() + 2 * 60 * 60 * 1000);
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('taskDeadline').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    // --- PHẦN TẠO MỚI CÔNG VIỆC ---
+    document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-tasks text-emerald-600 mr-2"></i> Tạo Mới Công Việc';
+    document.getElementById('taskTinhTrang').value = 'Chờ triển khai';
+    
+    // 👉 1. Tự động gán thời điểm hiện tại cho ô Ngày/Giờ tạo (taskNgayTao)
+    const nowLocal = new Date();
+    const lYear = nowLocal.getFullYear();
+    const lMonth = String(nowLocal.getMonth() + 1).padStart(2, '0');
+    const lDay = String(nowLocal.getDate()).padStart(2, '0');
+    const lHours = String(nowLocal.getHours()).padStart(2, '0');
+    const lMinutes = String(nowLocal.getMinutes()).padStart(2, '0');
+    document.getElementById('taskNgayTao').value = `${lYear}-${lMonth}-${lDay}T${lHours}:${lMinutes}`;
 
-        // 👉 2. Gán Người tạo CV mặc định là "Hệ thống"
-        document.getElementById('taskNguoiTao').value = 'Hệ thống';
-        
-        // Tự động sinh mã CV mới
-        const totalExistingTasks = Object.keys(allTasksData).length;
-        const autoCode = `CV-${String(totalExistingTasks + 1).padStart(2, '0')}`;
-        document.getElementById('taskMaCv').value = autoCode;
-    }
-    document.getElementById('taskModal').classList.remove('hidden');
+    // 👉 2. Tự động gán Deadline CV là thời gian hiện tại CỘNG THÊM 2 GIỜ
+    const deadlineTime = new Date(nowLocal.getTime() + 2 * 60 * 60 * 1000);
+    const dYear = deadlineTime.getFullYear();
+    const dMonth = String(deadlineTime.getMonth() + 1).padStart(2, '0');
+    const dDay = String(deadlineTime.getDate()).padStart(2, '0');
+    const dHours = String(deadlineTime.getHours()).padStart(2, '0');
+    const dMinutes = String(deadlineTime.getMinutes()).padStart(2, '0');
+    document.getElementById('taskDeadline').value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
+
+    // 👉 3. Gán Người tạo CV mặc định là "Hệ thống"
+    document.getElementById('taskNguoiTao').value = 'Hệ thống';
+    
+    // Tự động sinh mã CV mới
+    const totalExistingTasks = Object.keys(allTasksData).length;
+    const autoCode = `CV-${String(totalExistingTasks + 1).padStart(2, '0')}`;
+    document.getElementById('taskMaCv').value = autoCode;
+}
+document.getElementById('taskModal').classList.remove('hidden');
 };
 
 window.closeTaskModal = () => {
@@ -1856,4 +1865,27 @@ window.deleteAdminCameraDevice = (id) => {
             alert("Đã xóa thành công!");
         }).catch(err => alert("Lỗi: " + err.message));
     }
+};
+// Hàm tự động cập nhật Deadline cộng thêm 2 giờ dựa trên Ngày giờ tạo được chọn
+window.updateDeadlineAutomatically = () => {
+    const ngayTaoInput = document.getElementById('taskNgayTao');
+    const deadlineInput = document.getElementById('taskDeadline');
+    
+    if (!ngayTaoInput || !deadlineInput || !ngayTaoInput.value) return;
+
+    // Lấy thời gian từ ô Ngày tạo người dùng vừa chọn
+    const selectedDate = new Date(ngayTaoInput.value);
+    if (isNaN(selectedDate.getTime())) return;
+
+    // Cộng thêm 2 giờ
+    const deadlineTime = new Date(selectedDate.getTime() + 2 * 60 * 60 * 1000);
+    
+    const dYear = deadlineTime.getFullYear();
+    const dMonth = String(deadlineTime.getMonth() + 1).padStart(2, '0');
+    const dDay = String(deadlineTime.getDate()).padStart(2, '0');
+    const dHours = String(deadlineTime.getHours()).padStart(2, '0');
+    const dMinutes = String(deadlineTime.getMinutes()).padStart(2, '0');
+
+    // Gán lại giá trị tự động cho ô Deadline
+    deadlineInput.value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
 };

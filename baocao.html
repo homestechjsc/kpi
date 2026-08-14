@@ -219,7 +219,197 @@
                             Cập Nhật Mật Khẩu Mới
                         </button>
                     </form>
+                    <!-- NÚT DANH MỤC ĐỀ XUẤT (PHIẾU XĂNG & ĐỀ XUẤT VẬT TƯ) -->
+<div class="space-y-2 pt-4 border-t border-slate-200 mt-4">
+    <div class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider px-1">Danh Mục Đề Xuất</div>
+    <div class="grid grid-cols-2 gap-2">
+        <button onclick="window.openFuelTabModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 p-3 rounded-2xl font-bold text-xs transition flex flex-col items-center justify-center gap-1.5 border border-emerald-200 shadow-sm">
+            <i class="fa-solid fa-gas-pump text-base text-emerald-600"></i> Quản Lý Phiếu Xăng
+        </button>
+        <button onclick="window.openSupplyTabModal()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-3 rounded-2xl font-bold text-xs transition flex flex-col items-center justify-center gap-1.5 border border-blue-200 shadow-sm">
+            <i class="fa-solid fa-boxes-packing text-base text-blue-600"></i> Đề Xuất Vật Tư
+        </button>
+    </div>
+</div>
 
+<!-- ================= MODAL QUẢN LÝ PHIẾU XĂNG ================= -->
+<div id="fuelTabModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-gas-pump text-emerald-600"></i> Quản Lý Phiếu Xăng
+            </h3>
+            <button onclick="window.closeFuelTabModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-500">Danh sách phiếu xăng của bạn</span>
+            <button onclick="window.openCreateFuelModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Tạo Phiếu Xăng
+            </button>
+        </div>
+
+        <div id="fuelListContainer" class="space-y-2.5 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
+    </div>
+</div>
+
+<!-- ================= MODAL TẠO MỚI PHIẾU XĂNG ================= -->
+<div id="createFuelModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-circle-plus text-emerald-600"></i> Tạo Phiếu Xăng Mới
+            </h3>
+            <button onclick="window.closeCreateFuelModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+        <form onsubmit="window.submitCreateFuel(event)" class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Số phiếu</label>
+                    <input type="text" id="fuelSoPhiếu" readonly class="w-full p-2.5 bg-slate-100 text-emerald-700 font-black border border-slate-200 rounded-xl">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
+                    <input type="date" id="fuelNgayTao" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Chọn công việc thực hiện <span class="text-rose-500">*</span></label>
+                <select id="fuelSelectTask" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none">
+                    <option value="">-- Chọn công việc liên quan --</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Số KM đi <span class="text-rose-500">*</span></label>
+                    <input type="number" step="0.1" id="fuelKmDi" required oninput="window.calculateTotalKm()" placeholder="VD: 10.5" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Số KM về <span class="text-rose-500">*</span></label>
+                    <input type="number" step="0.1" id="fuelKmVe" required oninput="window.calculateTotalKm()" placeholder="VD: 25.0" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
+                </div>
+            </div>
+
+            <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex justify-between items-center text-emerald-900 font-bold">
+                <span>Tổng số KM thực tế:</span>
+                <span id="fuelTotalKmDisplay" class="text-sm font-black text-emerald-700">0 KM</span>
+            </div>
+
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="window.closeCreateFuelModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Lưu Phiếu Xăng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL ĐỀ XUẤT VẬT TƯ ================= -->
+<div id="supplyTabModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-boxes-packing text-blue-600"></i> Quản Lý & Tạo Đề Xuất Vật Tư
+            </h3>
+            <button onclick="window.closeSupplyTabModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-500">Danh sách đề xuất của bạn</span>
+            <button onclick="window.openCreateSupplyModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Tạo Đề Xuất Mới
+            </button>
+        </div>
+
+        <!-- Danh sách đề xuất đã tạo -->
+        <div id="supplyListContainer" class="space-y-2.5 max-h-96 overflow-y-auto custom-scrollbar pr-1">
+            <!-- Load động từ mobile.js -->
+        </div>
+    </div>
+</div>
+
+<!-- ================= MODAL TẠO MỚI ĐỀ XUẤT VẬT TƯ ================= -->
+<div id="createSupplyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-file-pen text-blue-600"></i> Tạo Phiếu Đề Xuất Vật Tư
+            </h3>
+            <button onclick="window.closeCreateSupplyModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <form onsubmit="window.submitCreateSupply(event)" class="space-y-3.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
+                    <input type="date" id="supNgayTao" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Người đề xuất</label>
+                    <input type="text" id="supNguoiXuat" readonly class="w-full p-2.5 bg-slate-100 text-slate-700 font-black border border-slate-200 rounded-xl">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Loại đề xuất <span class="text-rose-500">*</span></label>
+                    <select id="supLoai" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
+                        <option value="Mua công dụng cụ">Mua công dụng cụ</option>
+                        <option value="Mượn hàng">Mượn hàng</option>
+                        <option value="Tạm ứng">Tạm ứng</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Thời gian cần <span class="text-rose-500">*</span></label>
+                    <input type="datetime-local" id="supThoiGianCan" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Nội dung đề xuất <span class="text-rose-500">*</span></label>
+                <textarea id="supNoiDung" required rows="2" placeholder="Nhập tóm tắt nội dung đề xuất..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
+            </div>
+
+            <!-- Danh sách thiết bị đề xuất (Thêm động nhiều dòng) -->
+            <div class="space-y-2 pt-1">
+                <div class="flex justify-between items-center">
+                    <label class="font-black text-slate-700 uppercase tracking-wide">Vật tư / Thiết bị đề xuất</label>
+                    <button type="button" onclick="window.addSupplyDeviceRow()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Thêm vật tư
+                    </button>
+                </div>
+
+                <div class="border border-slate-200 rounded-2xl overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-extrabold">
+                                <th class="p-2.5 pl-3">Tên thiết bị</th>
+                                <th class="p-2.5 w-24 text-center">ĐVT</th>
+                                <th class="p-2.5 w-20 text-center">SL</th>
+                                <th class="p-2.5 w-12 text-center">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplyDeviceRowsContainer" class="divide-y divide-slate-100 bg-white">
+                            <!-- Dòng thiết bị render động -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Ghi chú thêm</label>
+                <input type="text" id="supGhiChu" placeholder="Lưu ý hoặc thông tin kèm theo..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+            </div>
+
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="window.closeCreateSupplyModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-md">Gửi Đề Xuất</button>
+            </div>
+        </form>
+    </div>
+</div>
                     <div class="pt-4 border-t border-slate-100">
                         <button onclick="window.logout()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 py-3.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 active:scale-[0.99]">
                             <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất Khỏi Tài Khoản
@@ -492,7 +682,6 @@
 </div>
     
     <!-- ================= MODAL SỬA CÔNG VIỆC ================= -->
-    <!-- ================= MODAL SỬA CÔNG VIỆC (ĐỒNG BỘ CẤU TRÚC) ================= -->
 <div id="editTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
         <div class="flex justify-between items-center border-b border-slate-100 pb-3">

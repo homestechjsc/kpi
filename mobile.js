@@ -284,10 +284,14 @@ window.deleteTask = (id) => {
 window.submitKPI = (e) => {
     e.preventDefault();
     
+    const ngayTaoVal = document.getElementById('taskNgayTao')?.value || new Date().toISOString().slice(0, 16);
+    // 👉 Quy đổi mốc timestamp chính xác từ thời gian tạo/thực hiện công việc được chọn trên form
+    const ngayTaoTimestampVal = ngayTaoVal ? new Date(ngayTaoVal).getTime() : Date.now();
+
     // Lấy dữ liệu từ form chuẩn mới
     const newTask = {
-        ngayTao: document.getElementById('taskNgayTao')?.value || new Date().toISOString().split('T')[0],
-        ngayTaoTimestamp: Date.now(), // 👉 Bổ sung: Lưu mốc thời gian tạo chính xác để tính 15 phút
+        ngayTao: ngayTaoVal,
+        ngayTaoTimestamp: ngayTaoTimestampVal, // 👉 Dùng mốc thời gian theo ý muốn người dùng thay vì Date.now()
         maCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         sttCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         tinhTrang: document.getElementById('taskTinhTrang')?.value || 'Chờ triển khai',
@@ -305,7 +309,7 @@ window.submitKPI = (e) => {
         danhGiaMaps: false,
         coTuVanBanHang: false,
         noiDungTuVan: '',
-        hasSentTimeoutAlert: false // 👉 Bổ sung: Đánh dấu chưa gửi cảnh báo quá hạn
+        hasSentTimeoutAlert: false
     };
 
     push(ref(db, 'managementTasks'), newTask)

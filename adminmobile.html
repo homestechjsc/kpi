@@ -68,23 +68,26 @@ body.overflow-hidden {
                 </div>
                 
                 <div class="space-y-2.5 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật viên</label>
-                        <select id="filterStaff" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="">-- Tất cả kỹ thuật --</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
-                            <input type="date" id="filterFromDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
-                            <input type="date" id="filterToDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                    </div>
-                </div>
+    <div>
+        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật viên</label>
+        <!-- Bổ sung onchange -->
+        <select id="filterStaff" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">-- Tất cả kỹ thuật --</option>
+        </select>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+        <div>
+            <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
+            <!-- Bổ sung onchange -->
+            <input type="date" id="filterFromDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+            <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
+            <!-- Bổ sung onchange -->
+            <input type="date" id="filterToDate" onchange="window.triggerDataLoad()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+    </div>
+</div>
 
                 <div class="flex justify-end pt-1">
                     <button onclick="window.resetFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
@@ -119,6 +122,11 @@ body.overflow-hidden {
                             <span id="dashHoanThanh" class="text-xl font-black text-emerald-800">0</span>
                         </div>
                     </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+    <button onclick="window.checkForAppUpdates()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 active:scale-[0.99]">
+        <i id="updateIcon" class="fa-solid fa-arrows-rotate"></i> Kiểm tra phiên bản mới
+    </button>
+</div>
                 </div>
 
                 <!-- Thống kê phụ (Điểm KPI & Tổng thời gian) -->
@@ -229,9 +237,9 @@ body.overflow-hidden {
                 <!-- Hàng 1: Ngày tạo, Mã CV tự động, Tình trạng -->
                 <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="block font-bold text-slate-500 mb-0.5">Ngày tạo</label>
-                        <input type="date" id="adminTaskNgayTao" class="w-full p-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold">
-                    </div>
+    <label class="block font-bold text-slate-500 mb-0.5">Ngày tạo</label>
+    <input type="datetime-local" id="adminTaskNgayTao" onchange="window.updateAdminDeadlineAutomatically()" class="w-full p-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold">
+</div>
                     <div>
                         <label class="block font-bold text-slate-500 mb-0.5">Mã CV</label>
                         <input type="text" id="adminTaskMaCv" readonly class="w-full p-2 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black cursor-not-allowed">
@@ -249,10 +257,13 @@ body.overflow-hidden {
 
                 <!-- Hàng 2: Tên khách hàng & Số điện thoại -->
                 <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-bold text-slate-500 mb-0.5">Khách hàng <span class="text-rose-500">*</span></label>
-                        <input type="text" id="adminTaskKhachHang" required placeholder="Tên khách hàng..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                    </div>
+                    <div class="relative">
+    <label class="block font-bold text-slate-500 mb-0.5">Khách hàng <span class="text-rose-500">*</span></label>
+    <input type="text" id="adminTaskKhachHang" required autocomplete="off" oninput="window.filterAdminCustomerSuggestions(this.value)" placeholder="Nhập hoặc chọn tên khách..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-emerald-500">
+    
+    <!-- Khung dropdown gợi ý -->
+    <div id="adminCustomerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
+</div>
                     <div>
                         <label class="block font-bold text-slate-500 mb-0.5">Số điện thoại</label>
                         <input type="text" id="adminTaskDienThoai" placeholder="SĐT liên hệ..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">

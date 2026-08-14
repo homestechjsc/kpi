@@ -609,10 +609,16 @@ window.closeAdminTaskModal = () => {
 window.saveAdminTask = (e) => {
     e.preventDefault();
     const id = document.getElementById('adminModalTaskId').value;
+    const existingTask = (id && allManagementTasks[id]) ? allManagementTasks[id] : {};
+
+    const ngayTaoVal = document.getElementById('adminTaskNgayTao').value;
+    // 👉 Lấy mốc timestamp chính xác từ thời gian tạo/thực hiện công việc do Admin chọn trên form (tránh bị lỗi treo việc khi tạo việc cho ngày tương lai)
+    const ngayTaoTimestampVal = ngayTaoVal ? new Date(ngayTaoVal).getTime() : Date.now();
 
     const taskData = {
-        ngayTao: document.getElementById('adminTaskNgayTao').value,
-        maCv: document.getElementById('adminTaskMaCv').value,
+        ngayTao: ngayTaoVal,
+        ngayTaoTimestamp: ngayTaoTimestampVal, // 👉 Gán mốc timestamp chuẩn
+        maCv: document.getElementById('adminTaskMaCv').value.trim(),
         tinhTrang: document.getElementById('adminTaskTinhTrang').value,
         khachHang: document.getElementById('adminTaskKhachHang').value.trim(),
         dienThoai: document.getElementById('adminTaskDienThoai').value.trim(),
@@ -622,7 +628,13 @@ window.saveAdminTask = (e) => {
         ktPhuTrach: document.getElementById('adminTaskKtPhuTrach').value,
         ktHoTro: document.getElementById('adminTaskKtHoTro').value,
         deadline: document.getElementById('adminTaskDeadline').value,
-        ghiChu: document.getElementById('adminTaskGhiChu').value.trim()
+        ghiChu: document.getElementById('adminTaskGhiChu').value.trim(),
+        
+        // Giữ lại các trường thời gian & GPS ẩn nếu đang ở chế độ sửa
+        thoiGianBatDau: existingTask.thoiGianBatDau || '',
+        thoiGianKetThuc: existingTask.thoiGianKetThuc || '',
+        gpsThucHien: existingTask.gpsThucHien || '',
+        gpsHoanThanh: existingTask.gpsHoanThanh || ''
     };
 
     if (id) {
@@ -638,13 +650,15 @@ window.saveAdminTask = (e) => {
         taskData.coTuVanBanHang = false;
         taskData.noiDungTuVan = '';
         taskData.nguoiTao = 'Admin Mobile';
+        taskData.alertCount = 0;
+        taskData.lastAlertTime = null;
 
         push(ref(db, 'managementTasks'), taskData)
             .then(() => {
                 alert("Tạo công việc mới thành công!");
                 window.closeAdminTaskModal();
                 
-                // 👉 KÍCH HOẠT GỬI THÔNG BÁO TỚI KỸ THUẬT PHỤ TRÁCH & HỖ TRỢ QUA TELEGRAM
+                // 👉 Kích hoạt gửi thông báo tới kỹ thuật phụ trách & hỗ trợ qua Telegram
                 sendAdminMobileTelegramNotification(taskData);
             })
             .catch(err => alert("Lỗi: " + err.message));

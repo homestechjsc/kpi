@@ -1916,3 +1916,112 @@ window.updateDeadlineAutomatically = () => {
     // Gán lại giá trị tự động cho ô Deadline
     deadlineInput.value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
 };
+// ================= KIỂM TRA CÔNG VIỆC BỊ TREO KHI KỸ THUẬT RẢNH =================
+
+function isTechnicianFree(techName) {
+    if (!techName) return false;
+    const cleanTechName = techName.trim().toLowerCase();
+    
+    const busyTasks = Object.values(allTasksData || {}).filter(task => {
+        const phuTrach = (task.ktPhuTrach || '').trim().toLowerCase();
+        const hoTro = (task.ktHoTro || '').trim().toLowerCase();
+        
+        const isAssignedToTech = (phuTrach === cleanTechName || hoTro === cleanTechName);
+        const isInProgress = (task.tinhTrang === 'Đang thực hiện');
+        
+        return isAssignedToTech && isInProgress;
+    });
+    
+    return busyTasks.length === 0;
+}
+
+function checkPendingTasksTimeout() {
+    if (!allTasksData || Object.keys(allTasksData).length === 0) return;
+    
+    const now = new Date().getTime();
+    const CHECK_INTERVAL_MINUTES = 5 * 60 * 1000; // Chu kỳ 5 phút
+
+    Object.entries(allTasksData).forEach(([id, task]) => {
+        // 🛑 BẮT BUỘC: Nếu công việc KHÔNG CÒN ở trạng thái "Chờ triển khai" (tức là đã nhận, đang làm, tạm ngưng hoặc hoàn thành), 
+        // Lập tức bỏ qua và reset lại bộ đếm cảnh báo nếu lỡ còn lưu trên hệ thống.
+        if (task.tinhTrang !== 'Chờ triển khai') {
+            if (task.alertCount > 0) {
+                update(ref(db, `managementTasks/${id}`), { alertCount: 0, lastAlertTime: null });
+            }
+            return;
+        }
+            
+        // Nếu công việc mới tạo chưa có mốc timestamp
+        if (!task.ngayTaoTimestamp) {
+            update(ref(db, `managementTasks/${id}`), { ngayTaoTimestamp: now, alertCount: 0 });
+            return;
+        }
+
+        const createdAt = task.ngayTaoTimestamp;
+        const lastAlert = task.lastAlertTime || createdAt;
+        const alertCount = task.alertCount || 0;
+
+        const isFirstAlert = (alertCount === 0 && (now - createdAt >= CHECK_INTERVAL_MINUTES));
+        const isRepeatAlert = (alertCount > 0 && alertCount < 3 && (now - lastAlert >= CHECK_INTERVAL_MINUTES));
+
+        if (isFirstAlert || isRepeatAlert) {
+            const techPhuTrach = task.ktPhuTrach;
+            const techHoTro = task.ktHoTro;
+
+            const isPhuTrachFree = techPhuTrach ? isTechnicianFree(techPhuTrach) : false;
+            const isHoTroFree = techHoTro ? isTechnicianFree(techHoTro) : false;
+
+            if (isPhuTrachFree || isHoTroFree) {
+                let freeTechName = isPhuTrachFree ? techPhuTrach : techHoTro;
+                
+                sendTimeoutTelegramNotification(task, freeTechName, alertCount + 1);
+
+                update(ref(db, `managementTasks/${id}`), { 
+                    alertCount: alertCount + 1,
+                    lastAlertTime: now 
+                });
+            }
+        }
+    });
+}
+
+async function sendTimeoutTelegramNotification(taskData, freeTech, times) {
+    try {
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) return;
+        const config = snapshot.val();
+        if (!config.botToken) return;
+
+        const message = encodeURIComponent(
+            `🚨 *[NHẮC NHỞ LẦN ${times}: CÔNG VIỆC BỊ TREO]*\n\n` +
+            `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
+            `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
+            `🛠️ *Kỹ thuật rãnh:* ${freeTech}\n` +
+            `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n\n` +
+            `⚡ *Kỹ thuật đang rảnh việc nhưng chưa tiếp nhận. Yêu cầu xử lý gấp CV!*`
+        );
+
+        if (config.adminChatId) {
+            const adminUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${config.adminChatId}&text=${message}&parse_mode=Markdown`;
+            fetch(adminUrl).catch(err => console.error("Lỗi gửi nhóm:", err));
+        }
+
+        const staffSnapshot = await get(ref(db, 'staffs'));
+        if (staffSnapshot.exists()) {
+            const cleanFreeTech = freeTech.trim().toLowerCase();
+            staffSnapshot.forEach((child) => {
+                const staff = child.val();
+                const staffName = (staff.name || '').trim().toLowerCase();
+                if (staffName === cleanFreeTech && staff.telegramId) {
+                    const techUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${staff.telegramId}&text=${message}&parse_mode=Markdown`;
+                    fetch(techUrl).catch(err => console.error("Lỗi gửi cá nhân:", err));
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Lỗi check timeout telegram:", error);
+    }
+}
+
+// Chạy quét kiểm tra mỗi 1 phút
+setInterval(checkPendingTasksTimeout, 60000);

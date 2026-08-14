@@ -2236,3 +2236,17 @@ window.openCreateSupplyModal = (editId = null) => {
 
     modal.classList.remove('hidden');
 };
+// Hàm ẩn/hiện form đổi mật khẩu
+window.togglePasswordEdit = () => {
+    const container = document.getElementById('passwordEditContainer');
+    if (container) {
+        container.classList.toggle('hidden');
+        // Nếu mở form lên thì tự động focus vào ô mật khẩu hiện tại và reset các ô nhập cũ
+        if (!container.classList.contains('hidden')) {
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('oldPassword').focus();
+        }
+    }
+};

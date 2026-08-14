@@ -2025,3 +2025,176 @@ async function sendTimeoutTelegramNotification(taskData, freeTech, times) {
 
 // Chạy quét kiểm tra mỗi 1 phút
 setInterval(checkPendingTasksTimeout, 60000);
+// ================= QUẢN LÝ PHIẾU XĂNG & ĐỀ XUẤT VẬT TƯ TRANG QUẢN TRỊ =================
+let allAdminFuelReceipts = {};
+let allAdminSupplyRequests = {};
+
+onValue(ref(db, 'fuelReceipts'), (snapshot) => {
+    allAdminFuelReceipts = snapshot.exists() ? snapshot.val() : {};
+    renderAdminFuelTable();
+});
+
+onValue(ref(db, 'supplyRequests'), (snapshot) => {
+    allAdminSupplyRequests = snapshot.exists() ? snapshot.val() : {};
+    renderAdminSupplyTable();
+});
+
+// Hàm gọi khi thay đổi bộ lọc
+window.filterFuelSupplyData = () => {
+    renderAdminFuelTable();
+    renderAdminSupplyTable();
+};
+
+// Hàm đặt lại bộ lọc về mặc định
+window.resetFuelSupplyFilter = () => {
+    if (document.getElementById('filterFromDate')) document.getElementById('filterFromDate').value = '';
+    if (document.getElementById('filterToDate')) document.getElementById('filterToDate').value = '';
+    if (document.getElementById('filterTechName')) document.getElementById('filterTechName').value = '';
+    window.filterFuelSupplyData();
+};
+
+// Lọc dữ liệu chung theo Ngày (ngayTao) và Tên Kỹ Thuật
+function checkFilterCondition(item, techFieldName, dateFieldName) {
+    const fromDate = document.getElementById('filterFromDate')?.value || '';
+    const toDate = document.getElementById('filterToDate')?.value || '';
+    const techKeyword = document.getElementById('filterTechName')?.value.trim().toLowerCase() || '';
+
+    const itemDate = item[dateFieldName] || '';
+    const techName = (item[techFieldName] || '').toLowerCase();
+
+    // Điều kiện lọc ngày
+    if (fromDate && itemDate < fromDate) return false;
+    if (toDate && itemDate > toDate) return false;
+
+    // Điều kiện lọc tên kỹ thuật
+    if (techKeyword && !techName.includes(techKeyword)) return false;
+
+    return true;
+}
+
+// Render bảng phiếu xăng (Kỹ thuật lưu ở trường kyThuhat, ngày ở ngayTao)
+function renderAdminFuelTable() {
+    const tbody = document.getElementById('adminFuelTableBody');
+    const badge = document.getElementById('adminTotalFuelBadge');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const entries = Object.entries(allAdminFuelReceipts).filter(([id, item]) => {
+        return checkFilterCondition(item, 'kyThuhat', 'ngayTao');
+    }).reverse();
+
+    if (badge) badge.textContent = `${entries.length} Phiếu`;
+
+    if (entries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">Không tìm thấy phiếu xăng phù hợp.</td></tr>`;
+        return;
+    }
+
+    entries.forEach(([id, item]) => {
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-3 font-bold text-emerald-700">
+                    <div>${item.soPhiếu}</div>
+                    <div class="text-[10px] text-slate-400 font-normal">${item.ngayTao ? item.ngayTao.split('-').reverse().join('/') : ''}</div>
+                </td>
+                <td class="p-3 font-bold text-slate-800">${item.kyThuhat || 'N/A'}</td>
+                <td class="p-3 text-slate-600 max-w-xs truncate">${item.congViec || 'N/A'}</td>
+                <td class="p-3 text-center font-black text-emerald-700">${item.tongKm} KM</td>
+                <td class="p-3 text-center">
+                    <button onclick="window.deleteAdminFuelReceipt('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm" title="Xóa phiếu xăng">
+                        <i class="fa-solid fa-trash"></i> Xóa
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// ================= CẬP NHẬT HÀM RENDER BẢNG ĐỀ XUẤT VẬT TƯ CÓ NÚT XÓA =================
+function renderAdminSupplyTable() {
+    const tbody = document.getElementById('adminSupplyTableBody');
+    const badge = document.getElementById('adminTotalSupplyBadge');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const entries = Object.entries(allAdminSupplyRequests).filter(([id, item]) => {
+        return checkFilterCondition(item, 'nguoiĐềXuất', 'ngayTao');
+    }).reverse();
+
+    if (badge) badge.textContent = `${entries.length} Đề Xuất`;
+
+    if (entries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 font-medium">Không tìm thấy đề xuất vật tư phù hợp.</td></tr>`;
+        return;
+    }
+
+    entries.forEach(([id, item]) => {
+        let devicesHtml = '';
+        if (item.devices && Array.isArray(item.devices)) {
+            item.devices.forEach(d => {
+                devicesHtml += `<div class="text-slate-600">• ${d.tenVatTu} (<strong class="text-blue-700">${d.soLuong} ${d.donViTinh}</strong>)</div>`;
+            });
+        }
+
+        const status = item.trangThaiDuyet || 'Chờ duyệt';
+        let statusBadgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+        if (status === 'Đã duyệt') statusBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        if (status === 'Từ chối') statusBadgeClass = 'bg-rose-100 text-rose-800 border-rose-200';
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-3 align-top">
+                    <div class="font-bold text-slate-800">${item.nguoiĐềXuất || 'N/A'}</div>
+                    <span class="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-semibold text-[10px]">${item.loaiĐềXuất}</span>
+                </td>
+                <td class="p-3 align-top space-y-1">
+                    <div class="font-bold text-slate-900">${item.noiDung}</div>
+                    <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200/60 text-[11px]">${devicesHtml}</div>
+                    <div class="text-[10px] text-slate-400">Cần lúc: ${item.thoiGianCan ? item.thoiGianCan.replace('T', ' ') : 'N/A'}</div>
+                </td>
+                <td class="p-3 text-center align-top">
+                    <span class="px-2.5 py-1 rounded-full font-black text-[10px] border ${statusBadgeClass}">${status}</span>
+                </td>
+                <td class="p-3 text-center align-top">
+                    <div class="flex flex-col gap-1.5 justify-center">
+                        <button onclick="window.updateSupplyStatus('${id}', 'Đã duyệt')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold text-[10px] transition shadow-sm">
+                            Duyệt
+                        </button>
+                        <button onclick="window.updateSupplyStatus('${id}', 'Từ chối')" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1 rounded-xl font-bold text-[10px] transition shadow-sm">
+                            Từ Chối
+                        </button>
+                    </div>
+                </td>
+                <td class="p-3 text-center align-top">
+                    <button onclick="window.deleteAdminSupplyRequest('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm" title="Xóa đề xuất">
+                        <i class="fa-solid fa-trash"></i> Xóa
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.updateSupplyStatus = (id, newStatus) => {
+    update(ref(db, `supplyRequests/${id}`), { trangThaiDuyet: newStatus })
+        .then(() => {
+            alert(`Đã cập nhật trạng thái đề xuất thành: "${newStatus}"`);
+        })
+        .catch(err => alert("Lỗi khi cập nhật trạng thái: " + err.message));
+};
+window.deleteAdminFuelReceipt = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa phiếu xăng này không?")) {
+        remove(ref(db, `fuelReceipts/${id}`))
+            .then(() => alert("Đã xóa phiếu xăng thành công!"))
+            .catch(err => alert("Lỗi khi xóa: " + err.message));
+    }
+};
+
+// Hàm xóa đề xuất vật tư
+window.deleteAdminSupplyRequest = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa đề xuất vật tư này không?")) {
+        remove(ref(db, `supplyRequests/${id}`))
+            .then(() => alert("Đã xóa đề xuất vật tư thành công!"))
+            .catch(err => alert("Lỗi khi xóa: " + err.message));
+    }
+};

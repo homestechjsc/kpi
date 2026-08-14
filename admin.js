@@ -557,8 +557,13 @@ window.saveTask = (e) => {
     const id = document.getElementById('editTaskId').value;
     const existingTask = (id && allTasksData[id]) ? allTasksData[id] : {};
 
+    const ngayTaoVal = document.getElementById('taskNgayTao').value;
+    // 👉 Lấy mốc timestamp chính xác từ thời gian tạo/thực hiện do bạn chủ động chọn trên form
+    const ngayTaoTimestampVal = ngayTaoVal ? new Date(ngayTaoVal).getTime() : Date.now();
+
     const taskData = {
-        ngayTao: document.getElementById('taskNgayTao').value,
+        ngayTao: ngayTaoVal,
+        ngayTaoTimestamp: ngayTaoTimestampVal, // 👉 Thêm dòng này để bộ quét tính mốc thời gian chuẩn xác
         maCv: document.getElementById('taskMaCv').value.trim(),
         tinhTrang: document.getElementById('taskTinhTrang').value,
         khachHang: document.getElementById('taskKhachHang').value.trim(),

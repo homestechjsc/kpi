@@ -833,7 +833,6 @@ function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
 }
 
 // Hàm hỗ trợ gửi Telegram trực tiếp từ mobile.js
-// Hàm hỗ trợ gửi Telegram trực tiếp từ mobile.js (Đã cập nhật gửi đầy đủ cho Nhóm + Phụ trách + Hỗ trợ)
 async function sendMobileTelegramNotification(actionType, taskData, extraMessage = '') {
     try {
         const snapshot = await get(ref(db, 'settings/telegram'));
@@ -849,44 +848,50 @@ async function sendMobileTelegramNotification(actionType, taskData, extraMessage
             case 'inprogress': isEnabled = config.notifOnInProgress; actionTitle = 'BẮT ĐẦU THỰC HIỆN'; emoji = '🚀'; break;
             case 'pause': isEnabled = config.notifOnPause; actionTitle = 'TẠM NGƯNG CÔNG VIỆC'; emoji = '⏸️'; break;
             case 'complete': isEnabled = config.notifOnComplete; actionTitle = 'HOÀN THÀNH CÔNG VIỆC'; emoji = '✅'; break;
-            case 'update_task': isEnabled = true; actionTitle = 'ĐIỀU PHỐI / CẬP NHẬT CV'; emoji = '🔄'; break; // Kích hoạt cho action cập nhật
+            case 'update_task': isEnabled = true; actionTitle = 'ĐIỀU PHỐI / CẬP NHẬT CV'; emoji = '🔄'; break;
             case 'start_overtime': isEnabled = config.notifOnStartOvertime; actionTitle = 'BẮT ĐẦU TĂNG CA'; emoji = '⏱️'; break;
             case 'end_overtime': isEnabled = config.notifOnEndOvertime; actionTitle = 'KẾT THÚC TĂNG CA'; emoji = '🏁'; break;
         }
 
         if (!isEnabled) return;
 
-        // 👉 Gom danh sách tất cả các Chat ID cần nhận thông báo (Nhóm Quản Lý + Phụ Trách + Hỗ Trợ)
-        let chatIdsToSend = [];
-        if (config.adminChatId) chatIdsToSend.push(config.adminChatId);
+        // Dùng Set ngay từ đầu để gom các Chat ID và loại bỏ hoàn toàn việc trùng lặp
+        const chatIdsSet = new Set();
 
-        // Quét lấy Telegram ID cá nhân từ nhánh 'staffs' trên Firebase
+        // 1. Thêm Chat ID nhóm quản lý (nếu có)
+        if (config.adminChatId) {
+            chatIdsSet.add(config.adminChatId.trim());
+        }
+
+        // 2. Quét lấy Telegram ID cá nhân của kỹ thuật phụ trách và hỗ trợ từ nhánh 'staffs'
         const staffSnapshot = await get(ref(db, 'staffs'));
         if (staffSnapshot.exists()) {
             const staffList = Object.values(staffSnapshot.val());
             
-            // 1. Lấy Telegram ID của Kỹ thuật phụ trách chính
-            const matchedStaff = staffList.find(s => s.name === taskData.ktPhuTrach);
-            if (matchedStaff && matchedStaff.telegramId) {
-                chatIdsToSend.push(matchedStaff.telegramId);
+            // Phụ trách chính
+            if (taskData.ktPhuTrach) {
+                const matchedStaff = staffList.find(s => s.name === taskData.ktPhuTrach);
+                if (matchedStaff && matchedStaff.telegramId) {
+                    chatIdsSet.add(matchedStaff.telegramId.trim());
+                }
             }
 
-            // 2. Lấy Telegram ID của Kỹ thuật hỗ trợ (nếu có chọn)
+            // Kỹ thuật hỗ trợ
             if (taskData.ktHoTro && taskData.ktHoTro !== "") {
                 const supportStaff = staffList.find(s => s.name === taskData.ktHoTro);
                 if (supportStaff && supportStaff.telegramId) {
-                    chatIdsToSend.push(supportStaff.telegramId);
+                    chatIdsSet.add(supportStaff.telegramId.trim());
                 }
             }
         }
 
-        // Tạo dòng hiển thị kỹ thuật cho nội dung tin nhắn
+        // Tạo dòng hiển thị kỹ thuật
         let staffLine = `🛠️ *Kỹ thuật:* ${taskData.ktPhuTrach || 'N/A'}`;
         if (taskData.ktHoTro && taskData.ktHoTro !== "") {
             staffLine += ` + ${taskData.ktHoTro} (Hỗ trợ)`;
         }
 
-        // Định dạng nội dung tin nhắn
+        // Nội dung tin nhắn
         const message = encodeURIComponent(
             `${emoji} *[THÔNG BÁO ${actionTitle}]*\n\n` +
             `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
@@ -897,9 +902,8 @@ async function sendMobileTelegramNotification(actionType, taskData, extraMessage
             `🕒 *Thời gian:* ${new Date().toLocaleString('vi-VN')}`
         );
 
-        // Lọc bỏ các ID bị trùng lặp (tránh gửi 2 lần nếu 1 người vừa ở nhóm vừa cá nhân) và tiến hành bắn API gửi tin
-        const uniqueChatIds = [...new Set(chatIdsToSend)];
-        for (const chatId of uniqueChatIds) {
+        // Tiến hành gửi đi đúng 1 lần duy nhất cho mỗi Chat ID đã được lọc qua Set
+        for (const chatId of chatIdsSet) {
             const url = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${chatId}&text=${message}&parse_mode=Markdown`;
             fetch(url).catch(err => console.error("Lỗi gửi Telegram đến " + chatId, err));
         }

@@ -23,9 +23,12 @@ if (filterMonthEl) {
 // 1. Lắng nghe dữ liệu công việc từ nhánh 'managementTasks'
 onValue(ref(db, 'managementTasks'), (s) => { 
     allManagementTasks = s.exists() ? s.val() : {}; 
+    
+    // 👉 Gọi hàm thu thập danh sách khách hàng tự động ở đây
+    collectAdminCustomersFromTasks(allManagementTasks);
+
     window.triggerDataLoad(); 
 });
-
 // 2. Lắng nghe dữ liệu Nhân sự (Đồng thời đổ vào Select Box Bộ Lọc)
 onValue(ref(db, 'staffs'), (s) => {
     const staffSelect = document.getElementById('filterStaff');
@@ -66,15 +69,26 @@ window.triggerDataLoad = () => {
     const selectedStaff = document.getElementById('filterStaff') ? document.getElementById('filterStaff').value : "";
     const fromDate = document.getElementById('filterFromDate') ? document.getElementById('filterFromDate').value : "";
     const toDate = document.getElementById('filterToDate') ? document.getElementById('filterToDate').value : "";
-    const currentMonth = filterMonthEl ? filterMonthEl.value : "";
+    const currentMonth = filterMonthEl ? filterMonthEl.value : ""; // Định dạng YYYY-MM
 
     const entries = Object.entries(allManagementTasks).filter(([id, d]) => {
-        const taskDate = d.ngayTao || (d.thoiGianKetThuc ? d.thoiGianKetThuc.split('T')[0] : "");
+        // Lấy ngày tạo chuẩn (cắt bỏ phần giờ nếu có, lấy YYYY-MM-DD)
+        const taskDate = d.ngayTao ? d.ngayTao.split('T')[0] : (d.thoiGianKetThuc ? d.thoiGianKetThuc.split('T')[0] : "");
         if (!taskDate) return false;
 
-        let matchMonth = currentMonth ? taskDate.startsWith(currentMonth) : true;
-        let matchStaff = selectedStaff ? (d.ktPhuTrach === selectedStaff || d.ktHoTro === selectedStaff) : true;
+        // 1. Lọc theo tháng (Nếu có chọn tháng và không chọn khoảng ngày chi tiết)
+        let matchMonth = true;
+        if (currentMonth && !fromDate && !toDate) {
+            matchMonth = taskDate.startsWith(currentMonth);
+        }
 
+        // 2. Lọc theo nhân sự (Phụ trách hoặc Hỗ trợ)
+        let matchStaff = true;
+        if (selectedStaff) {
+            matchStaff = (d.ktPhuTrach === selectedStaff || d.ktHoTro === selectedStaff);
+        }
+
+        // 3. Lọc theo khoảng ngày (Từ ngày - Đến ngày)
         let matchDateRange = true;
         if (fromDate && toDate) {
             matchDateRange = taskDate >= fromDate && taskDate <= toDate;
@@ -87,7 +101,7 @@ window.triggerDataLoad = () => {
         return matchMonth && matchStaff && matchDateRange;
     });
 
-    // Sắp xếp
+    // Sắp xếp đưa việc chưa chấm điểm lên đầu, sau đó theo ngày mới nhất
     entries.sort((a, b) => {
         const aChamped = a[1].diemKpi !== undefined && a[1].diemKpi !== null && a[1].diemKpi !== "" && Number(a[1].diemKpi) > 0;
         const bChamped = b[1].diemKpi !== undefined && b[1].diemKpi !== null && b[1].diemKpi !== "" && Number(b[1].diemKpi) > 0;
@@ -98,11 +112,11 @@ window.triggerDataLoad = () => {
         return (b[1].ngayTao || '').localeCompare(a[1].ngayTao || '');
     });
 
-    // 👉 Đảm bảo có đủ 3 hàm render này trong triggerDataLoad:
+    // Render lại toàn bộ các khu vực dữ liệu
     renderKpiMobileList(entries);
     renderMobileReport(entries);
     renderDashboardMetrics(entries);
-    renderAdminMasterTaskList(entries); // Dòng này dùng để đổ dữ liệu vào Tab Công Việc
+    renderAdminMasterTaskList(entries);
 };
 // 5. Nút đặt lại bộ lọc
 window.resetFilter = () => {
@@ -349,6 +363,7 @@ window.toggleFilterBox = () => {
         filterBox.classList.toggle('hidden');
     }
 };
+// 2. Cập nhật hàm render danh sách có tích hợp hiển thị thông tin thanh toán
 function renderAdminMasterTaskList(entries) {
     const container = document.getElementById('adminMasterTaskList');
     const badge = document.getElementById('adminTotalTasksBadge');
@@ -374,6 +389,28 @@ function renderAdminMasterTaskList(entries) {
             if (!timeStr) return '<span class="text-slate-400 italic">Chưa cập nhật</span>';
             return timeStr.replace('T', ' ').substring(0, 16);
         };
+
+        // Khối hiển thị thông tin thanh toán & hoàn thành công việc
+        let paymentDetailsHtml = '';
+        if (item.tinhTrang === 'Đã hoàn thành') {
+            const xuLyText = item.hinhThucXuLy === 'baohanh' ? 'Bảo hành (Miễn phí)' : (item.hinhThucXuLy === 'hotro' ? 'Hỗ trợ kỹ thuật' : (item.hinhThucXuLy === 'tinhphi' ? 'Tính phí dịch vụ' : (item.hinhThucThanhToan || 'N/A')));
+            const soTienVal = Number(item.soTienThanhToan || item.chiPhi || 0).toLocaleString();
+            
+            paymentDetailsHtml = `
+                <div class="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 space-y-1.5 text-xs text-slate-700">
+                    <div class="font-extrabold text-emerald-900 border-b border-emerald-200 pb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-receipt text-emerald-600"></i> Thông Tin Thanh Toán & Hoàn Thành
+                    </div>
+                    <div><strong>Hình thức xử lý:</strong> <span class="font-bold text-emerald-700">${xuLyText}</span></div>
+                    <div><strong>Thanh toán:</strong> ${item.hinhThucThanhToan || 'N/A'}</div>
+                    <div><strong>Số tiền:</strong> <span class="font-black text-emerald-800">${soTienVal} VNĐ</span></div>
+                    <div><strong>Công nợ:</strong> <span class="${item.tinhTrangCongNo === 'Có nợ' ? 'text-rose-600 font-bold' : 'text-slate-700'}">${item.tinhTrangCongNo || 'Không'}</span></div>
+                    ${item.ghiChuThanhToan ? `<div><strong>Ghi chú thanh toán:</strong> ${item.ghiChuThanhToan}</div>` : ''}
+                    ${item.lyDoHoTro ? `<div><strong>Lý do hỗ trợ:</strong> ${item.lyDoHoTro}</div>` : ''}
+                    ${item.ghiChuBaoHanh ? `<div><strong>Ghi chú bảo hành:</strong> ${item.ghiChuBaoHanh}</div>` : ''}
+                </div>
+            `;
+        }
 
         // Tổng hợp lịch sử tăng ca (nếu có)
         let tangCaHtml = '';
@@ -436,6 +473,9 @@ function renderAdminMasterTaskList(entries) {
                         <div><strong>Ghi chú:</strong> ${item.ghiChu || 'Không có'}</div>
                     </div>
 
+                    <!-- Khối thông tin thanh toán & hoàn thành (Chỉ hiện khi hoàn thành) -->
+                    ${paymentDetailsHtml}
+
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
                         <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
                             <i class="fa-solid fa-user-gear text-emerald-600"></i> Phân Công Nhân Sự
@@ -450,8 +490,11 @@ function renderAdminMasterTaskList(entries) {
                             <i class="fa-solid fa-location-crosshairs text-emerald-600"></i> Thời Gian & GPS
                         </div>
                         <div><strong>Bắt đầu:</strong> ${formatTime(item.thoiGianBatDau)}</div>
+                        <div><strong>Tạm ngưng:</strong> ${formatTime(item.thoiGianTamNgung)}</div>
                         <div><strong>Kết thúc:</strong> ${formatTime(item.thoiGianKetThuc)}</div>
-                        <div><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">${item.gpsThucHien}</a>` : 'Chưa có'}</div>
+                        <div class="pt-1 border-t border-slate-200/60 mt-1"><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">${item.gpsThucHien}</a>` : 'Chưa có'}</div>
+                        <div><strong>GPS Tạm ngưng:</strong> ${item.gpsTamNgung ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsTamNgung)}" target="_blank" class="text-amber-600 underline font-bold">${item.gpsTamNgung}</a>` : 'Chưa có'}</div>
+                        <div><strong>GPS Hoàn thành:</strong> ${item.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">${item.gpsHoanThanh}</a>` : 'Chưa có'}</div>
                     </div>
 
                     <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-200 space-y-2">
@@ -494,27 +537,50 @@ window.openAdminTaskModal = () => {
     document.getElementById('adminTaskModalTitle').innerHTML = '<i class="fa-solid fa-list-check text-emerald-600"></i> Tạo Mới Công Việc';
     document.getElementById('adminTaskForm').reset();
     
-    // Gán ngày tạo hiện tại
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('adminTaskNgayTao').value = today;
+    // 👉 Lấy mốc thời gian hiện tại chuẩn định dạng datetime-local (YYYY-MM-DDTHH:mm)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    // Gán thời gian tạo mặc định bằng hiện tại
+    document.getElementById('adminTaskNgayTao').value = currentDateTime;
     
     // Sinh mã CV tự động
     document.getElementById('adminTaskMaCv').value = 'CV-' + Date.now().toString().slice(-4);
 
     // 👉 Tự động đặt Deadline cộng thêm 2 giờ so với thời điểm hiện tại
-    const nowPlusTwoHours = new Date(new Date().getTime() + 2 * 60 * 60 * 1000);
-    const year = nowPlusTwoHours.getFullYear();
-    const month = String(nowPlusTwoHours.getMonth() + 1).padStart(2, '0');
-    const day = String(nowPlusTwoHours.getDate()).padStart(2, '0');
-    const hours = String(nowPlusTwoHours.getHours()).padStart(2, '0');
-    const minutes = String(nowPlusTwoHours.getMinutes()).padStart(2, '0');
-    
-    document.getElementById('adminTaskDeadline').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    window.updateAdminDeadlineAutomatically();
 
     updateStaffSelectOptions();
     document.getElementById('adminTaskModal').classList.remove('hidden');
 };
+// Hàm tự động cập nhật Deadline cộng thêm 2 giờ dựa trên Ngày giờ tạo được chọn
+window.updateAdminDeadlineAutomatically = () => {
+    const ngayTaoInput = document.getElementById('adminTaskNgayTao');
+    const deadlineInput = document.getElementById('adminTaskDeadline');
+    
+    if (!ngayTaoInput || !deadlineInput || !ngayTaoInput.value) return;
 
+    // Lấy thời gian từ ô Ngày tạo người dùng vừa chọn
+    const selectedDate = new Date(ngayTaoInput.value);
+    if (isNaN(selectedDate.getTime())) return;
+
+    // Cộng thêm 2 giờ
+    const deadlineTime = new Date(selectedDate.getTime() + 2 * 60 * 60 * 1000);
+    
+    const dYear = deadlineTime.getFullYear();
+    const dMonth = String(deadlineTime.getMonth() + 1).padStart(2, '0');
+    const dDay = String(deadlineTime.getDate()).padStart(2, '0');
+    const dHours = String(deadlineTime.getHours()).padStart(2, '0');
+    const dMinutes = String(deadlineTime.getMinutes()).padStart(2, '0');
+
+    // Gán lại giá trị tự động cho ô Deadline
+    deadlineInput.value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
+};
 window.openEditAdminTaskModal = (id) => {
     const task = allManagementTasks[id];
     if (!task) return;
@@ -571,16 +637,79 @@ window.saveAdminTask = (e) => {
         taskData.danhGiaMaps = false;
         taskData.coTuVanBanHang = false;
         taskData.noiDungTuVan = '';
-        taskData.nguoiTao = 'Admin';
+        taskData.nguoiTao = 'Admin Mobile';
 
         push(ref(db, 'managementTasks'), taskData)
             .then(() => {
                 alert("Tạo công việc mới thành công!");
                 window.closeAdminTaskModal();
+                
+                // 👉 KÍCH HOẠT GỬI THÔNG BÁO TỚI KỸ THUẬT PHỤ TRÁCH & HỖ TRỢ QUA TELEGRAM
+                sendAdminMobileTelegramNotification(taskData);
             })
             .catch(err => alert("Lỗi: " + err.message));
     }
 };
+
+// 👉 Thêm hàm hỗ trợ gửi thông báo Telegram từ Admin Mobile
+async function sendAdminMobileTelegramNotification(taskData) {
+    try {
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) return;
+        const config = snapshot.val();
+        if (!config.botToken) return;
+
+        // Kiểm tra xem có bật tính năng thông báo khi tạo mới không
+        if (!config.notifOnCreate) return;
+
+        let chatIdsToSend = [];
+        if (config.adminChatId) chatIdsToSend.push(config.adminChatId);
+
+        // Lấy danh sách Telegram ID của kỹ thuật viên từ nhánh 'staffs'
+        const staffSnapshot = await get(ref(db, 'staffs'));
+        if (staffSnapshot.exists()) {
+            const staffList = Object.values(staffSnapshot.val());
+            
+            // Tìm kỹ thuật phụ trách chính
+            const matchedStaff = staffList.find(s => s.name === taskData.ktPhuTrach);
+            if (matchedStaff && matchedStaff.telegramId) {
+                chatIdsToSend.push(matchedStaff.telegramId);
+            }
+
+            // Tìm kỹ thuật hỗ trợ (nếu có chọn)
+            if (taskData.ktHoTro && taskData.ktHoTro !== "") {
+                const supportStaff = staffList.find(s => s.name === taskData.ktHoTro);
+                if (supportStaff && supportStaff.telegramId) {
+                    chatIdsToSend.push(supportStaff.telegramId);
+                }
+            }
+        }
+
+        let staffLine = `🛠️ *Kỹ thuật phụ trách:* ${taskData.ktPhuTrach || 'N/A'}`;
+        if (taskData.ktHoTro && taskData.ktHoTro !== "") {
+            staffLine += ` + ${taskData.ktHoTro} (Hỗ trợ)`;
+        }
+
+        const message = encodeURIComponent(
+            `✨ *[THÔNG BÁO CÔNG VIỆC MỚI]* ✨\n\n` +
+            `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
+            `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
+            `${staffLine}\n` +
+            `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n` +
+            `⏳ *Deadline:* ${taskData.deadline ? taskData.deadline.replace('T', ' ') : 'N/A'}\n` +
+            `🕒 *Thời gian tạo:* ${new Date().toLocaleString('vi-VN')}`
+        );
+
+        // Loại bỏ các ID trùng lặp và gửi tin nhắn
+        const uniqueChatIds = [...new Set(chatIdsToSend)];
+        for (const chatId of uniqueChatIds) {
+            const url = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${chatId}&text=${message}&parse_mode=Markdown`;
+            fetch(url).catch(err => console.error("Lỗi gửi Telegram:", err));
+        }
+    } catch (error) {
+        console.error("Lỗi hệ thống thông báo Telegram:", error);
+    }
+}
 
 window.deleteAdminTask = (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa công việc này?")) {
@@ -701,5 +830,116 @@ window.toggleMobileRowDetail = (id) => {
     const detailDiv = document.getElementById(`mobile_detail_${id}`);
     if (detailDiv) {
         detailDiv.classList.toggle('hidden');
+    }
+};
+// ================= HỆ THỐNG GỢI Ý & LƯU TRỮ KHÁCH HÀNG TỰ ĐỘNG =================
+let allAdminCustomersData = {};
+
+// Thu thập khách hàng tự động từ tất cả công việc có sẵn
+function collectAdminCustomersFromTasks(tasks) {
+    const uniqueCustomers = {};
+    Object.values(tasks).forEach(task => {
+        if (task.khachHang) {
+            const nameKey = task.khachHang.trim();
+            if (!uniqueCustomers[nameKey]) {
+                uniqueCustomers[nameKey] = {
+                    name: nameKey,
+                    phone: task.dienThoai || '',
+                    count: 0
+                };
+            }
+            uniqueCustomers[nameKey].count++;
+            if (task.dienThoai && !uniqueCustomers[nameKey].phone) {
+                uniqueCustomers[nameKey].phone = task.dienThoai;
+            }
+        }
+    });
+    allAdminCustomersData = uniqueCustomers;
+}
+
+// Lọc danh sách gợi ý khi người dùng gõ vào ô nhập tên khách hàng
+window.filterAdminCustomerSuggestions = (keyword) => {
+    const dropdown = document.getElementById('adminCustomerDropdownList');
+    if (!dropdown) return;
+
+    const term = keyword.toLowerCase().trim();
+    if (!term) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+
+    const matches = Object.values(allAdminCustomersData).filter(cust => 
+        cust.name.toLowerCase().includes(term) || (cust.phone && cust.phone.includes(term))
+    );
+
+    if (matches.length > 0) {
+        dropdown.innerHTML = '';
+        matches.forEach(cust => {
+            const div = document.createElement('div');
+            div.className = 'p-3 hover:bg-emerald-50 cursor-pointer flex justify-between items-center transition text-xs';
+            div.innerHTML = `
+                <span class="font-bold text-slate-800">${cust.name}</span>
+                <span class="text-slate-400 font-medium">${cust.phone ? 'SĐT: ' + cust.phone : 'Chưa có SĐT'}</span>
+            `;
+            // Khi bấm chọn một khách hàng từ gợi ý, tự động điền tên và số điện thoại
+            div.onclick = () => {
+                document.getElementById('adminTaskKhachHang').value = cust.name;
+                const phoneInput = document.getElementById('adminTaskDienThoai');
+                if (phoneInput && cust.phone) {
+                    phoneInput.value = cust.phone;
+                }
+                dropdown.classList.add('hidden');
+            };
+            dropdown.appendChild(div);
+        });
+        dropdown.classList.remove('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+    }
+};
+
+// Ẩn khung gợi ý khi bấm click ra ngoài màn hình
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('adminCustomerDropdownList');
+    const input = document.getElementById('adminTaskKhachHang');
+    if (dropdown && input && !input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+// ================= KIỂM TRA & CẬP NHẬT PHIÊN BẢN (PWA) =================
+window.checkForAppUpdates = () => {
+    const updateIcon = document.getElementById('updateIcon');
+    if (updateIcon) updateIcon.classList.add('animate-spin');
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then((registration) => {
+            if (!registration) {
+                alert("Ứng dụng chưa được đăng ký Service Worker.");
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                return;
+            }
+
+            // Ép Service Worker kiểm tra xem trên server có bản code mới hay không
+            registration.update().then(() => {
+                setTimeout(() => {
+                    if (updateIcon) updateIcon.classList.remove('animate-spin');
+                    
+                    // Nếu phát hiện có phiên bản mới đang chờ kích hoạt
+                    if (registration.waiting) {
+                        if (confirm("Đã có phiên bản mới của ứng dụng! Bạn có muốn cập nhật và tải lại ngay bây giờ không?")) {
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            window.location.reload();
+                        }
+                    } else {
+                        alert("Ứng dụng của bạn đang ở phiên bản mới nhất!");
+                    }
+                }, 1000);
+            }).catch((err) => {
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                alert("Không thể kiểm tra cập nhật lúc này (kiểm tra lại kết nối mạng).");
+            });
+        });
+    } else {
+        alert("Trình duyệt không hỗ trợ tính năng cập nhật này.");
     }
 };

@@ -17,6 +17,7 @@ let currentUser = JSON.parse(localStorage.getItem('techUser')) || null;
 const todayStr = new Date().toISOString().split('T')[0];
 let allKpiList = {}; // Lưu trữ dữ liệu tạm thời để phục vụ tính năng sửa
 let allStaffsData = {};
+let allTechSupplyCache = {};
 
 document.getElementById('currentDateLabel').textContent = `Hôm nay, ngày ${todayStr.split('-').reverse().join('/')}`;
 
@@ -1722,7 +1723,14 @@ window.submitCompleteTaskWithPayment = (e) => {
 // ================= QUẢN LÝ DANH MỤC ĐỀ XUẤT (PHIẾU XĂNG & VẬT TƯ) =================
 window.openFuelTabModal = () => {
     document.getElementById('fuelTabModal').classList.remove('hidden');
-    loadTechFuelReceipts(); // 👉 Gọi hàm tải danh sách phiếu xăng ngay khi mở modal
+    
+    // Tự động set ô chọn tháng về tháng hiện tại (YYYY-MM)[cite: 2]
+    const monthInput = document.getElementById('filterFuelMonth');
+    if (monthInput) {
+        monthInput.value = new Date().toISOString().slice(0, 7);
+    }
+
+    loadTechFuelReceipts(); // Tải và hiển thị danh sách[cite: 2]
 };
 window.closeFuelTabModal = () => {
     document.getElementById('fuelTabModal').classList.add('hidden');
@@ -1744,18 +1752,14 @@ window.openCreateFuelModal = () => {
     document.getElementById('fuelKmDi').value = '';
     document.getElementById('fuelKmVe').value = '';
     document.getElementById('fuelTotalKmDisplay').textContent = '0 KM';
+    document.getElementById('fuelTaskSearchInput').value = '';
+    document.getElementById('fuelSelectedTaskValue').value = '';
+    
+    const suggestions = document.getElementById('fuelTaskSuggestions');
+    if (suggestions) suggestions.classList.add('hidden');
 
-    const taskSelect = document.getElementById('fuelSelectTask');
-    taskSelect.innerHTML = '<option value="">-- Chọn công việc liên quan --</option>';
-
-    if (allAssignedTasks) {
-        Object.entries(allAssignedTasks).forEach(([id, task]) => {
-            const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
-            if (isAssigned) {
-                taskSelect.innerHTML += `<option value="${task.maCv || 'CV'} - ${task.khachHang || ''}">[${task.maCv || 'CV'}] ${task.khachHang || ''} - ${task.noiDung || ''}</option>`;
-            }
-        });
-    }
+    // Tải sẵn danh sách gợi ý ban đầu khi vừa mở modal
+    window.filterTechFuelTasks('');
 
     document.getElementById('createFuelModal').classList.remove('hidden');
 };
@@ -1775,15 +1779,21 @@ window.calculateTotalKm = () => {
 // Lưu phiếu xăng lên Firebase
 window.submitCreateFuel = (e) => {
     e.preventDefault();
-    const soPhiếu = document.getElementById('fuelSoPhiếu').value;
-    const ngayTao = document.getElementById('fuelNgayTao').value;
-    const taskInfo = document.getElementById('fuelSelectTask').value;
-    const kmDi = Number(document.getElementById('fuelKmDi').value) || 0;
-    const kmVe = Number(document.getElementById('fuelKmVe').value) || 0;
+    const editId = document.getElementById('editFuelId')?.value || '';
+    const soPhiếu = document.getElementById('fuelSoPhiếu')?.value || '';
+    const ngayTao = document.getElementById('fuelNgayTao')?.value || '';
+    const taskInfo = document.getElementById('fuelTaskSearchInput')?.value.trim() || '';
+    const kmDi = Number(document.getElementById('fuelKmDi')?.value) || 0;
+    const kmVe = Number(document.getElementById('fuelKmVe')?.value) || 0;
     const tongKm = Math.max(0, kmVe - kmDi);
 
     if (kmVe < kmDi) {
         alert("Số KM về không thể nhỏ hơn số KM đi!");
+        return;
+    }
+
+    if (!taskInfo) {
+        alert("Vui lòng chọn hoặc nhập công việc liên quan!");
         return;
     }
 
@@ -1795,18 +1805,28 @@ window.submitCreateFuel = (e) => {
         kmVe: kmVe,
         tongKm: tongKm,
         kyThuhat: currentUser.name,
-        createdAt: Date.now()
+        updatedAt: Date.now()
     };
 
-    push(ref(db, 'fuelReceipts'), fuelPayload)
-        .then(() => {
-            alert("Tạo phiếu xăng thành công!");
-            window.closeCreateFuelModal();
-            loadTechFuelReceipts();
-        })
-        .catch(err => alert("Lỗi: " + err.message));
+    if (editId) {
+        // Cập nhật phiếu xăng cũ trên Firebase
+        update(ref(db, `fuelReceipts/${editId}`), fuelPayload)
+            .then(() => {
+                alert("Cập nhật phiếu xăng thành công!");
+                window.closeCreateFuelModal();
+            })
+            .catch(err => alert("Lỗi cập nhật: " + err.message));
+    } else {
+        // Tạo mới phiếu xăng
+        fuelPayload.createdAt = Date.now();
+        push(ref(db, 'fuelReceipts'), fuelPayload)
+            .then(() => {
+                alert("Tạo phiếu xăng thành công!");
+                window.closeCreateFuelModal();
+            })
+            .catch(err => alert("Lỗi tạo mới: " + err.message));
+    }
 };
-
 // Tải danh sách phiếu xăng của kỹ thuật hiện tại
 window.openCreateSupplyModal = () => {
     document.getElementById('supNgayTao').value = new Date().toISOString().slice(0, 10);
@@ -1906,18 +1926,14 @@ window.submitCreateSupply = (e) => {
 // ================= TẢI DANH SÁCH ĐỀ XUẤT VẬT TƯ ỔN ĐỊNH KHI F5 =================
 function loadTechSupplyReceipts() {
     const container = document.getElementById('supplyListContainer');
-    if (!container) return;
-    
-    // Đảm bảo lấy lại currentUser từ localStorage nếu bị mất trạng thái tạm thời khi F5
-    if (!currentUser) {
-        currentUser = JSON.parse(localStorage.getItem('techUser')) || null;
-    }
-    if (!currentUser) return;
+    if (!container || !currentUser) return;
 
     container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Đang tải dữ liệu...</p>';
 
     onValue(ref(db, 'supplyRequests'), (snapshot) => {
         container.innerHTML = '';
+        allTechSupplyCache = {}; // Reset cache
+
         if (!snapshot.exists()) {
             container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border">Chưa có đề xuất vật tư nào.</p>';
             return;
@@ -1926,12 +1942,9 @@ function loadTechSupplyReceipts() {
         const requests = Object.entries(snapshot.val());
         const myRequests = requests.filter(([id, item]) => item.nguoiĐềXuất === currentUser.name).reverse();
 
-        if (myRequests.length === 0) {
-            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border">Chưa có đề xuất vật tư nào.</p>';
-            return;
-        }
-
         myRequests.forEach(([id, item]) => {
+            allTechSupplyCache[id] = { ...item, id: id }; // Lưu vào cache
+
             let devicesHtml = '';
             if (item.devices && Array.isArray(item.devices)) {
                 item.devices.forEach(d => {
@@ -1939,35 +1952,32 @@ function loadTechSupplyReceipts() {
                 });
             }
 
-            const status = item.trangThaiDuyet || 'Chờ duyệt';
-            let statusBadgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
-            if (status === 'Đã duyệt') statusBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-            if (status === 'Từ chối') statusBadgeClass = 'bg-rose-100 text-rose-800 border-rose-200';
+            const statusBadge = item.trangThaiDuyet === 'Đã duyệt' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
 
             container.innerHTML += `
                 <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-xs space-y-2 shadow-sm">
                     <div class="flex justify-between items-center font-bold">
                         <span class="text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">${item.loaiĐềXuất}</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border ${statusBadgeClass}">${status}</span>
-                            <span class="text-slate-400 text-[10px]">${item.ngayTao ? item.ngayTao.split('-').reverse().join('/') : ''}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="window.openCreateSupplyModal('${id}')" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="window.deleteSupplyRequest('${id}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
-                    <div class="text-slate-800 font-bold">${item.noiDung}</div>
-                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 space-y-0.5 text-[11px]">
-                        ${devicesHtml}
+                    <div class="flex justify-between items-center">
+                        <div class="text-slate-800 font-bold">${item.noiDung}</div>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border ${statusBadge}">${item.trangThaiDuyet || 'Chờ duyệt'}</span>
                     </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-200/60 text-[10px] text-slate-500">
-                        <span>Cần lúc: ${item.thoiGianCan ? item.thoiGianCan.replace('T', ' ') : 'N/A'}</span>
-                        ${item.ghiChu ? `<span class="italic text-slate-400">Ghi chú: ${item.ghiChu}</span>` : ''}
-                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 space-y-0.5 text-[11px]">${devicesHtml}</div>
                 </div>
             `;
         });
-    }); // Đã lược bỏ { onlyOnce: true } để tự động lắng nghe và duy trì trạng thái ổn định khi F5
+    });
 }
 
 // ================= TẢI DANH SÁCH PHIẾU XĂNG ỔN ĐỊNH KHI F5 =================
+let allTechFuelCache = {};
+
+// 1. Hàm tải dữ liệu phiếu xăng từ Firebase và lưu vào cache
 function loadTechFuelReceipts() {
     const container = document.getElementById('fuelListContainer');
     if (!container) return;
@@ -1977,37 +1987,252 @@ function loadTechFuelReceipts() {
     }
     if (!currentUser) return;
 
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Đang tải dữ liệu...</p>';
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Đang tải dữ liệu...</p>[cite: 2]';
 
     onValue(ref(db, 'fuelReceipts'), (snapshot) => {
-        container.innerHTML = '';
+        allTechFuelCache = {}; // Reset cache mỗi khi dữ liệu thay đổi[cite: 2]
+
         if (!snapshot.exists()) {
-            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border">Chưa có phiếu xăng nào được tạo.</p>';
+            window.filterFuelList(); // Gọi hàm lọc để hiển thị thông báo trống và reset tổng KM về 0[cite: 2]
             return;
         }
 
         const receipts = Object.entries(snapshot.val());
-        const myReceipts = receipts.filter(([id, item]) => item.kyThuhat === currentUser.name).reverse();
-
-        if (myReceipts.length === 0) {
-            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border">Chưa có phiếu xăng nào được tạo.</p>';
-            return;
-        }
+        // Chỉ lọc lấy phiếu xăng của kỹ thuật hiện tại[cite: 2]
+        const myReceipts = receipts.filter(([id, item]) => item.kyThuhat === currentUser.name);
 
         myReceipts.forEach(([id, item]) => {
+            // Lưu toàn bộ vào cache kèm theo ID để phục vụ cho việc Sửa/Xóa[cite: 2]
+            allTechFuelCache[id] = { ...item, id: id };
+        });
+
+        // Sau khi đã nạp dữ liệu vào cache, gọi hàm lọc theo tháng để render giao diện và tính tổng KM[cite: 2]
+        window.filterFuelList();
+    });
+}
+window.openCreateFuelModal = (editId = null) => {
+    // Hàm phụ trợ gán giá trị an toàn, tránh lỗi null làm sập script
+    const safeSetVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+    const safeSetHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+    const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    safeSetVal('editFuelId', '');
+    safeSetVal('fuelKmDi', '');
+    safeSetVal('fuelKmVe', '');
+    safeSetText('fuelTotalKmDisplay', '0 KM');
+    safeSetVal('fuelTaskSearchInput', '');
+    safeSetVal('fuelSelectedTaskValue', '');
+
+    if (editId && allTechFuelCache[editId]) {
+        const item = allTechFuelCache[editId];
+        safeSetHtml('fuelModalTitle', '<i class="fa-solid fa-pen-to-square text-emerald-600"></i> Sửa Phiếu Xăng');
+        safeSetVal('editFuelId', editId);
+        safeSetVal('fuelSoPhiếu', item.soPhiếu || '');
+        safeSetVal('fuelNgayTao', item.ngayTao || new Date().toISOString().slice(0, 10));
+        safeSetVal('fuelKmDi', item.kmDi || '');
+        safeSetVal('fuelKmVe', item.kmVe || '');
+        safeSetVal('fuelTaskSearchInput', item.congViec || '');
+        safeSetVal('fuelSelectedTaskValue', item.congViec || '');
+        if (typeof window.calculateTotalKm === 'function') {
+            window.calculateTotalKm();
+        }
+    } else {
+        safeSetHtml('fuelModalTitle', '<i class="fa-solid fa-circle-plus text-emerald-600"></i> Tạo Phiếu Xăng Mới');
+        safeSetVal('fuelSoPhiếu', 'PX-' + Date.now().toString().slice(-4));
+        safeSetVal('fuelNgayTao', new Date().toISOString().slice(0, 10));
+    }
+
+    const modal = document.getElementById('createFuelModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+};
+// 1. Lưu trữ danh sách công việc tạm thời khi mở modal phiếu xăng
+let availableTechTasksForFuel = {};
+
+// 2. Hàm lọc công việc theo từ khóa khi kỹ thuật gõ vào ô tìm kiếm
+window.filterTechFuelTasks = (keyword) => {
+    const suggestionsContainer = document.getElementById('fuelTaskSuggestions');
+    if (!suggestionsContainer) return;
+
+    suggestionsContainer.innerHTML = '';
+    const query = keyword.toLowerCase().trim();
+
+    // Lọc các công việc mà kỹ thuật hiện tại làm phụ trách hoặc hỗ trợ
+    const matchedTasks = Object.entries(allAssignedTasks || {}).filter(([id, task]) => {
+        const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
+        if (!isAssigned) return false;
+
+        const textToSearch = `${task.maCv || ''} ${task.khachHang || ''} ${task.noiDung || ''}`.toLowerCase();
+        return query === '' || textToSearch.includes(query);
+    });
+
+    if (matchedTasks.length === 0) {
+        suggestionsContainer.innerHTML = '<div class="p-2.5 text-xs text-slate-400 text-center">Không tìm thấy công việc phù hợp</div>';
+        suggestionsContainer.classList.remove('hidden');
+        return;
+    }
+
+    suggestionsContainer.classList.remove('hidden');
+
+    matchedTasks.reverse().forEach(([id, task]) => {
+        const displayStr = `[${task.maCv || 'CV'}] ${task.khachHang || ''} - ${task.noiDung || ''}`;
+        const div = document.createElement('div');
+        div.className = 'p-2.5 text-xs hover:bg-emerald-50 cursor-pointer font-medium text-slate-700 transition';
+        div.innerHTML = `<strong>[${task.maCv || 'CV'}]</strong> ${task.khachHang || ''} <span class="text-slate-400 block text-[10px]">${task.noiDung || ''}</span>`;
+        
+        div.onclick = () => {
+            document.getElementById('fuelTaskSearchInput').value = displayStr;
+            document.getElementById('fuelSelectedTaskValue').value = displayStr;
+            suggestionsContainer.classList.add('hidden');
+        };
+
+        suggestionsContainer.appendChild(div);
+    });
+};
+
+// 3. Đóng danh sách gợi ý khi bấm ra ngoài
+document.addEventListener('click', (e) => {
+    const searchInput = document.getElementById('fuelTaskSearchInput');
+    const suggestions = document.getElementById('fuelTaskSuggestions');
+    if (searchInput && suggestions && !searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.classList.add('hidden');
+    }
+});
+// 1. Hàm Xóa phiếu xăng
+window.deleteFuelReceipt = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa phiếu xăng này không?")) {
+        remove(ref(db, `fuelReceipts/${id}`))
+            .then(() => {
+                alert("Đã xóa phiếu xăng!");
+            })
+            .catch(err => alert("Lỗi khi xóa: " + err.message));
+    }
+};
+// 1. Hàm đổ danh sách kỹ thuật vào bộ lọc
+function populateStaffFilter() {
+    const staffFilter = document.getElementById('filterFuelStaff');
+    if (!staffFilter) return;
+
+    // Lấy dữ liệu từ allStaffsData (đã có sẵn trong file của bạn)
+    Object.values(allStaffsData).forEach(staff => {
+        const option = document.createElement('option');
+        option.value = staff.name;
+        option.textContent = staff.name;
+        staffFilter.appendChild(option);
+    });
+}
+
+// 2. Hàm lọc và tính tổng KM
+window.filterFuelList = () => {
+    const month = document.getElementById('filterFuelMonth').value; // YYYY-MM
+    const container = document.getElementById('fuelListContainer');
+    const totalDisplay = document.getElementById('totalKmDisplay');
+    
+    let totalKm = 0;
+    container.innerHTML = '';
+
+    // Lọc dữ liệu từ allTechFuelCache (đã chứa sẵn dữ liệu phiếu của kỹ thuật đó)
+    Object.values(allTechFuelCache).forEach(item => {
+        // Kiểm tra tháng (ngayTao có định dạng YYYY-MM-DD)
+        const itemMonth = item.ngayTao ? item.ngayTao.slice(0, 7) : '';
+        
+        if (itemMonth === month) {
+            totalKm += Number(item.tongKm || 0);
+            
+            // Render lại danh sách
             container.innerHTML += `
-                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-xs space-y-1.5 shadow-sm">
-                    <div class="flex justify-between items-center font-bold text-slate-800">
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-3 text-xs space-y-1.5 shadow-sm mb-2">
+                    <div class="flex justify-between items-center font-bold">
                         <span class="text-emerald-700">${item.soPhiếu}</span>
-                        <span class="text-slate-400 text-[10px]">${item.ngayTao ? item.ngayTao.split('-').reverse().join('/') : ''}</span>
+                        <div class="flex gap-2">
+                            <button onclick="window.openCreateFuelModal('${item.id}')" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="window.deleteFuelReceipt('${item.id}')" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
-                    <div class="text-slate-600 font-medium"><strong>CV:</strong> ${item.congViec}</div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-200/60 text-[11px] text-slate-500">
-                        <span>Đi: ${item.kmDi} KM • Về: ${item.kmVe} KM</span>
-                        <span class="font-black text-emerald-700">Tổng: ${item.tongKm} KM</span>
-                    </div>
+                    <div class="text-slate-600 font-medium">CV: ${item.congViec}</div>
+                    <div class="text-slate-500 text-[10px]">Ngày: ${item.ngayTao.split('-').reverse().join('/')}</div>
+                    <div class="text-right font-black text-emerald-700 text-sm border-t border-slate-100 pt-1">${item.tongKm} KM</div>
                 </div>
             `;
-        });
-    }); // Đã lược bỏ { onlyOnce: true }
-}
+        }
+    });
+
+    totalDisplay.textContent = `${totalKm.toFixed(1)} KM`;
+};
+
+// Hàm Xóa đề xuất vật tư
+window.deleteSupplyRequest = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa đề xuất vật tư này không?")) {
+        remove(ref(db, `supplyRequests/${id}`))
+            .then(() => alert("Đã xóa đề xuất!"))
+            .catch(err => alert("Lỗi: " + err.message));
+    }
+};
+
+// Hàm mở Modal (Hỗ trợ cả 2 chế độ: Tạo mới hoặc Sửa)
+window.openCreateSupplyModal = (editId = null) => {
+    const modal = document.getElementById('createSupplyModal');
+    if (!modal) return;
+
+    // Reset sạch các trường dữ liệu chung trước khi mở
+    const editSupplyIdEl = document.getElementById('editSupplyId');
+    if (editSupplyIdEl) editSupplyIdEl.value = '';
+
+    const supNgayTao = document.getElementById('supNgayTao');
+    if (supNgayTao) supNgayTao.value = new Date().toISOString().slice(0, 10);
+
+    const supNguoiXuat = document.getElementById('supNguoiXuat');
+    if (supNguoiXuat) supNguoiXuat.value = currentUser ? currentUser.name : '';
+
+    const supLoai = document.getElementById('supLoai');
+    if (supLoai) supLoai.value = 'Mua công dụng cụ';
+
+    const supThoiGianCan = document.getElementById('supThoiGianCan');
+    if (supThoiGianCan) supThoiGianCan.value = '';
+
+    const supNoiDung = document.getElementById('supNoiDung');
+    if (supNoiDung) supNoiDung.value = '';
+
+    const supGhiChu = document.getElementById('supGhiChu');
+    if (supGhiChu) supGhiChu.value = '';
+
+    const container = document.getElementById('supplyDeviceRowsContainer');
+    if (container) container.innerHTML = '';
+
+    // Nếu là chế độ Sửa (có truyền editId và tìm thấy trong cache)
+    if (editId && typeof allTechSupplyCache !== 'undefined' && allTechSupplyCache[editId]) {
+        const item = allTechSupplyCache[editId];
+        if (editSupplyIdEl) editSupplyIdEl.value = editId;
+        if (supNgayTao) supNgayTao.value = item.ngayTao || '';
+        if (supLoai) supLoai.value = item.loaiĐềXuất || 'Mua công dụng cụ';
+        if (supThoiGianCan) supThoiGianCan.value = item.thoiGianCan || '';
+        if (supNoiDung) supNoiDung.value = item.noiDung || '';
+        if (supGhiChu) supGhiChu.value = item.ghiChu || '';
+        
+        // Render lại danh sách thiết bị cũ của phiếu đó
+        if (item.devices && Array.isArray(item.devices)) {
+            item.devices.forEach(d => {
+                if (typeof window.addSupplyDeviceRow === 'function') {
+                    window.addSupplyDeviceRow(d.tenVatTu, d.donViTinh, d.soLuong);
+                }
+            });
+        }
+    } else {
+        // Chế độ Tạo mới hoàn toàn: Mặc định thêm sẵn 1 dòng thiết bị trống đầu tiên
+        if (typeof window.addSupplyDeviceRow === 'function') {
+            window.addSupplyDeviceRow('', 'Cái', 1);
+        }
+    }
+
+    modal.classList.remove('hidden');
+};

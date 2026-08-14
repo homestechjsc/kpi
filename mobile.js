@@ -231,27 +231,43 @@ window.openEditModal = (id) => {
 // Cập nhật công việc lên Firebase
 window.updateKPI = (e) => {
     e.preventDefault();
-    const id = document.getElementById('editTaskId').value;
+    const id = document.getElementById('editTaskId')?.value;
+    if (!id) return;
     
+    // Thu thập toàn bộ dữ liệu mới từ form sửa
     const updatedData = {
-        khachHang: document.getElementById('editKhachHang').value.trim(),
-        noiDung: document.getElementById('editNoiDung').value.trim(),
-        ktHoTro: document.getElementById('editKtHoTro').value.trim(),
-        thoiGian: Number(document.getElementById('editThoiGian').value) || 0,
-        deadline: document.getElementById('editDeadline').value,
-        ghiChu: document.getElementById('editGhiChu').value.trim(),
-        chupAnh: document.getElementById('editChupAnh').checked,
-        danhGiaMaps: document.getElementById('editDanhGiaMaps').checked,
-        coTuVanBanHang: document.getElementById('editCoTuVanBanHang').checked,
-        noiDungTuVan: document.getElementById('editNoiDungTuVan').value.trim()
+        ngayTao: document.getElementById('editNgayTao')?.value || new Date().toISOString().slice(0, 16),
+        tinhTrang: document.getElementById('editTinhTrang')?.value || 'Chờ triển khai',
+        khachHang: document.getElementById('editKhachHang')?.value.trim() || '',
+        dienThoai: document.getElementById('editDienThoai')?.value.trim() || '',
+        loaiCv: document.getElementById('editLoaiCv')?.value || '',
+        uuTien: document.getElementById('editUuTien')?.value || 'Thường',
+        noiDung: document.getElementById('editNoiDung')?.value.trim() || '',
+        ktPhuTrach: document.getElementById('editKtPhuTrach')?.value || '',
+        ktHoTro: document.getElementById('editKtHoTro')?.value || '',
+        deadline: document.getElementById('editDeadline')?.value || '',
+        ghiChu: document.getElementById('editGhiChu')?.value.trim() || ''
     };
 
+    // Tiến hành cập nhật lên Firebase
     update(ref(db, `managementTasks/${id}`), updatedData)
         .then(() => {
-            alert("Cập nhật công việc thành công!");
+            alert("Cập nhật thông tin công việc thành công!");
             window.closeEditModal();
+
+            // 👉 Tự động gửi thông báo thay đổi/điều phối về nhóm Telegram quản lý
+            const oldTaskData = allAssignedTasks[id] || {};
+            const mergedTaskData = { ...oldTaskData, ...updatedData };
+            
+            sendMobileTelegramNotification(
+                'update_task', 
+                mergedTaskData, 
+                `Đã điều phối lại thông tin công việc.\n- Phụ trách mới: ${updatedData.ktPhuTrach || 'N/A'}\n- Hỗ trợ mới: ${updatedData.ktHoTro || 'Không'}`
+            );
         })
-        .catch(err => alert("Lỗi: " + err.message));
+        .catch(err => {
+            alert("Lỗi cập nhật: " + err.message);
+        });
 };
 // Xóa công việc khỏi Firebase
 window.deleteTask = (id) => {

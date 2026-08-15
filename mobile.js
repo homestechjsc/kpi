@@ -73,29 +73,58 @@ function initApp() {
 
 // Modal Thêm Mới
 window.openModal = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
     
-    // Đổ danh sách vào select
+    // Thời gian tạo hiện tại (định dạng datetime-local)
+    const localIsoTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+    
+    // Deadline tự động cộng thêm 2 giờ từ thời điểm tạo
+    const deadlineDate = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const localDeadlineTime = new Date(deadlineDate.getTime() - tzOffset).toISOString().slice(0, 16);
+    
     const staffSelect = document.getElementById('taskKtPhuTrach');
     const supportSelect = document.getElementById('taskKtHoTro');
     
-    // Tạo danh sách options từ allStaffsData
     const options = Object.values(allStaffsData).map(st => `<option value="${st.name}">${st.name}</option>`).join('');
     
-    staffSelect.innerHTML = '<option value="">-- Chọn kỹ thuật --</option>' + options;
-    supportSelect.innerHTML = '<option value="">-- Không có hỗ trợ --</option>' + options;
+    if (staffSelect) staffSelect.innerHTML = '<option value="">-- Chọn kỹ thuật --</option>' + options;
+    if (supportSelect) supportSelect.innerHTML = '<option value="">-- Không có hỗ trợ --</option>' + options;
 
-    // Thiết lập giá trị mặc định
-    document.getElementById('taskNgayTao').value = todayStr;
-    document.getElementById('taskNguoiTao').value = currentUser ? currentUser.name : '';
-    document.getElementById('taskKtPhuTrach').value = currentUser ? currentUser.name : '';
+    const taskNgayTaoEl = document.getElementById('taskNgayTao');
+    if (taskNgayTaoEl) taskNgayTaoEl.value = localIsoTime;
+    
+    const taskDeadlineEl = document.getElementById('taskDeadline');
+    if (taskDeadlineEl) taskDeadlineEl.value = localDeadlineTime; // 👉 Tự động điền deadline sau 2 giờ
+    
+    const taskNguoiTaoEl = document.getElementById('taskNguoiTao');
+    if (taskNguoiTaoEl) taskNguoiTaoEl.value = currentUser ? currentUser.name : '';
+    
+    if (staffSelect && currentUser) staffSelect.value = currentUser.name;
     
     const autoCode = 'CV-' + Date.now().toString().slice(-4);
-    document.getElementById('taskMaCv').value = autoCode;
+    const taskMaCvEl = document.getElementById('taskMaCv');
+    if (taskMaCvEl) taskMaCvEl.value = autoCode;
 
-    document.getElementById('taskModal').classList.remove('hidden');
+    const taskModal = document.getElementById('taskModal');
+    if (taskModal) taskModal.classList.remove('hidden');
 };
 
+// ================= HÀM TỰ ĐỘNG CẬP NHẬT DEADLINE KHI THAY ĐỔI THỜI GIAN TẠO =================
+window.updateDefaultDeadline = () => {
+    const ngayTaoEl = document.getElementById('taskNgayTao');
+    const deadlineEl = document.getElementById('taskDeadline');
+    if (ngayTaoEl && ngayTaoEl.value && deadlineEl) {
+        const createDate = new Date(ngayTaoEl.value);
+        if (!isNaN(createDate.getTime())) {
+            // Cộng thêm 2 giờ (2 * 3600 * 1000 ms)
+            const deadlineDate = new Date(createDate.getTime() + 2 * 60 * 60 * 1000);
+            const tzOffset = deadlineDate.getTimezoneOffset() * 60000;
+            const localDeadline = new Date(deadlineDate.getTime() - tzOffset).toISOString().slice(0, 16);
+            deadlineEl.value = localDeadline;
+        }
+    }
+};
 window.closeModal = () => {
     document.getElementById('taskModal').classList.add('hidden');
 };
@@ -285,14 +314,12 @@ window.deleteTask = (id) => {
 window.submitKPI = (e) => {
     e.preventDefault();
     
-    const ngayTaoVal = document.getElementById('taskNgayTao')?.value || new Date().toISOString().slice(0, 16);
-    // 👉 Quy đổi mốc timestamp chính xác từ thời gian tạo/thực hiện công việc được chọn trên form
-    const ngayTaoTimestampVal = ngayTaoVal ? new Date(ngayTaoVal).getTime() : Date.now();
+    const ngayTaoVal = document.getElementById('taskNgayTao')?.value || new Date().toISOString();
+    const ngayTaoTimestampVal = new Date(ngayTaoVal).getTime() || Date.now();
 
-    // Lấy dữ liệu từ form chuẩn mới
     const newTask = {
-        ngayTao: ngayTaoVal,
-        ngayTaoTimestamp: ngayTaoTimestampVal, // 👉 Dùng mốc thời gian theo ý muốn người dùng thay vì Date.now()
+        ngayTao: ngayTaoVal, // Lưu đầy đủ ngày và giờ tạo
+        ngayTaoTimestamp: ngayTaoTimestampVal, 
         maCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         sttCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
         tinhTrang: document.getElementById('taskTinhTrang')?.value || 'Chờ triển khai',
@@ -303,7 +330,7 @@ window.submitKPI = (e) => {
         noiDung: document.getElementById('taskNoiDung')?.value.trim() || '',
         ktPhuTrach: document.getElementById('taskKtPhuTrach')?.value || '',
         ktHoTro: document.getElementById('taskKtHoTro')?.value || '',
-        deadline: document.getElementById('taskDeadline')?.value || '',
+        deadline: document.getElementById('taskDeadline')?.value || '', // Nhận giá trị deadline theo định dạng datetime-local
         nguoiTao: document.getElementById('taskNguoiTao')?.value || (currentUser ? currentUser.name : ''),
         ghiChu: document.getElementById('taskGhiChu')?.value.trim() || '',
         chupAnh: false,
@@ -642,9 +669,31 @@ function renderAssignedTasks() {
                 <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-check"></i> Hoàn Thành</button>
             </div>`;
         } else {
-            actionButtons = `<div class="text-center text-emerald-700 font-extrabold text-xs py-3 bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm"><i class="fa-solid fa-circle-check mr-1.5"></i> Đã hoàn thành</div>`;
-        }
+            // 👉 TÍNH TOÁN TỔNG THỜI GIAN HOÀN THÀNH (Tính theo phút hoặc giờ + phút)
+            let totalMinutes = 0;
+            if (task.thoiGianBatDau && task.thoiGianKetThuc) {
+                const startMs = new Date(task.thoiGianBatDau).getTime();
+                const endMs = new Date(task.thoiGianKetThuc).getTime();
+                totalMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+            }
 
+            let timeDisplayStr = `${totalMinutes} phút`;
+            if (totalMinutes >= 60) {
+                const hours = Math.floor(totalMinutes / 60);
+                const mins = totalMinutes % 60;
+                timeDisplayStr = mins > 0 ? `${hours} giờ ${mins} phút` : `${hours} giờ`;
+            }
+
+            actionButtons = `
+                <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 shadow-sm">
+                    <div class="flex items-center gap-2 text-emerald-800 font-extrabold text-xs">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> Đã hoàn thành
+                    </div>
+                    <div class="bg-white px-3 py-1 rounded-xl border border-emerald-200 text-emerald-700 font-black text-xs flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Tổng TG: ${timeDisplayStr}
+                    </div>
+                </div>`;
+        }
         // Logic Sửa/Xóa công việc khi chưa hoàn thành
         let editDeleteButtons = '';
         if (task.tinhTrang !== 'Đã hoàn thành') {

@@ -278,20 +278,19 @@ body.overflow-hidden {
                 </div>
 
                 <!-- Hàng 2: Tên khách hàng & Số điện thoại -->
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="relative">
-    <label class="block font-bold text-slate-500 mb-0.5">Khách hàng <span class="text-rose-500">*</span></label>
-    <input type="text" id="adminTaskKhachHang" required autocomplete="off" oninput="window.filterAdminCustomerSuggestions(this.value)" placeholder="Nhập hoặc chọn tên khách..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-emerald-500">
-    
-    <!-- Khung dropdown gợi ý -->
-    <div id="adminCustomerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
+                <div class="grid grid-cols-2 gap-2 relative">
+    <div class="relative">
+        <label class="block font-bold text-slate-500 mb-0.5">Khách hàng <span class="text-rose-500">*</span></label>
+        <input type="text" id="adminTaskKhachHang" required autocomplete="off" placeholder="🔍 Gõ tên hoặc chọn khách..." oninput="window.filterAdminCustomerSuggestions(this.value)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-emerald-500">
+        
+        <!-- Khung danh sách gợi ý khách hàng -->
+        <div id="adminCustomerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
+    </div>
+    <div>
+        <label class="block font-bold text-slate-500 mb-0.5">Số điện thoại</label>
+        <input type="text" id="adminTaskDienThoai" placeholder="SĐT liên hệ..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none">
+    </div>
 </div>
-                    <div>
-                        <label class="block font-bold text-slate-500 mb-0.5">Số điện thoại</label>
-                        <input type="text" id="adminTaskDienThoai" placeholder="SĐT liên hệ..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                    </div>
-                </div>
-
                 <!-- Hàng 3: Loại công việc & Mức độ ưu tiên -->
                 <div class="grid grid-cols-2 gap-2">
                     <div>

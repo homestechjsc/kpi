@@ -1,1013 +1,2361 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo Cáo KPI Kỹ Thuật</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest-baocao.json">
-<meta name="theme-color" content="#059669">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="https://homestechjsc.vn/wp-content/uploads/2026/08/iconkpi.png">
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('./sw-baocao.js'); });
-    }
-</script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    
-    /* Cố định kích thước chữ input trên mobile để tránh bị zoom/lệch size màn hình */
-    @media screen and (max-width: 768px) {
-        input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="month"], input[type="datetime-local"], select, textarea {
-            font-size: 16px !important;
-        }
-    }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
-    <!-- ================= HIỆU ỨNG VUỐT RELOAD (PULL TO REFRESH) ================= -->
-    <div id="ptrIndicator" class="absolute top-0 left-0 right-0 flex justify-center items-center h-12 -translate-y-full transition-transform duration-200 z-50 pointer-events-none">
-        <div class="bg-white px-4 py-1.5 rounded-full shadow-md border border-slate-200 text-xs font-bold text-emerald-600 flex items-center gap-2">
-            <i id="ptrIcon" class="fa-solid fa-rotate-right animate-spin"></i>
-            <span id="ptrText">Thả để làm mới...</span>
-        </div>
-    </div>
-
-    <!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-600 to-teal-900 z-50 fixed inset-0">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md space-y-6 border border-emerald-100 animate-in fade-in zoom-in duration-300">
-            <div class="text-center">
-                <div class="bg-emerald-50 text-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
-                    <i class="fa-solid fa-user-gear"></i>
-                </div>
-                <h2 class="text-2xl font-black text-slate-900 tracking-tight">Kỹ Thuật Đăng Nhập</h2>
-                <p class="text-xs text-slate-400 mt-1">Hệ thống báo cáo KPI nội bộ</p>
-            </div>
-            
-            <form onsubmit="window.login(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Tài khoản</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" id="loginUsername" required placeholder="Nhập tài khoản" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Mật khẩu</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 text-white p-3.5 rounded-xl font-bold shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 transition active:scale-[0.99]">
-                    Đăng Nhập Hệ Thống
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= MÀN HÌNH CHÍNH ================= -->
-    <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        <!-- Header chuyên nghiệp -->
-        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-4 py-3 shadow-sm flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-emerald-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-sm">
-                    <i class="fa-solid fa-user-gear"></i>
-                </div>
-                <div>
-                    <h1 id="userNameDisplay" class="text-xs font-bold text-slate-800">--</h1>
-                    <p id="userRoleDisplay" class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">--</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <span class="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Trực tuyến
-                </span>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="flex-1 max-w-2xl w-full mx-auto p-4 space-y-4 mb-16">
-            
-            <!-- TAB 1: HÔM NAY -->
-            <div id="todayTabContent" class="space-y-4 animate-in fade-in duration-200">
-                <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-5 rounded-2xl shadow-lg shadow-emerald-600/15 flex justify-between items-center relative overflow-hidden">
-                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-                    <div>
-                        <span class="text-[10px] uppercase font-bold tracking-widest text-emerald-200">Khu vực làm việc</span>
-                        <h2 class="font-black text-white text-base mt-0.5">Công Việc Trong Ngày</h2>
-                        <p id="currentDateLabel" class="text-xs text-emerald-100 mt-0.5 font-medium">--</p>
-                    </div>
-                    </div>
-
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center px-1">
-                        <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh sách thực hiện hôm nay</h3>
-                        <span id="todayCountBadge" class="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-extrabold">0 CV</span>
-                    </div>
-                    <div id="todayTaskList" class="space-y-3"></div>
-                </div>
-            </div>
-
-            <!-- TAB 2: BÁO CÁO THÁNG -->
-            <div id="reportTabContent" class="hidden space-y-4 animate-in fade-in duration-200">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <h2 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-chart-line text-emerald-600"></i> Tổng Hợp KPI Tháng
-                        </h2>
-                        <input type="month" id="reportMonthInput" onchange="window.loadMonthlyReport()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        <div class="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl text-center">
-                            <span class="block text-[9px] uppercase font-extrabold text-emerald-600">Tổng Số CV</span>
-                            <span id="repTotalCv" class="text-xl font-black text-emerald-700 mt-1 block">0</span>
-                        </div>
-                        <div class="bg-teal-50/60 border border-teal-100 p-3 rounded-2xl text-center">
-                            <span class="block text-[9px] uppercase font-extrabold text-teal-600">Tổng Thời Gian</span>
-                            <span id="repTotalTime" class="text-xl font-black text-teal-700 mt-1 block">0p</span>
-                        </div>
-                        <div class="bg-cyan-50/60 border border-cyan-100 p-3 rounded-2xl text-center">
-                            <span class="block text-[9px] uppercase font-extrabold text-cyan-600">Tổng Điểm KPI</span>
-                            <span id="repTotalScore" class="text-xl font-black text-cyan-700 mt-1 block">0</span>
-                        </div>
-                        <div class="bg-amber-50/60 border border-amber-100 p-3 rounded-2xl text-center">
-                            <span class="block text-[9px] uppercase font-extrabold text-amber-600">Điểm Trung Bình</span>
-                            <span id="repAvgScore" class="text-xl font-black text-amber-700 mt-1 block">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
-                    <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Nhật ký công việc trong tháng</h3>
-                    <div id="monthlyTaskList" class="space-y-3"></div>
-                </div>
-            </div>
-
-            <!-- TAB 3: THÔNG TIN & ĐỔI MẬT KHẨU -->
-            <div id="accountTabContent" class="hidden space-y-4 animate-in fade-in duration-200">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-5">
-                    <div class="text-center pb-4 border-b border-slate-100">
-                        <div class="bg-emerald-50 text-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2.5 text-2xl font-bold shadow-inner border border-emerald-100">
-                            <i class="fa-solid fa-user-shield"></i>
-                        </div>
-                        <h3 id="accName" class="font-black text-slate-800 text-lg">--</h3>
-                        <p id="accRole" class="text-xs text-emerald-600 font-bold uppercase tracking-wide mt-0.5">--</p>
-                        <div class="flex items-center justify-center gap-2">
-        <div class="inline-block bg-slate-100 px-3 py-1 rounded-full text-[11px] text-slate-500 font-medium">
-            Tài khoản: <strong id="accUsername" class="text-slate-700">--</strong>
-        </div>
-        
-        <!-- Nút Icon Đổi Mật Khẩu Nhỏ Gọn -->
-        <button type="button" onclick="window.togglePasswordEdit()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 w-7 h-7 rounded-full flex items-center justify-center transition border border-emerald-200 shadow-sm active:scale-95" title="Đổi mật khẩu">
-            <i class="fa-solid fa-key text-xs"></i>
-        </button>
-    </div>
-
-    <!-- Form Đổi Mật Khẩu -->
-<form id="passwordEditContainer"
-      onsubmit="window.changePassword(event)"
-      class="hidden space-y-2.5 pt-1 bg-slate-50/50 p-3 rounded-xl border border-slate-200">
-
-    <!-- Mật khẩu hiện tại -->
-    <div>
-        <label class="block text-xs font-bold text-slate-500 mb-1">
-            Vui lòng nhập thay đổi mật khẩu bên dưới
-        </label>
-        <input type="password"
-               id="oldPassword"
-               class="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 transition"
-               placeholder="Nhập mật khẩu hiện tại">
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-500 mb-1">
-        </label>
-        <input type="password"
-               id="newPassword"
-               class="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 transition"
-               placeholder="Nhập mật khẩu mới">
-    </div>
-    <div>
-        <label class="block text-xs font-bold text-slate-500 mb-1">
-        </label>
-        <input type="password"
-               id="confirmPassword"
-               class="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 transition"
-               placeholder="Nhập lại mật khẩu mới">
-    </div>
-    <button type="submit"
-            class="w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-emerald-700 transition shadow-sm active:scale-[0.99]">
-        <i class="fa-solid fa-key mr-1.5"></i>
-        Cập Nhật Mật Khẩu
-    </button>
-
-</form>
-</div>
-<!-- Phần hiển thị và thay đổi Telegram ID Cá Nhân -->
- 
-<div class="pt-3 pb-4 border-b border-slate-100 text-xs space-y-2.5">
-    <label class="block font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-        <i class="fa-brands fa-telegram text-blue-500"></i> Telegram ID Cá Nhân
-    </label>
-    
-    <!-- Hiển thị Chat ID hiện tại & Nút Đổi ID -->
-    <div class="bg-blue-50/70 p-3 rounded-xl border border-blue-100 flex justify-between items-center text-slate-700">
-        <span>Đang dùng ID: <strong id="currentTelegramIdDisplay" class="text-blue-600 font-bold">Chưa cập nhật</strong></span>
-        <button type="button" onclick="window.toggleTelegramEdit()" class="text-[11px] text-blue-600 font-bold hover:underline bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-sm">Đổi ID</button>
-    </div>
-
-    <!-- Ô nhập và nút lưu ID mới (MẶC ĐỊNH BỊ ẨN - Dùng class hidden) -->
-    <div id="telegramEditContainer" class="hidden space-y-2.5 pt-1 animate-in fade-in duration-200">
-    <div class="space-y-2">
-        <input type="text" id="accTelegramId" placeholder="Nhập Chat ID mới (vd: 123456789)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-    </div>
-    
-    <div class="flex gap-2">
-        <button type="button" onclick="window.testPersonalBot()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-bold transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 active:scale-[0.99]">
-            <i class="fa-solid fa-paper-plane"></i> Test ID Này
-        </button>
-        <button type="button" onclick="window.saveTelegramIdOnly()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold transition shadow-md shadow-blue-600/20 flex items-center justify-center gap-1.5 active:scale-[0.99]">
-            <i class="fa-solid fa-floppy-disk"></i> Lưu ID
-        </button>
-    </div>
-    <p class="text-[10px] text-slate-400 italic">Nhắn tin cho bot trước, sau đó nhập ID và bấm Test để kiểm tra.</p>
-</div>
-</div>
-                    <!-- NÚT DANH MỤC ĐỀ XUẤT (PHIẾU XĂNG & ĐỀ XUẤT VẬT TƯ) -->
-<div class="space-y-2 pt-4 border-t border-slate-200 mt-4">
-    <div class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider px-1">Danh Mục Đề Xuất</div>
-    <div class="grid grid-cols-2 gap-2">
-        <button onclick="window.openFuelTabModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 p-3 rounded-2xl font-bold text-xs transition flex flex-col items-center justify-center gap-1.5 border border-emerald-200 shadow-sm">
-            <i class="fa-solid fa-gas-pump text-base text-emerald-600"></i> Quản Lý Phiếu Xăng
-        </button>
-        <button onclick="window.openSupplyTabModal()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-3 rounded-2xl font-bold text-xs transition flex flex-col items-center justify-center gap-1.5 border border-blue-200 shadow-sm">
-            <i class="fa-solid fa-boxes-packing text-base text-blue-600"></i> Đề Xuất Vật Tư
-        </button>
-    </div>
-</div>
-
-<!-- ================= MODAL QUẢN LÝ PHIẾU XĂNG ================= -->
-<div id="fuelTabModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-gas-pump text-emerald-600"></i> Quản Lý Phiếu Xăng
-            </h3>
-            <button onclick="window.closeFuelTabModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
-        </div>
-
-        <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-500">Danh sách phiếu xăng của bạn</span>
-            <button onclick="window.openCreateFuelModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i> Tạo Phiếu Xăng
-            </button>
-        </div>
-        <!-- Bộ lọc phiếu xăng theo tháng -->
-<div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 mb-4">
-    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Chọn Tháng</label>
-    <input type="month" id="filterFuelMonth" onchange="window.filterFuelList()" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none">
-</div>
-
-<!-- Ô hiển thị tổng KM -->
-<div class="bg-emerald-600 text-white p-4 rounded-2xl mb-4 text-center shadow-lg shadow-emerald-600/20">
-    <span class="text-[10px] uppercase font-bold text-emerald-100 tracking-wider">Tổng KM trong tháng</span>
-    <div class="text-3xl font-black mt-1" id="totalKmDisplay">0 KM</div>
-</div>
-        <div id="fuelListContainer" class="space-y-2.5 max-h-96 overflow-y-auto custom-scrollbar pr-1"></div>
-    </div>
-</div>
-
-<!-- ================= MODAL TẠO MỚI PHIẾU XĂNG ================= -->
-<div id="createFuelModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-circle-plus text-emerald-600"></i> Tạo Phiếu Xăng Mới
-            </h3>
-            <button onclick="window.closeCreateFuelModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
-        </div>
-        <form onsubmit="window.submitCreateFuel(event)" class="space-y-3 text-xs">
-            <input type="hidden" id="editFuelId">
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Số phiếu</label>
-                    <input type="text" id="fuelSoPhiếu" readonly class="w-full p-2.5 bg-slate-100 text-emerald-700 font-black border border-slate-200 rounded-xl">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
-                    <input type="date" id="fuelNgayTao" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
-                </div>
-            </div>
-
-            <div class="relative">
-    <label class="block font-bold text-slate-500 mb-1">Công việc liên quan <span class="text-rose-500">*</span></label>
-    <div class="relative">
-        <input type="text" id="fuelTaskSearchInput" placeholder="Gõ tên khách hàng hoặc mã CV để tìm kiếm..." oninput="window.filterTechFuelTasks(this.value)" autocomplete="off" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-        <input type="hidden" id="fuelSelectedTaskValue">
-    </div>
-    <!-- Danh sách gợi ý tìm kiếm nhanh -->
-    <div id="fuelTaskSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50 custom-scrollbar divide-y divide-slate-100">
-        <!-- Render động bằng JS -->
-    </div>
-</div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Số KM đi <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.1" id="fuelKmDi" required oninput="window.calculateTotalKm()" placeholder="VD: 10.5" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Số KM về <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.1" id="fuelKmVe" required oninput="window.calculateTotalKm()" placeholder="VD: 25.0" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
-                </div>
-            </div>
-
-            <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 flex justify-between items-center text-emerald-900 font-bold">
-                <span>Tổng số KM thực tế:</span>
-                <span id="fuelTotalKmDisplay" class="text-sm font-black text-emerald-700">0 KM</span>
-            </div>
-
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="window.closeCreateFuelModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Lưu Phiếu Xăng</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- ================= MODAL ĐỀ XUẤT VẬT TƯ ================= -->
-<div id="supplyTabModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-boxes-packing text-blue-600"></i> Quản Lý & Tạo Đề Xuất Vật Tư
-            </h3>
-            <button onclick="window.closeSupplyTabModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
-        </div>
-
-        <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-slate-500">Danh sách đề xuất của bạn</span>
-            <button onclick="window.openCreateSupplyModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i> Tạo Đề Xuất Mới
-            </button>
-        </div>
-
-        <!-- Danh sách đề xuất đã tạo -->
-        <div id="supplyListContainer" class="space-y-2.5 max-h-96 overflow-y-auto custom-scrollbar pr-1">
-            <!-- Load động từ mobile.js -->
-        </div>
-    </div>
-</div>
-
-<!-- ================= MODAL TẠO MỚI ĐỀ XUẤT VẬT TƯ ================= -->
-<div id="createSupplyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-file-pen text-blue-600"></i> Tạo Phiếu Đề Xuất Vật Tư
-            </h3>
-            <button onclick="window.closeCreateSupplyModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
-        </div>
-
-        <form onsubmit="window.submitCreateSupply(event)" class="space-y-3.5 text-xs">
-            <input type="hidden" id="editSupplyId">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
-                    <input type="date" id="supNgayTao" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Người đề xuất</label>
-                    <input type="text" id="supNguoiXuat" readonly class="w-full p-2.5 bg-slate-100 text-slate-700 font-black border border-slate-200 rounded-xl">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Loại đề xuất <span class="text-rose-500">*</span></label>
-                    <select id="supLoai" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
-                        <option value="Mua công dụng cụ">Mua công dụng cụ</option>
-                        <option value="Mượn hàng">Mượn hàng</option>
-                        <option value="Tạm ứng">Tạm ứng</option>
-                        <option value="Khác">Khác</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Thời gian cần <span class="text-rose-500">*</span></label>
-                    <input type="datetime-local" id="supThoiGianCan" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
-                </div>
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Nội dung đề xuất <span class="text-rose-500">*</span></label>
-                <textarea id="supNoiDung" required rows="2" placeholder="Nhập tóm tắt nội dung đề xuất..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
-            </div>
-
-            <!-- Danh sách thiết bị đề xuất (Thêm động nhiều dòng) -->
-            <div class="space-y-2 pt-1">
-                <div class="flex justify-between items-center">
-                    <label class="font-black text-slate-700 uppercase tracking-wide">Vật tư / Thiết bị đề xuất</label>
-                    <button type="button" onclick="window.addSupplyDeviceRow()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> Thêm vật tư
-                    </button>
-                </div>
-
-                <div class="border border-slate-200 rounded-2xl overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-extrabold">
-                                <th class="p-2.5 pl-3">Tên thiết bị</th>
-                                <th class="p-2.5 w-24 text-center">ĐVT</th>
-                                <th class="p-2.5 w-20 text-center">SL</th>
-                                <th class="p-2.5 w-12 text-center">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody id="supplyDeviceRowsContainer" class="divide-y divide-slate-100 bg-white">
-                            <!-- Dòng thiết bị render động -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Ghi chú thêm</label>
-                <input type="text" id="supGhiChu" placeholder="Lưu ý hoặc thông tin kèm theo..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-            </div>
-
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="window.closeCreateSupplyModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-md">Gửi Đề Xuất</button>
-            </div>
-        </form>
-    </div>
-</div>
-                    <!-- KHU VỰC PHIÊN BẢN + ĐĂNG XUẤT -->
-<div class="pt-3 border-t border-slate-100 space-y-2">
-
-    <!-- KIỂM TRA PHIÊN BẢN -->
-    <button onclick="window.checkForAppUpdates()"
-            class="group w-full flex items-center gap-3 px-3 py-2.5
-                   bg-emerald-50 hover:bg-emerald-100
-                   border border-emerald-100 hover:border-emerald-200
-                   rounded-xl transition-all duration-200
-                   active:scale-[0.98]">
-
-        <!-- Icon -->
-        <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white
-                    flex items-center justify-center shadow-sm
-                    group-hover:scale-105 transition-transform">
-            <i id="updateIcon"
-               class="fa-solid fa-arrows-rotate text-xs"></i>
-        </div>
-
-        <!-- Nội dung -->
-        <div class="flex-1 text-left">
-            <div class="text-xs font-extrabold text-emerald-800">
-                Kiểm tra phiên bản
-            </div>
-            <div class="text-[10px] text-emerald-600/70 mt-0.5">
-                Kiểm tra và cập nhật phiên bản mới
-            </div>
-        </div>
-
-        <!-- Mũi tên -->
-        <i class="fa-solid fa-chevron-right text-[10px]
-                  text-emerald-500 group-hover:translate-x-0.5
-                  transition-transform"></i>
-    </button>
-
-
-    <!-- ĐĂNG XUẤT -->
-    <button onclick="window.logout()"
-            class="group w-full flex items-center gap-3 px-3 py-2.5
-                   bg-rose-50 hover:bg-rose-100
-                   border border-rose-100 hover:border-rose-200
-                   rounded-xl transition-all duration-200
-                   active:scale-[0.98]">
-
-        <!-- Icon -->
-        <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600
-                    flex items-center justify-center
-                    group-hover:bg-rose-200 transition">
-            <i class="fa-solid fa-right-from-bracket text-xs"></i>
-        </div>
-
-        <!-- Nội dung -->
-        <div class="flex-1 text-left">
-            <div class="text-xs font-extrabold text-rose-700">
-                Đăng Xuất
-            </div>
-            <div class="text-[10px] text-rose-500/70 mt-0.5">
-                Thoát khỏi tài khoản hiện tại
-            </div>
-        </div>
-
-        <i class="fa-solid fa-chevron-right text-[10px]
-                  text-rose-400 group-hover:translate-x-0.5
-                  transition-transform"></i>
-
-    </button>
-
-</div>
-                </div>
-            </div>
-            <!-- TAB: CÔNG VIỆC ĐƯỢC GIAO -->
-<div id="assignedTasksTabContent" class="hidden space-y-4 animate-in fade-in duration-200">
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
-        
-        <!-- Header tiêu đề kết hợp bộ lọc (Tháng & Icon Filter) -->
-        <div class="flex justify-between items-center border-b pb-2.5">
-            <div class="flex items-center space-x-2">
-                <h2 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-clipboard-list text-emerald-600"></i> Việc Giao
-                </h2>
-                <span id="assignedBadgeHeader" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-extrabold">0 CV</span>
-            </div>
-
-            <!-- Nhóm chọn Tháng & Nút bấm Icon Filter -->
-            <div class="flex items-center gap-2">
-                <input type="month" id="filterAssignedMonth" class="bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold text-emerald-700 outline-none" onchange="window.filterAssignedTasks()">
-                
-                <button onclick="window.toggleAssignedFilterBox()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 w-8 h-8 rounded-xl flex items-center justify-center transition border border-emerald-200 shadow-sm" title="Mở bộ lọc">
-                    <i class="fa-solid fa-filter text-xs"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- BỘ LỌC NÂNG CAO (Mặc định ẩn, bật khi bấm icon Filter) -->
-        <div id="assignedFilterContainer" class="hidden bg-slate-50 p-3.5 rounded-2xl shadow-inner border border-emerald-200 space-y-2.5 text-xs animate-in fade-in duration-200">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-2">
-                <span class="font-black text-slate-700 uppercase tracking-wider flex items-center gap-1 text-[11px]">
-                    <i class="fa-solid fa-filter text-emerald-600"></i> Lọc Nâng Cao
-                </span>
-                <button onclick="window.toggleAssignedFilterBox()" class="text-slate-400 hover:text-slate-600 font-bold text-base">&times;</button>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1 text-[10px]">Tên khách hàng</label>
-                    <input type="text" id="filterAssignedCustomer" placeholder="Nhập tên khách..." oninput="window.filterAssignedTasks()" class="w-full bg-white border border-slate-200 rounded-xl p-2 font-bold text-slate-700 outline-none">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1 text-[10px]">Loại CV</label>
-                    <select id="filterAssignedType" onchange="window.filterAssignedTasks()" class="w-full bg-white border border-slate-200 rounded-xl p-2 font-bold text-slate-700 outline-none">
-                        <option value="">-- Tất cả loại --</option>
-                        <option value="Bảo trì">Bảo trì</option>
-                        <option value="Lắp đặt">Lắp đặt</option>
-                        <option value="Sửa chữa">Sửa chữa</option>
-                        <option value="Tư vấn">Tư vấn</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex justify-end pt-1">
-                <button onclick="window.resetAssignedFilter()" class="bg-white hover:bg-slate-100 text-slate-600 px-3 py-1 rounded-xl text-[11px] font-bold border border-slate-200 transition flex items-center gap-1">
-                    <i class="fa-solid fa-rotate-left"></i> Đặt lại
-                </button>
-            </div>
-        </div>
-
-        <!-- NÚT THÊM CÔNG VIỆC MỚI -->
-        <button onclick="window.openModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl font-black text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-[0.99]">
-            <i class="fa-solid fa-plus text-sm"></i> Thêm Công Việc Mới
-        </button>
-
-        <div id="assignedTasksList" class="space-y-3">
-            <!-- Render từ JS -->
-        </div>
-    </div>
-</div>
-            <!-- ================= MODAL NHẬP LÝ DO TĂNG CA ================= -->
-<div id="tangCaModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-business-time text-emerald-600"></i> Khởi Tạo Ca Tăng Ca Mới
-            </h3>
-            <button onclick="window.closeTangCaModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
-        </div>
-
-        <form id="tangCaForm" onsubmit="window.submitStartTangCa(event)" class="space-y-3 text-xs">
-            <input type="hidden" id="tangCaTaskId">
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Lý do tăng ca <span class="text-rose-500">*</span></label>
-                <textarea id="tangCaLyDo" required rows="2" placeholder="Nhập lý do cần tăng ca..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium"></textarea>
-            </div>
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Thời gian tăng ca dự kiến (Phút) <span class="text-rose-500">*</span></label>
-                <input type="number" id="tangCaThoiGianDuKien" required placeholder="VD: 120" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-            </div>
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="window.closeTangCaModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/25">Xác Nhận Bắt Đầu</button>
-            </div>
-        </form>
-    </div>
-</div>
-<!-- MODAL LÝ DO TẠM NGƯNG CÔNG VIỆC -->
-<div id="pauseReasonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Nhập Lý Do Tạm Ngưng
-            </h3>
-            <button onclick="window.closePauseModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
-        </div>
-        <div class="space-y-3 text-xs">
-            <input type="hidden" id="pauseTaskId">
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Lý do tạm ngưng <span class="text-rose-500">*</span></label>
-                <textarea id="inputPauseReason" required rows="3" placeholder="Nhập lý do tạm ngưng công việc..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-medium"></textarea>
-            </div>
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="window.closePauseModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="button" onclick="window.submitPauseTaskWithReason()" class="flex-1 bg-amber-500 text-white py-2.5 rounded-xl font-bold hover:bg-amber-600 transition shadow-md">Xác Nhận Tạm Ngưng</button>
-            </div>
-        </div>
-    </div>
-</div>
-        </main>
-
-        <!-- ================= BOTTOM NAVIGATION (MENU DƯỚI) ================= -->
-<nav class="bg-white/90 backdrop-blur-md border-t border-slate-200/80 fixed bottom-0 left-0 right-0 z-40 px-3 py-2.5 flex justify-around items-center shadow-2xl">
-    <button onclick="window.switchTab('today')" id="nav_today" class="nav-btn flex flex-col items-center text-emerald-600 transition py-1 group">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 transition mb-0.5">
-            <i class="fa-solid fa-calendar-day text-sm"></i>
-        </div>
-        <span class="text-[10px] font-black">KPI Hôm Nay</span>
-    </button>
-    
-    <button onclick="window.switchTab('assignedTasks')" id="nav_assignedTasks" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5 relative">
-            <i class="fa-solid fa-list-check text-sm"></i>
-            <span id="assignedCountBadge" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
-        </div>
-        <span class="text-[10px] font-bold">Việc Giao</span>
-    </button>
-
-    <button onclick="window.switchTab('report')" id="nav_report" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
-            <i class="fa-solid fa-chart-pie text-sm"></i>
-        </div>
-        <span class="text-[10px] font-bold">Báo Cáo</span>
-    </button>
-
-    <button onclick="window.switchTab('account')" id="nav_account" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5">
-            <i class="fa-solid fa-user-gear text-sm"></i>
-        </div>
-        <span class="text-[10px] font-bold">Tài Khoản</span>
-    </button>
-</nav>
-
-    <div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-3 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-4 space-y-3 border border-slate-100 custom-scrollbar">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-            <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <i class="fa-solid fa-list-check text-emerald-600"></i> Tạo Mới Công Việc
-            </h3>
-            <button onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg w-6 h-6 rounded-full flex items-center justify-center bg-slate-50">&times;</button>
-        </div>
-
-        <form id="kpiForm" onsubmit="window.submitKPI(event)" class="space-y-2.5 text-xs">
-            
-            <!-- 1. Thông tin chung & Mã CV -->
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Mã CV</label>
-                    <input type="text" id="taskMaCv" disabled class="w-full p-1.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-lg font-black text-center text-xs">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Tình trạng</label>
-                    <select id="taskTinhTrang" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-xs outline-none">
-                        <option value="Chờ triển khai">Chờ triển khai</option>
-                        <option value="Đang thực hiện">Đang thực hiện</option>
-                        <option value="Tạm ngưng">Tạm ngưng</option>
-                        <option value="Đã hoàn thành">Đã hoàn thành</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 2. Thời gian tạo & Deadline (Đã đưa lên trên cùng) -->
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Thời gian tạo</label>
-                    <input type="datetime-local" id="taskNgayTao" required onchange="window.updateDefaultDeadline()" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-[10px] outline-none">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Deadline</label>
-                    <input type="datetime-local" id="taskDeadline" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-rose-600 text-[10px] outline-none">
-                </div>
-            </div>
-
-            <!-- 3. Khách hàng & SĐT -->
-            <div class="grid grid-cols-2 gap-2 relative">
-    <div class="relative">
-        <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Khách hàng <span class="text-rose-500">*</span></label>
-        <input type="text" id="taskKhachHang" required autocomplete="off" placeholder="🔍 Gõ tên hoặc chọn khách..." oninput="window.filterCustomerSuggestions(this.value)" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-emerald-500">
-        
-        <!-- Khung danh sách gợi ý khách hàng -->
-        <div id="customerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
-    </div>
-    <div>
-        <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Số điện thoại</label>
-        <input type="text" id="taskDienThoai" placeholder="Số ĐT..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs outline-none">
-    </div>
-</div>
-
-            <!-- 4. Phân loại & Ưu tiên -->
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Loại CV</label>
-                    <select id="taskLoaiCv" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
-                        <option value="">-- Chọn loại --</option>
-                        <option value="Bảo trì">Bảo trì</option>
-                        <option value="Lắp đặt">Lắp đặt</option>
-                        <option value="Sửa chữa">Sửa chữa</option>
-                        <option value="Tư vấn">Tư vấn</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Ưu tiên</label>
-                    <select id="taskUuTien" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
-                        <option value="Thường">Thường</option>
-                        <option value="Trung bình">Trung bình</option>
-                        <option value="Cao">Cao</option>
-                        <option value="Khẩn cấp">Khẩn cấp</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 5. Kỹ thuật phụ trách & Hỗ trợ -->
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Phụ trách</label>
-                    <select id="taskKtPhuTrach" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
-                        <option value="">-- Chọn --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Hỗ trợ</label>
-                    <select id="taskKtHoTro" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
-                        <option value="">-- Không --</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 6. Nội dung công việc -->
-            <div>
-                <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Nội dung <span class="text-rose-500">*</span></label>
-                <textarea id="taskNoiDung" required rows="2" placeholder="Chi tiết công việc..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-xs font-medium"></textarea>
-            </div>
-
-            <!-- 7. Ghi chú -->
-            <div>
-                <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Ghi chú</label>
-                <input type="text" id="taskGhiChu" placeholder="Lưu ý thêm (nếu có)..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs">
-                <input type="hidden" id="taskNguoiTao">
-            </div>
-
-            <!-- Nút hành động -->
-            <div class="pt-1.5 flex gap-2">
-                <button type="button" onclick="window.closeModal()" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md text-xs">Lưu Công Việc</button>
-            </div>
-        </form>
-    </div>
-</div>
-    <!-- ================= MODAL SỬA CÔNG VIỆC ================= -->
-<div id="editTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Sửa Thông Tin Công Việc
-            </h3>
-            <button onclick="window.closeEditModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">&times;</button>
-        </div>
-
-        <form id="editKpiForm" onsubmit="window.updateKPI(event)" class="space-y-3.5 text-xs">
-            <input type="hidden" id="editTaskId">
-            
-            <!-- Dòng 1: Ngày tạo, Mã CV, Tình trạng CV -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
-                    <input type="date" id="editNgayTao" class="w-full p-2.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Mã CV</label>
-                    <input type="text" id="editMaCv" disabled class="w-full p-2.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Tình trạng CV</label>
-                    <select id="editTinhTrang" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="Chờ triển khai">Chờ triển khai</option>
-                        <option value="Đang thực hiện">Đang thực hiện</option>
-                        <option value="Tạm ngưng">Tạm ngưng</option>
-                        <option value="Đã hoàn thành">Đã hoàn thành</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Dòng 2: Khách hàng & Số điện thoại -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Tên khách hàng <span class="text-rose-500">*</span></label>
-                    <input type="text" id="editKhachHang" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Số điện thoại</label>
-                    <input type="text" id="editDienThoai" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
-            </div>
-
-            <!-- Dòng 3: Loại CV & Ưu tiên -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Loại công việc</label>
-                    <select id="editLoaiCv" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
-                        <option value="">-- Chọn loại công việc --</option>
-                        <option value="Bảo trì">Bảo trì</option>
-                        <option value="Lắp đặt">Lắp đặt</option>
-                        <option value="Sửa chữa">Sửa chữa</option>
-                        <option value="Tư vấn">Tư vấn</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Mức độ ưu tiên</label>
-                    <select id="editUuTien" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
-                        <option value="Thường">Thường</option>
-                        <option value="Trung bình">Trung bình</option>
-                        <option value="Cao">Cao</option>
-                        <option value="Khẩn cấp">Khẩn cấp</option>
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label class="block font-bold text-slate-500 mb-1">Nội dung công việc <span class="text-rose-500">*</span></label>
-                <textarea id="editNoiDung" required rows="2.5" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
-            </div>
-
-            <!-- Kỹ thuật phụ trách & hỗ trợ (Select) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Kỹ thuật phụ trách</label>
-                    <select id="editKtPhuTrach" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Kỹ thuật hỗ trợ</label>
-                    <select id="editKtHoTro" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Deadline CV</label>
-                    <input type="datetime-local" id="editDeadline" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Người tạo</label>
-                    <input type="text" id="editNguoiTao" disabled class="w-full p-2.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ghi chú</label>
-                    <input type="text" id="editGhiChu" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
-            </div>
-
-            <div class="pt-3 flex gap-2.5">
-                <button type="button" onclick="window.closeEditModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Cập Nhật</button>
-            </div>
-        </form>
-    </div>
-</div>
-    <!-- ================= MODAL SỬA TIÊU CHÍ CHECKBOX & TƯ VẤN (KỸ THUẬT) ================= -->
-<div id="techEditTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-slate-100">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Cập Nhật Tiêu Chí Công Việc
-            </h3>
-            <button onclick="window.closeTechEditModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
-        </div>
-
-        <form id="techEditTaskForm" onsubmit="window.saveTechTaskCriteria(event)" class="space-y-3.5 text-xs">
-            <input type="hidden" id="techEditTaskId">
-            
-            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3 font-semibold text-slate-700">
-                <label class="flex items-center space-x-3 cursor-pointer">
-                    <input type="checkbox" id="techEditChupAnh" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"> 
-                    <span>Có chụp hình ảnh / video</span>
-                </label>
-                <label class="flex items-center space-x-3 cursor-pointer">
-                    <input type="checkbox" id="techEditDanhGiaMaps" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"> 
-                    <span>Có Đánh Giá Maps</span>
-                </label>
-                <label class="flex items-center space-x-3 cursor-pointer pt-1 border-t border-slate-200/60">
-                    <input type="checkbox" id="techEditCoTuVanBanHang" onchange="toggleTechTuVanInput()" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"> 
-                    <span>Có tư vấn bán hàng</span>
-                </label>
-            </div>
-
-            <div id="techEditTuVanContainer" class="hidden">
-                <label class="block font-bold text-slate-500 mb-1">Nội dung tư vấn bán hàng</label>
-                <textarea id="techEditNoiDungTuVan" rows="2" placeholder="Nhập nội dung tư vấn..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-            </div>
-
-            <div class="pt-2 flex gap-2">
-                <button type="button" onclick="window.closeTechEditModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy bỏ</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/25">Lưu Thay Đổi</button>
-            </div>
-        </form>
-    </div>
-</div>
-<!-- ================= MODAL THANH TOÁN & HOÀN THÀNH CÔNG VIỆC ================= -->
-<div id="paymentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-receipt text-emerald-600"></i> Xác Nhận Hoàn Thành & Thanh Toán
-            </h3>
-            <button onclick="window.closePaymentModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">&times;</button>
-        </div>
-
-        <form id="paymentForm" onsubmit="window.submitCompleteTaskWithPayment(event)" class="space-y-3.5 text-xs">
-            <input type="hidden" id="payTaskId">
-            
-            <!-- 3 NÚT LỰA CHỌN HÌNH THỨC HOÀN THÀNH -->
-            <div class="grid grid-cols-3 gap-2 pt-1">
-                <button type="button" onclick="window.switchCompletionMode('tinhphi')" id="btnModeTinhPhi" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-emerald-600 text-white shadow-md">
-                    <i class="fa-solid fa-file-invoice-dollar text-sm"></i> Tính Phí
-                </button>
-                <button type="button" onclick="window.switchCompletionMode('baohanh')" id="btnModeBaoHanh" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200">
-                    <i class="fa-solid fa-shield-halved text-sm"></i> Bảo Hành
-                </button>
-                <button type="button" onclick="window.switchCompletionMode('hotro')" id="btnModeHoTro" class="py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200">
-                    <i class="fa-solid fa-handshake-angle text-sm"></i> Hỗ Trợ
-                </button>
-            </div>
-
-            <!-- KHU VỰC NỘI DUNG FORM ĐỘNG TÙY THEO NÚT ĐƯỢC BẤM -->
-            <div id="completionFormContainer" class="space-y-3 text-xs pt-2">
-                <!-- Nội dung form động được render bằng JavaScript -->
-            </div>
-
-            <!-- Nút bấm hành động chung -->
-            <div class="pt-3 flex gap-2.5">
-                <button type="button" onclick="window.closePaymentModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Xác Nhận Hoàn Thành</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    function toggleTechTuVanInput() {
-        const checkbox = document.getElementById('techEditCoTuVanBanHang');
-        const container = document.getElementById('techEditTuVanContainer');
-        if (checkbox.checked) {
-            container.classList.remove('hidden');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, get, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCUREZAu7XSS6-JwdpUL-FbqFv0gLVIQMk",
+  authDomain: "kpihomestech.firebaseapp.com",
+  databaseURL: "https://kpihomestech-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kpihomestech",
+  storageBucket: "kpihomestech.firebasestorage.app",
+  messagingSenderId: "154523584067",
+  appId: "1:154523584067:web:37e45fc5af9c3367c7f6f6",
+  measurementId: "G-30N67568FG"
+};
+
+const db = getDatabase(initializeApp(firebaseConfig));
+let currentUser = JSON.parse(localStorage.getItem('techUser')) || null;
+const todayStr = new Date().toISOString().split('T')[0];
+let allKpiList = {}; // Lưu trữ dữ liệu tạm thời để phục vụ tính năng sửa
+let allStaffsData = {};
+let allTechSupplyCache = {};
+
+document.getElementById('currentDateLabel').textContent = `Hôm nay, ngày ${todayStr.split('-').reverse().join('/')}`;
+
+window.login = (e) => {
+    e.preventDefault();
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
+
+    onValue(ref(db, 'staffs'), (snapshot) => {
+        if (!snapshot.exists()) { alert("Chưa có tài khoản nào!"); return; }
+        let matchedUser = null;
+        let matchedKey = null;
+
+        snapshot.forEach((child) => {
+            const val = child.val();
+            if (val.username === u && val.password === p) {
+                matchedUser = val;
+                matchedKey = child.key; // Lấy chính xác ID key của nhân sự trên Firebase
+            }
+        });
+
+        if (matchedUser) {
+            matchedUser.firebaseId = matchedKey; // Lưu lại firebaseId chuẩn
+            localStorage.setItem('techUser', JSON.stringify(matchedUser));
+            currentUser = matchedUser;
+            initApp();
         } else {
-            container.classList.add('hidden');
-            document.getElementById('techEditNoiDungTuVan').value = '';
+            alert("Sai tài khoản hoặc mật khẩu!");
+        }
+    }, { onlyOnce: true });
+};
+
+window.logout = () => { localStorage.removeItem('techUser'); location.reload(); };
+
+function initApp() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('userNameDisplay').textContent = currentUser.name;
+    document.getElementById('userRoleDisplay').textContent = currentUser.role || 'Kỹ thuật viên';
+    
+    const currentId = currentUser.telegramId || '';
+    const displayEl = document.getElementById('currentTelegramIdDisplay');
+    const inputEl = document.getElementById('accTelegramId');
+    if (displayEl) displayEl.textContent = currentId || 'Chưa cập nhật';
+    if (inputEl) inputEl.value = currentId;
+
+    loadTodayTasks();
+    
+    // 👉 Tự động kích hoạt lắng nghe danh sách phiếu xăng và đề xuất ngầm từ đầu
+    loadTechFuelReceipts();
+    loadTechSupplyReceipts();
+}
+
+// Modal Thêm Mới
+window.openModal = () => {
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    
+    // Thời gian tạo hiện tại (định dạng datetime-local)
+    const localIsoTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+    
+    // Deadline tự động cộng thêm 2 giờ từ thời điểm tạo
+    const deadlineDate = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const localDeadlineTime = new Date(deadlineDate.getTime() - tzOffset).toISOString().slice(0, 16);
+    
+    const staffSelect = document.getElementById('taskKtPhuTrach');
+    const supportSelect = document.getElementById('taskKtHoTro');
+    
+    const options = Object.values(allStaffsData).map(st => `<option value="${st.name}">${st.name}</option>`).join('');
+    
+    if (staffSelect) staffSelect.innerHTML = '<option value="">-- Chọn kỹ thuật --</option>' + options;
+    if (supportSelect) supportSelect.innerHTML = '<option value="">-- Không có hỗ trợ --</option>' + options;
+
+    const taskNgayTaoEl = document.getElementById('taskNgayTao');
+    if (taskNgayTaoEl) taskNgayTaoEl.value = localIsoTime;
+    
+    const taskDeadlineEl = document.getElementById('taskDeadline');
+    if (taskDeadlineEl) taskDeadlineEl.value = localDeadlineTime; // 👉 Tự động điền deadline sau 2 giờ
+    
+    const taskNguoiTaoEl = document.getElementById('taskNguoiTao');
+    if (taskNguoiTaoEl) taskNguoiTaoEl.value = currentUser ? currentUser.name : '';
+    
+    if (staffSelect && currentUser) staffSelect.value = currentUser.name;
+    
+    const autoCode = 'CV-' + Date.now().toString().slice(-4);
+    const taskMaCvEl = document.getElementById('taskMaCv');
+    if (taskMaCvEl) taskMaCvEl.value = autoCode;
+
+    const taskModal = document.getElementById('taskModal');
+    if (taskModal) taskModal.classList.remove('hidden');
+};
+
+// ================= HÀM TỰ ĐỘNG CẬP NHẬT DEADLINE KHI THAY ĐỔI THỜI GIAN TẠO =================
+window.updateDefaultDeadline = () => {
+    const ngayTaoEl = document.getElementById('taskNgayTao');
+    const deadlineEl = document.getElementById('taskDeadline');
+    if (ngayTaoEl && ngayTaoEl.value && deadlineEl) {
+        const createDate = new Date(ngayTaoEl.value);
+        if (!isNaN(createDate.getTime())) {
+            // Cộng thêm 2 giờ (2 * 3600 * 1000 ms)
+            const deadlineDate = new Date(createDate.getTime() + 2 * 60 * 60 * 1000);
+            const tzOffset = deadlineDate.getTimezoneOffset() * 60000;
+            const localDeadline = new Date(deadlineDate.getTime() - tzOffset).toISOString().slice(0, 16);
+            deadlineEl.value = localDeadline;
         }
     }
-</script>
-    <!-- Script điều khiển ẩn hiện ô tư vấn -->
-    <script>
-        function toggleTuVanInput() {
-            const checkbox = document.getElementById('coTuVanBanHang');
-            const container = document.getElementById('tuVanContainer');
-            if (checkbox.checked) {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-                document.getElementById('noiDungTuVan').value = '';
-            }
-        }
-        function toggleEditTuVanInput() {
-            const checkbox = document.getElementById('editCoTuVanBanHang');
-            const container = document.getElementById('editTuVanContainer');
-            if (checkbox.checked) {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-                document.getElementById('editNoiDungTuVan').value = '';
-            }
-        }
-    </script>
+};
+window.closeModal = () => {
+    document.getElementById('taskModal').classList.add('hidden');
+};
 
-    <!-- Kết nối Script xử lý Logic -->
-    <script type="module" src="mobile.js"></script>
-</body>
-</html>
+
+// Modal Sửa
+window.closeEditModal = () => document.getElementById('editTaskModal').classList.add('hidden');
+
+function loadTodayTasks() {
+    onValue(ref(db, 'managementTasks'), (snapshot) => {
+        const list = document.getElementById('todayTaskList');
+        const badge = document.getElementById('todayCountBadge');
+        if (!list) return;
+        list.innerHTML = '';
+
+        let todayTaskCount = 0;
+
+        if (snapshot.exists()) {
+            const allMgmtTasks = snapshot.val();
+            
+            // Lọc các công việc thuộc về user hiện tại và đã hoàn thành trong ngày
+            const myCompletedTodayTasks = Object.entries(allMgmtTasks).filter(([id, task]) => {
+                const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
+                const isCompleted = task.tinhTrang === 'Đã hoàn thành';
+                // Nới lỏng điều kiện ngày để không bị trôi dữ liệu khi quản lý chấm điểm
+                const matchesDate = (task.thoiGianKetThuc && task.thoiGianKetThuc.includes(todayStr)) || (task.ngayTao === todayStr);
+                return isAssigned && isCompleted && matchesDate;
+            });
+
+            todayTaskCount = myCompletedTodayTasks.length;
+            if (badge) badge.textContent = `${todayTaskCount} CV`;
+
+            if (myCompletedTodayTasks.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border border-slate-200">Hôm nay bạn chưa có công việc nào hoàn thành được đồng bộ.</p>';
+            } else {
+                myCompletedTodayTasks.reverse().forEach(([id, task]) => {
+                    let calculatedMinutes = 0;
+                    if (task.thoiGianBatDau && task.thoiGianKetThuc) {
+                        const startMs = new Date(task.thoiGianBatDau).getTime();
+                        const endMs = new Date(task.thoiGianKetThuc).getTime();
+                        calculatedMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+                    }
+
+                    // Ép kiểu tường minh và kiểm tra giá trị điểm KPI từ quản lý chấm
+                    const diemSo = (task.diemKpi !== undefined && task.diemKpi !== null && task.diemKpi !== "") ? Number(task.diemKpi) : 0;
+                    
+                    let kpiBadgeHtml = '';
+                    if (diemSo > 0) {
+                        kpiBadgeHtml = `<span class="text-[11px] font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1 shadow-sm"><i class="fa-solid fa-star text-amber-500"></i> Điểm KPI: ${diemSo}</span>`;
+                    } else {
+                        kpiBadgeHtml = `<span class="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1"><i class="fa-solid fa-clock"></i> Chờ Quản Lý Chấm KPIs</span>`;
+                    }
+
+                    let tuVanHtml = task.coTuVanBanHang ? `
+                        <div class="text-indigo-700 font-medium bg-indigo-50/80 p-2.5 rounded-xl mt-1 text-xs border border-indigo-100">
+                            <i class="fa-solid fa-comments mr-1"></i> <strong>Tư vấn bán hàng:</strong> ${task.noiDungTuVan || 'Có tư vấn'}
+                        </div>` : '';
+
+                    let danhGiaHtml = task.danhGiaAdmin ? `
+                        <div class="mt-2 bg-blue-50/60 p-3 text-slate-700 rounded-xl border border-blue-100 text-xs space-y-0.5">
+                            <div class="font-bold text-blue-900 flex items-center gap-1"><i class="fa-solid fa-user-tie"></i> Đánh giá từ Quản lý:</div>
+                            <div class="italic text-slate-600">${task.danhGiaAdmin}</div>
+                        </div>` : '';
+
+                    const chupAnhChecked = task.chupAnh ? '<i class="fa-solid fa-square-check text-emerald-600 mr-1"></i>' : '<i class="fa-regular fa-square text-slate-300 mr-1"></i>';
+                    const mapsChecked = task.danhGiaMaps ? '<i class="fa-solid fa-square-check text-emerald-600 mr-1"></i>' : '<i class="fa-regular fa-square text-slate-300 mr-1"></i>';
+                    const tuVanChecked = task.coTuVanBanHang ? '<i class="fa-solid fa-square-check text-emerald-600 mr-1"></i>' : '<i class="fa-regular fa-square text-slate-300 mr-1"></i>';
+
+                    list.innerHTML += `
+                        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 text-xs relative shadow-sm space-y-2.5">
+                            <div class="flex justify-between items-start gap-2">
+                                <div>
+                                    <span class="font-extrabold text-blue-600 text-sm">${task.maCv || 'CV'} - ${task.khachHang || ''}</span>
+                                    <div class="text-[10px] text-slate-400">Ngày: ${task.ngayTao || todayStr}</div>
+                                </div>
+                                <div>${kpiBadgeHtml}</div>
+                            </div>
+
+                            <div class="text-slate-700 font-medium text-xs leading-relaxed">${task.noiDung || ''}</div>
+
+                            <div class="grid grid-cols-3 gap-1 pt-1 border-t border-slate-100 text-[11px] text-slate-600 font-semibold">
+                                <div>${chupAnhChecked} Ảnh/Video</div>
+                                <div>${mapsChecked} Đánh giá Maps</div>
+                                <div>${tuVanChecked} Tư vấn bán hàng</div>
+                            </div>
+                            
+                            ${tuVanHtml}
+                            ${danhGiaHtml}
+
+                            <div class="text-slate-400 text-[11px] pt-2 border-t border-slate-100 flex justify-between items-center">
+                                <span>Thời gian hoàn thành: <strong class="text-emerald-600">${calculatedMinutes} phút</strong></span>
+                                <button onclick="window.openTechEditModal('${id}')" class="text-blue-600 hover:text-blue-800 font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition text-xs flex items-center gap-1 shadow-sm">
+                                    <i class="fa-solid fa-pen"></i> Sửa Tiêu Chí
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        } else {
+            if (badge) badge.textContent = `0 CV`;
+            list.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border border-slate-200">Chưa có dữ liệu công việc.</p>';
+        }
+    });
+}
+// Mở form Sửa và đổ dữ liệu cũ vào
+window.openEditModal = (id) => {
+    const task = allKpiList[id];
+    if (!task) return;
+
+    document.getElementById('editTaskId').value = id;
+    document.getElementById('editNgayThucHien').value = task.ngayThucHien;
+    document.getElementById('editSttCv').value = task.sttCv;
+    document.getElementById('editKhachHang').value = task.khachHang;
+    document.getElementById('editNoiDung').value = task.noiDung;
+    document.getElementById('editKtHoTro').value = task.ktHoTro || '';
+    document.getElementById('editThoiGian').value = task.thoiGian;
+    document.getElementById('editDeadline').value = task.deadline || '';
+    document.getElementById('editChupAnh').checked = !!task.chupAnh;
+    document.getElementById('editDanhGiaMaps').checked = !!task.danhGiaMaps;
+    
+    const coTuVan = !!task.coTuVanBanHang;
+    document.getElementById('editCoTuVanBanHang').checked = coTuVan;
+    const editTuVanContainer = document.getElementById('editTuVanContainer');
+    if (coTuVan) {
+        editTuVanContainer.classList.remove('hidden');
+        document.getElementById('editNoiDungTuVan').value = task.noiDungTuVan || '';
+    } else {
+        editTuVanContainer.classList.add('hidden');
+        document.getElementById('editNoiDungTuVan').value = '';
+    }
+
+    document.getElementById('editGhiChu').value = task.ghiChu || '';
+    document.getElementById('editTaskModal').classList.remove('hidden');
+};
+
+// Cập nhật công việc lên Firebase
+window.updateKPI = (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editTaskId')?.value;
+    if (!id) return;
+    
+    // Thu thập toàn bộ dữ liệu mới từ form sửa
+    const updatedData = {
+        ngayTao: document.getElementById('editNgayTao')?.value || new Date().toISOString().slice(0, 16),
+        tinhTrang: document.getElementById('editTinhTrang')?.value || 'Chờ triển khai',
+        khachHang: document.getElementById('editKhachHang')?.value.trim() || '',
+        dienThoai: document.getElementById('editDienThoai')?.value.trim() || '',
+        loaiCv: document.getElementById('editLoaiCv')?.value || '',
+        uuTien: document.getElementById('editUuTien')?.value || 'Thường',
+        noiDung: document.getElementById('editNoiDung')?.value.trim() || '',
+        ktPhuTrach: document.getElementById('editKtPhuTrach')?.value || '',
+        ktHoTro: document.getElementById('editKtHoTro')?.value || '',
+        deadline: document.getElementById('editDeadline')?.value || '',
+        ghiChu: document.getElementById('editGhiChu')?.value.trim() || ''
+    };
+
+    // Tiến hành cập nhật lên Firebase
+    update(ref(db, `managementTasks/${id}`), updatedData)
+        .then(() => {
+            alert("Cập nhật thông tin công việc thành công!");
+            window.closeEditModal();
+
+            // 👉 Tự động gửi thông báo thay đổi/điều phối về nhóm Telegram quản lý
+            const oldTaskData = allAssignedTasks[id] || {};
+            const mergedTaskData = { ...oldTaskData, ...updatedData };
+            
+            sendMobileTelegramNotification(
+                'update_task', 
+                mergedTaskData, 
+                `Đã điều phối lại thông tin công việc.\n- Phụ trách mới: ${updatedData.ktPhuTrach || 'N/A'}\n- Hỗ trợ mới: ${updatedData.ktHoTro || 'Không'}`
+            );
+        })
+        .catch(err => {
+            alert("Lỗi cập nhật: " + err.message);
+        });
+};
+// Xóa công việc khỏi Firebase
+window.deleteTask = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa công việc này không?")) {
+        remove(ref(db, `kpis/${id}`)).then(() => {
+            alert("Đã xóa công việc!");
+        }).catch(err => alert("Lỗi: " + err.message));
+    }
+};
+
+window.submitKPI = (e) => {
+    e.preventDefault();
+    
+    const ngayTaoVal = document.getElementById('taskNgayTao')?.value || new Date().toISOString();
+    const ngayTaoTimestampVal = new Date(ngayTaoVal).getTime() || Date.now();
+
+    const newTask = {
+        ngayTao: ngayTaoVal, // Lưu đầy đủ ngày và giờ tạo
+        ngayTaoTimestamp: ngayTaoTimestampVal, 
+        maCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
+        sttCv: document.getElementById('taskMaCv')?.value || ('CV-' + Date.now().toString().slice(-4)),
+        tinhTrang: document.getElementById('taskTinhTrang')?.value || 'Chờ triển khai',
+        khachHang: document.getElementById('taskKhachHang')?.value.trim() || '',
+        dienThoai: document.getElementById('taskDienThoai')?.value.trim() || '',
+        loaiCv: document.getElementById('taskLoaiCv')?.value || '',
+        uuTien: document.getElementById('taskUuTien')?.value || 'Thường',
+        noiDung: document.getElementById('taskNoiDung')?.value.trim() || '',
+        ktPhuTrach: document.getElementById('taskKtPhuTrach')?.value || '',
+        ktHoTro: document.getElementById('taskKtHoTro')?.value || '',
+        deadline: document.getElementById('taskDeadline')?.value || '', // Nhận giá trị deadline theo định dạng datetime-local
+        nguoiTao: document.getElementById('taskNguoiTao')?.value || (currentUser ? currentUser.name : ''),
+        ghiChu: document.getElementById('taskGhiChu')?.value.trim() || '',
+        chupAnh: false,
+        danhGiaMaps: false,
+        coTuVanBanHang: false,
+        noiDungTuVan: '',
+        hasSentTimeoutAlert: false
+    };
+
+    push(ref(db, 'managementTasks'), newTask)
+        .then(() => {
+            alert("Tạo công việc mới thành công!");
+            window.closeModal();
+            document.getElementById('kpiForm')?.reset();
+        })
+        .catch(err => {
+            alert("Lỗi: " + err.message);
+        });
+};
+if (currentUser) { initApp(); }
+// Thêm hàm này vào file mobile.js
+window.switchTab = (tab) => {
+    // 1. Khai báo các nội dung tab
+    const todayContent = document.getElementById('todayTabContent');
+    const assignedTabContent = document.getElementById('assignedTasksTabContent');
+    const reportContent = document.getElementById('reportTabContent');
+    const accountContent = document.getElementById('accountTabContent');
+    
+    // 2. Khai báo các nút menu điều hướng (Khớp chính xác id trong baocao.html)
+    const navToday = document.getElementById('nav_today');
+    const navAssignedTasks = document.getElementById('nav_assignedTasks');
+    const navReport = document.getElementById('nav_report');
+    const navAccount = document.getElementById('nav_account');
+
+    // 3. Ẩn tất cả các nội dung tab trước
+    if (todayContent) todayContent.classList.add('hidden');
+    if (reportContent) reportContent.classList.add('hidden');
+    if (accountContent) accountContent.classList.add('hidden');
+    if (assignedTabContent) assignedTabContent.classList.add('hidden');
+
+    // 4. Xử lý hiển thị nội dung theo từng tab được chọn và gọi hàm dữ liệu
+    if (tab === 'today') {
+        if (todayContent) todayContent.classList.remove('hidden');
+        if (typeof window.loadTodayTasks === 'function') window.loadTodayTasks();
+    } else if (tab === 'report') {
+        if (reportContent) reportContent.classList.remove('hidden');
+        if (typeof window.loadMonthlyReport === 'function') window.loadMonthlyReport();
+    } else if (tab === 'account') {
+        if (accountContent) accountContent.classList.remove('hidden');
+        
+        // Đổ thông tin tài khoản & Telegram ID hiện tại vào Tab Tài khoản
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            const accNameEl = document.getElementById('accName');
+            const accRoleEl = document.getElementById('accRole');
+            const accUsernameEl = document.getElementById('accUsername');
+            if (accNameEl) accNameEl.textContent = currentUser.name;
+            if (accRoleEl) accRoleEl.textContent = currentUser.role || 'Kỹ thuật viên';
+            if (accUsernameEl) accUsernameEl.textContent = currentUser.username;
+            
+            const currentId = currentUser.telegramId || '';
+            const displayEl = document.getElementById('currentTelegramIdDisplay');
+            const inputEl = document.getElementById('accTelegramId');
+            if (displayEl) displayEl.textContent = currentId || 'Chưa cập nhật';
+            if (inputEl) inputEl.value = currentId;
+        }
+    } else if (tab === 'assignedTasks') {
+        if (assignedTabContent) assignedTabContent.classList.remove('hidden');
+        if (typeof window.renderAssignedTasks === 'function') window.renderAssignedTasks();
+    }
+
+    // 5. Reset toàn bộ các nút menu về trạng thái mặc định (chữ xám mờ, icon không có nền)
+    const allNavButtons = [navToday, navAssignedTasks, navReport, navAccount];
+    allNavButtons.forEach(btn => {
+        if (!btn) return;
+        btn.className = "nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group";
+        const iconDiv = btn.querySelector('div');
+        if (iconDiv) {
+            const hasRelative = iconDiv.classList.contains('relative');
+            iconDiv.className = `w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5 ${hasRelative ? 'relative' : ''}`;
+        }
+        const textSpan = btn.querySelector('span');
+        if (textSpan) textSpan.className = "text-[10px] font-bold";
+    });
+
+    // 6. Xác định nút menu đang active dựa vào tab
+    let activeBtn = null;
+    if (tab === 'today') activeBtn = navToday;
+    else if (tab === 'assignedTasks') activeBtn = navAssignedTasks;
+    else if (tab === 'report') activeBtn = navReport;
+    else if (tab === 'account') activeBtn = navAccount;
+
+    // 7. Kích hoạt hiệu ứng nổi bật (chữ xanh ngọc đậm, icon có nền bg-emerald-50)
+    if (activeBtn) {
+        activeBtn.className = "nav-btn flex flex-col items-center text-emerald-600 transition py-1 group";
+        const iconDiv = activeBtn.querySelector('div');
+        if (iconDiv) {
+            const hasRelative = iconDiv.classList.contains('relative');
+            iconDiv.className = `w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 transition mb-0.5 ${hasRelative ? 'relative' : ''}`;
+        }
+        const textSpan = activeBtn.querySelector('span');
+        if (textSpan) textSpan.className = "text-[10px] font-black";
+    }
+};
+
+// Hàm thay đổi mật khẩu từ Tab Tài khoản
+window.changePassword = (e) => {
+    e.preventDefault();
+    const oldPass = document.getElementById('oldPassword').value.trim();
+    const newPass = document.getElementById('newPassword').value.trim();
+    const confirmPass = document.getElementById('confirmPassword').value.trim();
+
+    if (!currentUser || !currentUser.firebaseId) {
+        alert("Lỗi phiên đăng nhập, vui lòng đăng xuất và đăng nhập lại!");
+        return;
+    }
+
+    if (oldPass !== currentUser.password) {
+        alert("Mật khẩu hiện tại không chính xác!");
+        return;
+    }
+    if (newPass !== confirmPass) {
+        alert("Mật khẩu mới và xác nhận mật khẩu không khớp!");
+        return;
+    }
+    if (newPass.length < 6) {
+        alert("Mật khẩu mới phải có ít nhất 6 ký tự!");
+        return;
+    }
+
+    // Cập nhật mật khẩu mới trực tiếp lên nhánh tương ứng của Firebase
+    update(ref(db, `staffs/${currentUser.firebaseId}`), { password: newPass })
+        .then(() => {
+            alert("Đổi mật khẩu thành công! Vui lòng sử dụng mật khẩu mới cho lần đăng nhập sau.");
+            currentUser.password = newPass;
+            localStorage.setItem('techUser', JSON.stringify(currentUser));
+            
+            // Xóa sạch ô nhập
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        })
+        .catch(err => alert("Lỗi hệ thống khi đổi mật khẩu: " + err.message));
+};
+// Đặt giá trị mặc định cho ô chọn tháng là tháng hiện tại khi mở app
+const reportMonthInputEl = document.getElementById('reportMonthInput');
+if (reportMonthInputEl) {
+    reportMonthInputEl.value = new Date().toISOString().slice(0, 7);
+}
+
+// Hàm tải và tính toán báo cáo KPI theo tháng cho Tab Báo Cáo
+window.loadMonthlyReport = () => {
+    const monthInput = document.getElementById('reportMonthInput');
+    if (!monthInput || !currentUser) return;
+    const selectedMonth = monthInput.value; // Định dạng "YYYY-MM"
+
+    let totalCv = 0;
+    let totalTime = 0;
+    let totalScore = 0;
+    let scoredCount = 0;
+
+    const monthlyTaskListEl = document.getElementById('monthlyTaskList');
+    if (monthlyTaskListEl) monthlyTaskListEl.innerHTML = '';
+
+    // Lọc các công việc thuộc về user hiện tại (Phụ trách hoặc Hỗ trợ) và đúng tháng đã chọn
+    const myMonthlyTasks = Object.entries(allAssignedTasks || {}).filter(([id, task]) => {
+        const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
+        // Kiểm tra theo ngày tạo hoặc thời gian kết thúc bắt đầu bằng tháng được chọn (YYYY-MM)
+        const taskDate = task.ngayTao || task.thoiGianKetThuc || '';
+        const matchesMonth = taskDate.startsWith(selectedMonth);
+        return isAssigned && matchesMonth;
+    }).reverse(); // Mới nhất lên đầu
+
+    myMonthlyTasks.forEach(([id, task]) => {
+        totalCv++;
+        
+        // Tính thời gian hoàn thành (nếu có đủ thời gian bắt đầu và kết thúc)
+        let calculatedMinutes = Number(task.thoiGian) || 0;
+        if (task.thoiGianBatDau && task.thoiGianKetThuc) {
+            const startMs = new Date(task.thoiGianBatDau).getTime();
+            const endMs = new Date(task.thoiGianKetThuc).getTime();
+            calculatedMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+        }
+        totalTime += calculatedMinutes;
+
+        const score = (task.diemKpi !== undefined && task.diemKpi !== null && task.diemKpi !== "") ? Number(task.diemKpi) : 0;
+        if (score > 0) {
+            totalScore += score;
+            scoredCount++;
+        }
+
+        const badgeColor = score > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const statusText = score > 0 ? `Điểm KPI: ${score}` : (task.tinhTrang === 'Đã hoàn thành' ? 'Chờ chấm' : task.tinhTrang);
+
+        let tuVanHtml = task.coTuVanBanHang ? `<div class="text-[11px] text-indigo-700 bg-indigo-50 p-2 rounded-xl mt-1 font-medium"><i class="fa-solid fa-comments mr-1"></i> <strong>Tư vấn:</strong> ${task.noiDungTuVan || 'Có'}</div>` : '';
+        let danhGiaHtml = task.danhGiaAdmin ? `<div class="text-[11px] text-slate-600 bg-slate-100 p-2 rounded-xl mt-1 italic"><i class="fa-solid fa-user-tie text-emerald-600 mr-1"></i> ${task.danhGiaAdmin}</div>` : '';
+
+        if (monthlyTaskListEl) {
+            monthlyTaskListEl.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-extrabold text-slate-800">${(task.ngayTao || todayStr).split('-').reverse().join('/')} - <span class="text-blue-600">${task.maCv || 'CV'}</span></span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}">${statusText}</span>
+                    </div>
+                    <div class="font-bold text-slate-700">${task.khachHang || ''}</div>
+                    <div class="text-slate-600">${task.noiDung || ''}</div>
+                    ${tuVanHtml}
+                    ${danhGiaHtml}
+                    <div class="text-slate-400 text-[11px] pt-1 border-t border-slate-200/60 flex justify-between">
+                        <span>TG: <strong>${calculatedMinutes} phút</strong></span>
+                        <div class="flex gap-2">
+                            <span>Ảnh: <i class="fa-solid fa-camera ${task.chupAnh ? 'text-emerald-500':'text-slate-300'}"></i></span>
+                            <span>Maps: <i class="fa-solid fa-map ${task.danhGiaMaps ? 'text-blue-500':'text-slate-300'}"></i></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    if (myMonthlyTasks.length === 0 && monthlyTaskListEl) {
+        monthlyTaskListEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border">Không có công việc nào trong tháng này.</p>';
+    }
+
+    const avgScore = scoredCount > 0 ? (totalScore / scoredCount).toFixed(1) : 0;
+
+    // Cập nhật số liệu lên các ô tổng hợp phía trên Tab Báo Cáo
+    document.getElementById('repTotalCv').textContent = totalCv;
+    document.getElementById('repTotalTime').textContent = `${totalTime}p`;
+    document.getElementById('repTotalScore').textContent = totalScore;
+    document.getElementById('repAvgScore').textContent = avgScore;
+};
+// ================= QUẢN LÝ TAB "VIỆC ĐƯỢC GIAO" CHO KỸ THUẬT =================
+let allAssignedTasks = {};
+
+// 1. Lắng nghe dữ liệu việc được giao từ trang quản trị (managementTasks)
+onValue(ref(db, 'managementTasks'), (snapshot) => {
+    allAssignedTasks = snapshot.exists() ? snapshot.val() : {};
+    renderAssignedTasks();
+});
+
+// 2. Render danh sách việc được giao cho kỹ thuật hiện tại (Phụ trách hoặc Hỗ trợ)
+function renderAssignedTasks() {
+    const container = document.getElementById('assignedTasksList');
+    const badgeHeader = document.getElementById('assignedBadgeHeader');
+    const navBadge = document.getElementById('assignedCountBadge');
+    if (!container || !currentUser) return;
+
+    container.innerHTML = '';
+    
+    // 👉 Lấy giá trị từ ô chọn tháng, tên khách hàng và loại CV
+    const selectedMonth = document.getElementById('filterAssignedMonth')?.value || "";
+    const customerKeyword = document.getElementById('filterAssignedCustomer')?.value.trim().toLowerCase() || "";
+    const selectedType = document.getElementById('filterAssignedType')?.value || "";
+
+    // 👉 Lọc công việc của user kết hợp với điều kiện tên khách hàng (tìm kiếm gần đúng)
+    const myTasks = Object.entries(allAssignedTasks).filter(([id, task]) => {
+        const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
+        if (!isAssigned) return false;
+
+        const taskDate = task.ngayTao || (task.thoiGianKetThuc ? task.thoiGianKetThuc.split('T')[0] : "");
+        const matchMonth = selectedMonth ? taskDate.startsWith(selectedMonth) : true;
+        
+        // Kiểm tra tên khách hàng chứa từ khóa tìm kiếm (không phân biệt hoa thường)
+        const customerName = (task.khachHang || "").toLowerCase();
+        const matchCustomer = customerKeyword ? customerName.includes(customerKeyword) : true;
+        
+        const matchType = selectedType ? task.loaiCv === selectedType : true;
+
+        return matchMonth && matchCustomer && matchType;
+    }).reverse();
+
+    // Đếm số việc chưa hoàn thành để hiển thị badge tổng
+    const activeTasksCount = myTasks.filter(([id, task]) => task.tinhTrang !== 'Đã hoàn thành').length;
+
+    if (badgeHeader) badgeHeader.textContent = `${myTasks.length} CV`;
+    
+    if (navBadge) {
+        if (activeTasksCount > 0) {
+            navBadge.textContent = activeTasksCount;
+            navBadge.classList.remove('hidden');
+        } else {
+            navBadge.classList.add('hidden');
+        }
+    }
+
+    if (myTasks.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-8 bg-slate-50 rounded-2xl border">Không tìm thấy công việc phù hợp với bộ lọc.</p>';
+        return;
+    }
+
+    // Hàm kiểm tra ngoài giờ làm việc (Sáng 07h30-11h30 & Chiều 13h30-17h30, Chủ Nhật nghỉ)
+    const checkIsOvertime = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTimeVal = hours * 60 + minutes;
+
+    if (dayOfWeek === 0) return true; // Chủ Nhật nghỉ tính cả ngày là ngoài giờ
+
+    // Giờ làm việc hành chính: Sáng 07h30 - 11h30 & Chiều 13h30 - 17h30
+    const morningEnd = 11 * 60 + 30;
+    const afternoonStart = 13 * 60 + 30;
+    const afternoonEnd = 17 * 60 + 30;
+
+    // Ngoài giờ: từ 11h30 đến 13h30 HOẶC sau 17h30 (đến trước 07h30 sáng hôm sau)
+    const isLunchBreakOvertime = (currentTimeVal > morningEnd && currentTimeVal < afternoonStart);
+    const isEveningOvertime = (currentTimeVal > afternoonEnd || currentTimeVal < 7 * 60 + 30);
+
+    return isLunchBreakOvertime || isEveningOvertime;
+};
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return 'Chưa cập nhật';
+        return timeStr.replace('T', ' ').substring(0, 16);
+    };
+
+    myTasks.forEach(([id, task]) => {
+        let statusColor = 'bg-amber-100 text-amber-800';
+        if (task.tinhTrang === 'Đang thực hiện') statusColor = 'bg-blue-100 text-blue-800 animate-pulse';
+        if (task.tinhTrang === 'Đã hoàn thành') statusColor = 'bg-emerald-100 text-emerald-800';
+        if (task.tinhTrang === 'Tạm ngưng') statusColor = 'bg-rose-100 text-rose-800';
+
+        // Nút bấm hành động trạng thái chính
+        let actionButtons = '';
+        if (task.tinhTrang === 'Chờ triển khai') {
+            actionButtons = `<button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl font-black text-xs transition shadow-lg flex items-center justify-center gap-2 active:scale-[0.99]"><i class="fa-solid fa-play"></i> Nhận Việc & Bắt Đầu</button>`;
+        } else if (task.tinhTrang === 'Đang thực hiện') {
+            actionButtons = `<div class="grid grid-cols-2 gap-2.5">
+                <button onclick="window.updateAssignedTaskStatus('${id}', 'Tạm ngưng')" class="bg-amber-500 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-pause"></i> Tạm Ngưng</button>
+                <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-check"></i> Hoàn Thành</button>
+            </div>`;
+        } else if (task.tinhTrang === 'Tạm ngưng') {
+            actionButtons = `<div class="grid grid-cols-2 gap-2.5">
+                <button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="bg-blue-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-play"></i> Tiếp Tục</button>
+                <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-check"></i> Hoàn Thành</button>
+            </div>`;
+        } else {
+            // 👉 TÍNH TOÁN TỔNG THỜI GIAN HOÀN THÀNH (Tính theo phút hoặc giờ + phút)
+            let totalMinutes = 0;
+            if (task.thoiGianBatDau && task.thoiGianKetThuc) {
+                const startMs = new Date(task.thoiGianBatDau).getTime();
+                const endMs = new Date(task.thoiGianKetThuc).getTime();
+                totalMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+            }
+
+            let timeDisplayStr = `${totalMinutes} phút`;
+            if (totalMinutes >= 60) {
+                const hours = Math.floor(totalMinutes / 60);
+                const mins = totalMinutes % 60;
+                timeDisplayStr = mins > 0 ? `${hours} giờ ${mins} phút` : `${hours} giờ`;
+            }
+
+            actionButtons = `
+                <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 shadow-sm">
+                    <div class="flex items-center gap-2 text-emerald-800 font-extrabold text-xs">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> Đã hoàn thành
+                    </div>
+                    <div class="bg-white px-3 py-1 rounded-xl border border-emerald-200 text-emerald-700 font-black text-xs flex items-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Tổng TG: ${timeDisplayStr}
+                    </div>
+                </div>`;
+        }
+        // Logic Sửa/Xóa công việc khi chưa hoàn thành
+        let editDeleteButtons = '';
+        if (task.tinhTrang !== 'Đã hoàn thành') {
+            editDeleteButtons = `
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-2">
+                    <button onclick="window.openEditTaskModal('${id}')" class="bg-blue-50 text-blue-600 py-2 rounded-xl font-bold text-[10px] hover:bg-blue-100 transition"><i class="fa-solid fa-pen mr-1"></i> Sửa</button>
+                    <button onclick="window.deleteTaskByTech('${id}')" class="bg-rose-50 text-rose-600 py-2 rounded-xl font-bold text-[10px] hover:bg-rose-100 transition"><i class="fa-solid fa-trash mr-1"></i> Xóa</button>
+                </div>`;
+        }
+
+        // Xử lý thông tin tăng ca
+        let tangCaSectionHtml = '';
+        const isOvertimeWindow = checkIsOvertime();
+        const isCompleted = task.tinhTrang === 'Đã hoàn thành';
+        let tangCaList = task.tangCaList || [];
+        let activeTangCa = tangCaList.find(s => s.trangThai === 'Đang tăng ca');
+
+        if (!isCompleted && isOvertimeWindow) {
+            if (activeTangCa) {
+                tangCaSectionHtml = `
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3 rounded-2xl space-y-1.5 shadow-sm">
+                        <div class="flex justify-between items-center text-amber-900 font-bold">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-business-time text-amber-600"></i> Đang tăng ca: ${activeTangCa.lyDo}</span>
+                            <button onclick="window.endTangCaSession('${id}', '${activeTangCa.id}')" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-[10px] font-black transition shadow-sm">Kết thúc TC</button>
+                        </div>
+                        <div class="text-[10px] text-slate-500">Dự kiến: ${activeTangCa.thoiGianDuKien} phút • Bắt đầu: ${formatTime(activeTangCa.batDau)}</div>
+                    </div>`;
+            } else {
+                tangCaSectionHtml = `
+                    <button onclick="window.openTangCaModal('${id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-2.5 rounded-2xl font-extrabold text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 active:scale-[0.99]">
+                        <i class="fa-solid fa-business-time"></i> Bắt Đầu Tăng Ca Mới
+                    </button>`;
+            }
+        }
+
+        let historyTangCaHtml = '';
+if (tangCaList.length > 0) {
+    historyTangCaHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
+        <div class="font-bold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Lịch sử tăng ca (${tangCaList.length} lần):</div>`;
+    tangCaList.forEach((ses, idx) => {
+        const isDone = ses.trangThai === 'Đã kết thúc';
+        historyTangCaHtml += `
+            <div class="pl-2 border-l-2 ${isDone ? 'border-emerald-400' : 'border-amber-400'} space-y-0.5">
+                <div>• Lần ${idx+1}: <span class="font-medium text-slate-700">${ses.lyDo}</span> (${ses.thoiGianDuKien}p) - <span class="font-bold ${isDone ? 'text-emerald-600' : 'text-amber-600'}">${ses.trangThai}</span></div>
+                <div class="text-[10px] text-slate-400">Bắt đầu: ${formatTime(ses.batDau)} (${ses.gpsBatDau || 'N/A'})</div>
+                ${isDone ? `<div class="text-[10px] text-slate-400">Kết thúc: ${formatTime(ses.ketThuc)} (${ses.gpsKetThuc || 'N/A'})</div>` : ''}
+            </div>`;
+    });
+    historyTangCaHtml += `</div>`;
+}
+
+        container.innerHTML += `
+            <div class="bg-white border border-slate-200/90 rounded-3xl p-4 text-xs space-y-3 shadow-sm hover:shadow transition">
+                <div onclick="window.toggleMobileAccordion('${id}')" class="cursor-pointer space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="font-black text-emerald-700 text-sm tracking-tight">${task.maCv || ''} - ${task.khachHang || ''}</span>
+                            <div class="text-slate-400 text-[10px] font-bold">Ngày tạo: ${task.ngayTao || ''}</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${statusColor}">${task.tinhTrang}</span>
+                            <span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold text-[9px]">${task.uuTien || 'Thường'}</span>
+                        </div>
+                    </div>
+                    <div class="text-slate-700 font-medium leading-relaxed bg-slate-50 p-3 rounded-2xl border flex justify-between items-center">
+                        <span>${task.noiDung || ''}</span>
+                        <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform" id="icon_${id}"></i>
+                    </div>
+                </div>
+
+                <!-- PHẦN CHI TIẾT MỞ RỘNG ĐẦY ĐỦ -->
+                <div id="accordion_${id}" class="hidden space-y-3 pt-2 border-t border-slate-100">
+                    <!-- Thông tin chung -->
+                    <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-3 rounded-2xl border">
+                        <div><strong>SĐT:</strong> <a href="tel:${task.dienThoai}" class="text-blue-600 font-bold">${task.dienThoai || 'N/A'}</a></div>
+                        <div><strong>Loại CV:</strong> <span class="text-blue-600 font-bold">${task.loaiCv || 'Khác'}</span></div>
+                        <div><strong>Mức ưu tiên:</strong> <span class="text-amber-600 font-bold">${task.uuTien || 'Thường'}</span></div>
+                        <div><strong>Deadline:</strong> <span class="text-rose-600 font-bold">${formatTime(task.deadline) || 'Không'}</span></div>
+                        <div><strong>Phụ trách:</strong> ${task.ktPhuTrach || ''}</div>
+                        <div><strong>Hỗ trợ:</strong> ${task.ktHoTro || 'Không'}</div>
+                        <div class="col-span-2"><strong>Người tạo:</strong> ${task.nguoiTao || ''}</div>
+                        <div class="col-span-2"><strong>Ghi chú:</strong> ${task.ghiChu || 'Không có'}</div>
+                    </div>
+
+                    <!-- Thời gian & GPS -->
+                    <div class="bg-slate-50 p-3 rounded-2xl border text-[11px] space-y-1">
+                        <div class="font-bold text-slate-700 border-b pb-1 mb-1"><i class="fa-solid fa-clock text-emerald-600"></i> Thời gian & GPS thực tế:</div>
+                        <div><strong>Bắt đầu CV:</strong> ${formatTime(task.thoiGianBatDau)}</div>
+                        <div><strong>Kết thúc CV:</strong> ${formatTime(task.thoiGianKetThuc)}</div>
+                        <div><strong>GPS Thực hiện:</strong> ${task.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
+                        <div><strong>GPS Hoàn thành:</strong> ${task.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
+                    </div>
+
+                    <!-- THÔNG TIN THANH TOÁN (Chỉ hiện khi hoàn thành) -->
+                    ${task.tinhTrang === 'Đã hoàn thành' && task.hinhThucThanhToan ? `
+                        <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 text-[11px] space-y-1 text-slate-700">
+                            <div class="font-bold text-emerald-800 border-b border-emerald-200 pb-1 mb-1 flex items-center gap-1">
+                                <i class="fa-solid fa-receipt"></i> Thông tin thanh toán & bảo hành:
+                            </div>
+                            <div class="grid grid-cols-2 gap-1">
+                                <div><strong>Hình thức:</strong> ${task.hinhThucThanhToan}</div>
+                                <div><strong>Số tiền:</strong> <span class="text-emerald-700 font-black">${Number(task.soTienThanhToan || 0).toLocaleString()} VNĐ</span></div>
+                                <div><strong>Công nợ:</strong> <span class="${task.tinhTrangCongNo === 'Có nợ' ? 'text-rose-600 font-bold' : 'text-slate-700'}">${task.tinhTrangCongNo || 'Không'}</span></div>
+                                <div><strong>Bảo hành:</strong> ${task.thoiGianBaoHanh || 'Không'}</div>
+                            </div>
+                            ${task.ghiChuThanhToan ? `<div class="pt-1 text-slate-600"><strong>Ghi chú phí:</strong> ${task.ghiChuThanhToan}</div>` : ''}
+                        </div>
+                    ` : ''}
+
+                    <!-- KHU VỰC TĂNG CA -->
+                    ${(tangCaSectionHtml || historyTangCaHtml) ? `
+                        <div class="space-y-2 pt-1 border-t border-slate-100">
+                            ${tangCaSectionHtml}
+                            ${historyTangCaHtml}
+                        </div>` : ''}
+                </div>
+
+                <div class="pt-1">${actionButtons}</div>
+                ${editDeleteButtons}
+            </div>
+        `;
+    });
+}
+
+// Hàm mở rộng/thu gọn chi tiết công việc trên Mobile
+window.toggleMobileAccordion = (id) => {
+    const accordion = document.getElementById(`accordion_${id}`);
+    const icon = document.getElementById(`icon_${id}`);
+    if (accordion) {
+        accordion.classList.toggle('hidden');
+        if (icon) {
+            icon.classList.toggle('rotate-180');
+        }
+    }
+};
+
+// 3. Hàm bấm nhận việc / cập nhật trạng thái kèm GPS và thời gian thực
+window.updateAssignedTaskStatus = (taskId, newStatus) => {
+    if (!navigator.geolocation) {
+        alert("Trình duyệt không hỗ trợ định vị GPS.");
+        executeAssignedStatusUpdate(taskId, newStatus, "Không hỗ trợ GPS");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const gpsString = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            executeAssignedStatusUpdate(taskId, newStatus, gpsString);
+        },
+        (error) => {
+            console.warn("Không lấy được GPS:", error.message);
+            executeAssignedStatusUpdate(taskId, newStatus, "Không lấy được GPS");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+};
+
+function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
+    const nowTime = new Date().toISOString();
+    let updatePayload = { tinhTrang: newStatus };
+
+    if (newStatus === 'Đang thực hiện') {
+        updatePayload.thoiGianBatDau = nowTime;
+        updatePayload.gpsThucHien = gpsCoords;
+    } else if (newStatus === 'Tạm ngưng') {
+        updatePayload.gpsTamNgung = gpsCoords;
+    } else if (newStatus === 'Đã hoàn thành') {
+        updatePayload.thoiGianKetThuc = nowTime;
+        updatePayload.gpsHoanThanh = gpsCoords;
+    }
+
+    update(ref(db, `managementTasks/${taskId}`), updatePayload)
+        .then(() => {
+            alert(`Cập nhật trạng thái thành công: "${newStatus}"`);
+
+            // 👉 KÍCH HOẠT GỬI THÔNG BÁO TELEGRAM KHI BẮT ĐẦU HOẶC ĐỔI TRẠNG THÁI
+            const currentTaskData = allAssignedTasks[taskId] || {};
+            const mergedData = { ...currentTaskData, ...updatePayload };
+            
+            if (newStatus === 'Đang thực hiện') {
+                sendMobileTelegramNotification('inprogress', mergedData, 'Kỹ thuật viên đã nhận việc và bắt đầu triển khai.');
+            } else if (newStatus === 'Tạm ngưng') {
+                sendMobileTelegramNotification('pause', mergedData, 'Công việc đã bị tạm ngưng.');
+            }
+        })
+        .catch((err) => {
+            alert("Lỗi cập nhật: " + err.message);
+        });
+}
+
+// Hàm hỗ trợ gửi Telegram trực tiếp từ mobile.js
+async function sendMobileTelegramNotification(actionType, taskData, extraMessage = '') {
+    try {
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) return;
+        const config = snapshot.val();
+        if (!config.botToken) return;
+
+        let isEnabled = false;
+        let actionTitle = '';
+        let emoji = '📌';
+
+        switch (actionType) {
+            case 'inprogress': isEnabled = config.notifOnInProgress; actionTitle = 'BẮT ĐẦU THỰC HIỆN'; emoji = '🚀'; break;
+            case 'pause': isEnabled = config.notifOnPause; actionTitle = 'TẠM NGƯNG CÔNG VIỆC'; emoji = '⏸️'; break;
+            case 'complete': isEnabled = config.notifOnComplete; actionTitle = 'HOÀN THÀNH CÔNG VIỆC'; emoji = '✅'; break;
+            case 'update_task': isEnabled = true; actionTitle = 'ĐIỀU PHỐI / CẬP NHẬT CV'; emoji = '🔄'; break;
+            case 'start_overtime': isEnabled = config.notifOnStartOvertime; actionTitle = 'BẮT ĐẦU TĂNG CA'; emoji = '⏱️'; break;
+            case 'end_overtime': isEnabled = config.notifOnEndOvertime; actionTitle = 'KẾT THÚC TĂNG CA'; emoji = '🏁'; break;
+        }
+
+        if (!isEnabled) return;
+
+        // Dùng Set ngay từ đầu để gom các Chat ID và loại bỏ hoàn toàn việc trùng lặp
+        const chatIdsSet = new Set();
+
+        // 1. Thêm Chat ID nhóm quản lý (nếu có)
+        if (config.adminChatId) {
+            chatIdsSet.add(config.adminChatId.trim());
+        }
+
+        // 2. Quét lấy Telegram ID cá nhân của kỹ thuật phụ trách và hỗ trợ từ nhánh 'staffs'
+        const staffSnapshot = await get(ref(db, 'staffs'));
+        if (staffSnapshot.exists()) {
+            const staffList = Object.values(staffSnapshot.val());
+            
+            // Phụ trách chính
+            if (taskData.ktPhuTrach) {
+                const matchedStaff = staffList.find(s => s.name === taskData.ktPhuTrach);
+                if (matchedStaff && matchedStaff.telegramId) {
+                    chatIdsSet.add(matchedStaff.telegramId.trim());
+                }
+            }
+
+            // Kỹ thuật hỗ trợ
+            if (taskData.ktHoTro && taskData.ktHoTro !== "") {
+                const supportStaff = staffList.find(s => s.name === taskData.ktHoTro);
+                if (supportStaff && supportStaff.telegramId) {
+                    chatIdsSet.add(supportStaff.telegramId.trim());
+                }
+            }
+        }
+
+        // Tạo dòng hiển thị kỹ thuật
+        let staffLine = `🛠️ *Kỹ thuật:* ${taskData.ktPhuTrach || 'N/A'}`;
+        if (taskData.ktHoTro && taskData.ktHoTro !== "") {
+            staffLine += ` + ${taskData.ktHoTro} (Hỗ trợ)`;
+        }
+
+        // Nội dung tin nhắn
+        const message = encodeURIComponent(
+            `${emoji} *[THÔNG BÁO ${actionTitle}]*\n\n` +
+            `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
+            `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
+            `${staffLine}\n` +
+            `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n` +
+            (extraMessage ? `💬 *Chi tiết:* ${extraMessage}\n` : '') +
+            `🕒 *Thời gian:* ${new Date().toLocaleString('vi-VN')}`
+        );
+
+        // Tiến hành gửi đi đúng 1 lần duy nhất cho mỗi Chat ID đã được lọc qua Set
+        for (const chatId of chatIdsSet) {
+            const url = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${chatId}&text=${message}&parse_mode=Markdown`;
+            fetch(url).catch(err => console.error("Lỗi gửi Telegram đến " + chatId, err));
+        }
+
+    } catch (error) {
+        console.error("Lỗi gửi thông báo mobile:", error);
+    }
+}
+
+// 4. Mở rộng hàm switchTab để hỗ trợ Tab "assignedTasks"
+const originalSwitchTab = window.switchTab;
+window.switchTab = (tab) => {
+    // 1. Khai báo các nội dung tab
+    const todayContent = document.getElementById('todayTabContent');
+    const assignedTabContent = document.getElementById('assignedTasksTabContent');
+    const reportContent = document.getElementById('reportTabContent');
+    const accountContent = document.getElementById('accountTabContent');
+    
+    // 2. Khai báo chính xác các nút menu có dấu gạch dưới khớp với baocao.html
+    const navToday = document.getElementById('nav_today');
+    const navAssignedTasks = document.getElementById('nav_assignedTasks');
+    const navReport = document.getElementById('nav_report');
+    const navAccount = document.getElementById('nav_account');
+
+    // 3. Ẩn tất cả nội dung tab
+    if (todayContent) todayContent.classList.add('hidden');
+    if (assignedTabContent) assignedTabContent.classList.add('hidden');
+    if (reportContent) reportContent.classList.add('hidden');
+    if (accountContent) accountContent.classList.add('hidden');
+
+    // 4. Hiển thị tab được chọn và gọi dữ liệu tương ứng
+    if (tab === 'today') {
+        if (todayContent) todayContent.classList.remove('hidden');
+        if (typeof window.loadTodayTasks === 'function') window.loadTodayTasks();
+    } else if (tab === 'assignedTasks') {
+        if (assignedTabContent) assignedTabContent.classList.remove('hidden');
+        if (typeof window.renderAssignedTasks === 'function') window.renderAssignedTasks();
+    } else if (tab === 'report') {
+        if (reportContent) reportContent.classList.remove('hidden');
+        if (typeof window.loadMonthlyReport === 'function') window.loadMonthlyReport();
+    } else if (tab === 'account') {
+        if (accountContent) accountContent.classList.remove('hidden');
+        
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            const accNameEl = document.getElementById('accName');
+            const accRoleEl = document.getElementById('accRole');
+            const accUsernameEl = document.getElementById('accUsername');
+            if (accNameEl) accNameEl.textContent = currentUser.name;
+            if (accRoleEl) accRoleEl.textContent = currentUser.role || 'Kỹ thuật viên';
+            if (accUsernameEl) accUsernameEl.textContent = currentUser.username;
+            
+            const currentId = currentUser.telegramId || '';
+            const displayEl = document.getElementById('currentTelegramIdDisplay');
+            const inputEl = document.getElementById('accTelegramId');
+            if (displayEl) displayEl.textContent = currentId || 'Chưa cập nhật';
+            if (inputEl) inputEl.value = currentId;
+        }
+    }
+
+    // 5. Reset toàn bộ menu về trạng thái mờ (chữ xám, không có nền)
+    const allNavButtons = [navToday, navAssignedTasks, navReport, navAccount];
+    allNavButtons.forEach(btn => {
+        if (!btn) return;
+        btn.className = "nav-btn flex flex-col items-center text-slate-400 hover:text-slate-600 transition py-1 group";
+        const iconDiv = btn.querySelector('div');
+        if (iconDiv) {
+            const hasRelative = iconDiv.classList.contains('relative');
+            iconDiv.className = `w-8 h-8 rounded-xl flex items-center justify-center transition mb-0.5 ${hasRelative ? 'relative' : ''}`;
+        }
+        const textSpan = btn.querySelector('span');
+        if (textSpan) textSpan.className = "text-[10px] font-bold";
+    });
+
+    // 6. Xác định đúng nút menu đang active
+    let activeBtn = null;
+    if (tab === 'today') activeBtn = navToday;
+    else if (tab === 'assignedTasks') activeBtn = navAssignedTasks;
+    else if (tab === 'report') activeBtn = navReport;
+    else if (tab === 'account') activeBtn = navAccount;
+
+    // 7. Tô sáng nút menu đang chọn (chữ xanh ngọc đậm, icon có nền bg-emerald-50)
+    if (activeBtn) {
+        activeBtn.className = "nav-btn flex flex-col items-center text-emerald-600 transition py-1 group";
+        const iconDiv = activeBtn.querySelector('div');
+        if (iconDiv) {
+            const hasRelative = iconDiv.classList.contains('relative');
+            iconDiv.className = `w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 transition mb-0.5 ${hasRelative ? 'relative' : ''}`;
+        }
+        const textSpan = activeBtn.querySelector('span');
+        if (textSpan) textSpan.className = "text-[10px] font-black";
+    }
+};
+// ================= QUẢN LÝ TĂNG CA (HỖ TRỢ NHIỀU LẦN/NGÀY) =================
+
+// Mở Modal nhập lý do khi kỹ thuật bấm nút Bắt đầu tăng ca
+window.openTangCaModal = (taskId) => {
+    document.getElementById('tangCaTaskId').value = taskId;
+    document.getElementById('tangCaForm').reset();
+    document.getElementById('tangCaModal').classList.remove('hidden');
+};
+
+window.closeTangCaModal = () => {
+    document.getElementById('tangCaModal').classList.add('hidden');
+};
+
+// Xử lý khi kỹ thuật submit thông tin bắt đầu tăng ca
+window.submitStartTangCa = (e) => {
+    e.preventDefault();
+    const taskId = document.getElementById('tangCaTaskId').value;
+    const lyDo = document.getElementById('tangCaLyDo').value.trim();
+    const thoiGianDuKien = Number(document.getElementById('tangCaThoiGianDuKien').value) || 0;
+    
+    if (!taskId || !lyDo) return;
+
+    // Lấy GPS chính xác mới nhất ngay khi bấm
+    getFreshGPS((freshGps) => {
+        saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, freshGps);
+    });
+};
+function saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, gpsStart) {
+    const task = allAssignedTasks[taskId];
+    if (!task) return;
+
+    let tangCaList = task.tangCaList || [];
+    const newSession = {
+        id: 'TC-' + Date.now(),
+        lyDo: lyDo,
+        thoiGianDuKien: thoiGianDuKien,
+        batDau: new Date().toISOString(),
+        gpsBatDau: gpsStart,
+        trangThai: 'Đang tăng ca'
+    };
+
+    tangCaList.push(newSession);
+
+    update(ref(db, `managementTasks/${taskId}`), { tangCaList })
+        .then(() => {
+            alert("Đã bắt đầu phiên tăng ca!");
+            window.closeTangCaModal();
+            // 👉 GỬI THÔNG BÁO TELEGRAM KHI BẮT ĐẦU TĂNG CA
+sendMobileTelegramNotification('start_overtime', task, `Bắt đầu phiên tăng ca mới.\n- Lý do: ${lyDo}\n- Dự kiến: ${thoiGianDuKien} phút`);        })
+        .catch(err => alert("Lỗi: " + err.message));
+}
+
+// Hàm kết thúc một phiên tăng ca đang diễn ra
+window.endTangCaSession = (taskId, sessionId) => {
+    const task = allAssignedTasks[taskId];
+    if (!task || !task.tangCaList) return;
+
+    getFreshGPS((freshGps) => {
+        processEndTangCa(taskId, sessionId, freshGps);
+    });
+};
+function processEndTangCa(taskId, sessionId, gpsEnd) {
+    const task = allAssignedTasks[taskId];
+    let tangCaList = task.tangCaList || [];
+
+    tangCaList = tangCaList.map(s => {
+        if (s.id === sessionId) {
+            return {
+                ...s,
+                ketThuc: new Date().toISOString(),
+                gpsKetThuc: gpsEnd,
+                trangThai: 'Đã kết thúc'
+            };
+        }
+        return s;
+    });
+
+    update(ref(db, `managementTasks/${taskId}`), { tangCaList })
+        .then(() => {
+            alert("Đã kết thúc phiên tăng ca!");
+            // 👉 GỬI THÔNG BÁO TELEGRAM KHI KẾT THÚC TĂNG CA
+            if (endedSession) {
+                const durationMins = Math.round((new Date(endedSession.ketThuc) - new Date(endedSession.batDau)) / 60000);
+sendMobileTelegramNotification('end_overtime', task, `Đã kết thúc phiên tăng ca "${endedSession.lyDo}". Thời gian thực tế: ${durationMins} phút.`);            }
+        })
+        .catch(err => alert("Lỗi: " + err.message));
+}
+// 1. Mở Modal sửa tiêu chí checkbox cho kỹ thuật
+window.openTechEditModal = (taskId) => {
+    const task = allAssignedTasks[taskId];
+    if (!task) return;
+
+    document.getElementById('techEditTaskId').value = taskId;
+    document.getElementById('techEditChupAnh').checked = !!task.chupAnh;
+    document.getElementById('techEditDanhGiaMaps').checked = !!task.danhGiaMaps;
+    
+    const coTuVan = !!task.coTuVanBanHang;
+    document.getElementById('techEditCoTuVanBanHang').checked = coTuVan;
+    
+    const container = document.getElementById('techEditTuVanContainer');
+    if (coTuVan) {
+        container.classList.remove('hidden');
+        document.getElementById('techEditNoiDungTuVan').value = task.noiDungTuVan || '';
+    } else {
+        container.classList.add('hidden');
+        document.getElementById('techEditNoiDungTuVan').value = '';
+    }
+
+    document.getElementById('techEditTaskModal').classList.remove('hidden');
+};
+
+window.closeTechEditModal = () => {
+    document.getElementById('techEditTaskModal').classList.add('hidden');
+};
+
+// 2. Lưu cập nhật checkbox và nội dung tư vấn lên nhánh managementTasks trên Firebase
+window.saveTechTaskCriteria = (e) => {
+    e.preventDefault();
+    const taskId = document.getElementById('techEditTaskId').value;
+    const coTuVan = document.getElementById('techEditCoTuVanBanHang').checked;
+
+    const updatedCriteria = {
+        chupAnh: document.getElementById('techEditChupAnh').checked,
+        danhGiaMaps: document.getElementById('techEditDanhGiaMaps').checked,
+        coTuVanBanHang: coTuVan,
+        noiDungTuVan: coTuVan ? document.getElementById('techEditNoiDungTuVan').value.trim() : ''
+    };
+
+    update(ref(db, `managementTasks/${taskId}`), updatedCriteria)
+        .then(() => {
+            alert("Cập nhật tiêu chí thành công!");
+            window.closeTechEditModal();
+        })
+        .catch(err => {
+            alert("Lỗi: " + err.message);
+        });
+};
+
+onValue(ref(db, 'staffs'), (s) => {
+    allStaffsData = s.exists() ? s.val() : {};
+    // Không cần render giao diện ở đây, chỉ cần dữ liệu sẵn sàng
+});
+// Xóa công việc
+window.deleteTaskByTech = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa công việc này không?")) {
+        remove(ref(db, `managementTasks/${id}`))
+            .then(() => alert("Đã xóa thành công!"))
+            .catch(err => alert("Lỗi: " + err.message));
+    }
+};
+
+// Mở modal sửa (tận dụng lại Modal đã có hoặc tạo mới nếu cần)
+window.openEditTaskModal = (id) => {
+    const task = allAssignedTasks[id];
+    if (!task) return;
+
+    document.getElementById('editTaskId').value = id;
+    document.getElementById('editNgayTao').value = task.ngayTao || '';
+    document.getElementById('editMaCv').value = task.maCv || '';
+    document.getElementById('editTinhTrang').value = task.tinhTrang || '';
+    document.getElementById('editKhachHang').value = task.khachHang || '';
+    document.getElementById('editDienThoai').value = task.dienThoai || '';
+    document.getElementById('editLoaiCv').value = task.loaiCv || '';
+    document.getElementById('editUuTien').value = task.uuTien || '';
+    document.getElementById('editNoiDung').value = task.noiDung || '';
+    document.getElementById('editDeadline').value = task.deadline || '';
+    document.getElementById('editNguoiTao').value = task.nguoiTao || '';
+    document.getElementById('editGhiChu').value = task.ghiChu || '';
+
+    // Đổ danh sách kỹ thuật vào select
+    const options = Object.values(allStaffsData).map(st => `<option value="${st.name}">${st.name}</option>`).join('');
+    document.getElementById('editKtPhuTrach').innerHTML = '<option value="">-- Chọn kỹ thuật --</option>' + options;
+    document.getElementById('editKtHoTro').innerHTML = '<option value="">-- Không có hỗ trợ --</option>' + options;
+    
+    document.getElementById('editKtPhuTrach').value = task.ktPhuTrach || '';
+    document.getElementById('editKtHoTro').value = task.ktHoTro || '';
+
+    document.getElementById('editTaskModal').classList.remove('hidden');
+};
+
+// Hàm hỗ trợ lấy GPS chính xác và mới nhất (không dùng cache cũ)
+const getFreshGPS = (callback) => {
+    if (!navigator.geolocation) {
+        callback("Không hỗ trợ GPS");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const gpsStr = `${position.coords.latitude}, ${position.coords.longitude}`;
+            callback(gpsStr);
+        },
+        (error) => {
+            console.warn("Lỗi lấy GPS:", error.message);
+            callback("Không lấy được GPS");
+        },
+        {
+            enableHighAccuracy: true, // Bật chế độ định vị độ chính xác cao (GPS vệ tinh)
+            maximumAge: 0,          // Không sử dụng vị trí cũ lưu trong cache
+            timeout: 10000          // Đợi tối đa 10 giây
+        }
+    );
+};
+window.populateTelegramInput = () => {
+    const inputEl = document.getElementById('accTelegramId');
+    if (inputEl) {
+        inputEl.focus();
+        inputEl.value = currentUser.telegramId || '';
+    }
+};
+window.saveTelegramIdOnly = () => {
+    const newTelegramId = document.getElementById('accTelegramId').value.trim();
+
+    if (!currentUser || !currentUser.firebaseId) {
+        alert("Lỗi phiên đăng nhập, vui lòng đăng nhập lại!");
+        return;
+    }
+
+    update(ref(db, `staffs/${currentUser.firebaseId}`), { telegramId: newTelegramId })
+        .then(() => {
+            alert("Cập nhật Telegram ID thành công!");
+            currentUser.telegramId = newTelegramId;
+            localStorage.setItem('techUser', JSON.stringify(currentUser));
+            
+            // Cập nhật lại dòng hiển thị phía trên
+            document.getElementById('currentTelegramIdDisplay').textContent = newTelegramId || 'Chưa cập nhật';
+        })
+        .catch(err => {
+            alert("Lỗi khi cập nhật Telegram ID: " + err.message);
+        });
+};
+// Hàm Bật/Tắt ẩn hiện khung nhập ID khi bấm nút "Đổi ID"
+window.toggleTelegramEdit = () => {
+    const container = document.getElementById('telegramEditContainer');
+    const inputEl = document.getElementById('accTelegramId');
+    if (container) {
+        container.classList.toggle('hidden');
+        // Nếu container mở lên thì tự động điền sẵn ID hiện tại vào ô input và focus
+        if (!container.classList.contains('hidden') && inputEl) {
+            inputEl.value = currentUser.telegramId || '';
+            inputEl.focus();
+        }
+    }
+};
+// Hàm Test gửi tin nhắn trực tiếp vào Telegram cá nhân vừa nhập
+window.testPersonalBot = async () => {
+    const testChatId = document.getElementById('accTelegramId').value.trim();
+    
+    if (!testChatId) {
+        alert("Vui lòng nhập Chat ID cá nhân cần test!");
+        return;
+    }
+
+    try {
+        // Lấy cấu hình Token từ Firebase (giống như các hàm trước)
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) {
+            alert("Hệ thống chưa cấu hình Bot Telegram!");
+            return;
+        }
+        const config = snapshot.val();
+        if (!config.botToken) {
+            alert("Thiếu Bot Token trong cấu hình hệ thống!");
+            return;
+        }
+
+        const message = encodeURIComponent("🔔 *[TEST THÔNG BÁO CÁ NHÂN]*\n\nXin chào! Bot đã kết nối thành công với Telegram ID cá nhân của bạn.");
+        const url = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${testChatId}&text=${message}&parse_mode=Markdown`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.ok) {
+            alert("Test thành công! Hãy kiểm tra tin nhắn Telegram cá nhân của bạn.");
+        } else {
+            alert("Test thất bại: " + (data.description || "Kiểm tra lại Chat ID hoặc bấm Start với bot trước."));
+        }
+    } catch (err) {
+        alert("Lỗi kết nối: " + err.message);
+    }
+};
+// 1. Tự động gán tháng hiện tại vào ô lọc khi khởi động
+const filterAssignedMonthEl = document.getElementById('filterAssignedMonth');
+if (filterAssignedMonthEl) {
+    filterAssignedMonthEl.value = new Date().toISOString().slice(0, 7);
+}
+
+// 2. Bật/Tắt khung hiển thị bộ lọc nâng cao
+window.toggleAssignedFilterBox = () => {
+    const filterBox = document.getElementById('assignedFilterContainer');
+    if (filterBox) {
+        filterBox.classList.toggle('hidden');
+    }
+};
+
+// 3. Đặt lại (Reset) bộ lọc về mặc định
+window.resetAssignedFilter = () => {
+    if (document.getElementById('filterAssignedCustomer')) document.getElementById('filterAssignedCustomer').value = "";
+    if (document.getElementById('filterAssignedType')) document.getElementById('filterAssignedType').value = "";
+    const filterAssignedMonthEl = document.getElementById('filterAssignedMonth');
+    if (filterAssignedMonthEl) filterAssignedMonthEl.value = new Date().toISOString().slice(0, 7);
+    window.filterAssignedTasks();
+};
+// 4. Hàm lọc dữ liệu công việc được giao
+window.filterAssignedTasks = () => {
+    renderAssignedTasks(); // Gọi lại hàm render có kèm điều kiện lọc
+};
+// ================= TÍNH NĂNG VUỐT RELOAD (PULL TO REFRESH) =================
+let touchStartY = 0;
+let isPulling = false;
+const ptrIndicator = document.getElementById('ptrIndicator');
+
+window.addEventListener('touchstart', (e) => {
+    // Chỉ kích hoạt khi người dùng đang ở vị trí trên cùng của trang
+    if (window.scrollY === 0) {
+        touchStartY = e.touches[0].clientY;
+        isPulling = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (!isPulling) return;
+    const currentY = e.touches[0].clientY;
+    const pullDistance = currentY - touchStartY;
+
+    // Nếu vuốt xuống dưới hơn 70px khi đang ở đỉnh trang
+    if (pullDistance > 0 && window.scrollY === 0) {
+        if (ptrIndicator) {
+            // Hiển thị hiệu ứng kéo
+            const translateVal = Math.min(pullDistance * 0.4, 60);
+            ptrIndicator.style.transform = `translateY(${translateVal}px)`;
+        }
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+    if (!isPulling) return;
+    isPulling = false;
+
+    if (ptrIndicator) {
+        const currentTransform = ptrIndicator.style.transform;
+        const match = currentTransform.match(/translateY\(([\d.]+)px\)/);
+        const pulledPx = match ? parseFloat(match[1]) : 0;
+
+        // Nếu vuốt đủ độ sâu (trên 40px) thì tiến hành làm mới
+        if (pulledPx > 40) {
+            if (ptrIndicator) ptrIndicator.style.transform = 'translateY(50px)';
+            
+            // Cập nhật trạng thái đang tải
+            const ptrText = document.getElementById('ptrText');
+            if (ptrText) ptrText.textContent = 'Đang làm mới dữ liệu...';
+
+            // Thực hiện tải lại dữ liệu các tab đang hoạt động hoặc load lại trang
+            setTimeout(() => {
+                location.reload(); // Hoặc gọi các hàm load lại dữ liệu tương ứng
+            }, 600);
+        } else {
+            // Trả về vị trí cũ nếu vuốt chưa đủ độ
+            ptrIndicator.style.transform = 'translateY(-100%)';
+        }
+    }
+}, { passive: true });
+
+// Kiểm tra xem một kỹ thuật viên có đang bận không (có việc nào đang "Đang thực hiện")
+function isTechnicianFree(techName) {
+    if (!techName) return false;
+    
+    // Duyệt toàn bộ danh sách công việc trên hệ thống
+    const busyTasks = Object.values(allAssignedTasks).filter(task => {
+        const isAssignedToTech = task.ktPhuTrach === techName || task.ktHoTro === techName;
+        const isInProgress = task.tinhTrang === 'Đang thực hiện';
+        return isAssignedToTech && isInProgress;
+    });
+    
+    // Nếu mảng rỗng tức là kỹ thuật không có việc nào đang làm -> Đang rãnh
+    return busyTasks.length === 0;
+}
+// Hàm kiểm tra công việc quá 15 phút mà kỹ thuật đang rãnh
+function checkPendingTasksTimeout() {
+    if (!allAssignedTasks) return;
+    
+    const now = new Date().getTime();
+    const FIFTEEN_MINUTES = 5 * 60 * 1000; // 5 phút (chu kỳ nhắc nhở)
+
+    Object.entries(allAssignedTasks).forEach(([id, task]) => {
+        // Chỉ xét các việc đang ở trạng thái "Chờ triển khai"
+        if (task.tinhTrang === 'Chờ triển khai') {
+            
+            // Nếu công việc chưa có mốc thời gian tạo, gán ngay mốc hiện tại
+            if (!task.ngayTaoTimestamp) {
+                update(ref(db, `managementTasks/${id}`), { ngayTaoTimestamp: now, alertCount: 0 });
+                return;
+            }
+
+            const createdAt = task.ngayTaoTimestamp;
+            const lastAlert = task.lastAlertTime || createdAt; // Lần báo gần nhất (hoặc thời điểm tạo nếu chưa báo lần nào)
+            const alertCount = task.alertCount || 0;
+
+            // Điều kiện để báo lần đầu: Đã qua 5 phút kể từ lúc tạo và chưa báo lần nào (alertCount === 0)
+            // Điều kiện để báo lặp lại: Đã qua ít nhất 5 phút kể từ LẦN CẢNH BÁO TRƯỚC ĐÓ và số lần báo chưa quá giới hạn (ví dụ tối đa nhắc 3 lần)
+            const isFirstAlert = (alertCount === 0 && (now - createdAt >= FIFTEEN_MINUTES));
+            const isRepeatAlert = (alertCount > 0 && alertCount < 3 && (now - lastAlert >= FIFTEEN_MINUTES));
+
+            if (isFirstAlert || isRepeatAlert) {
+                const techPhuTrach = task.ktPhuTrach;
+                const techHoTro = task.ktHoTro;
+
+                // Kiểm tra xem phụ trách hoặc hỗ trợ có đang rãnh không
+                const isPhuTrachFree = techPhuTrach ? isTechnicianFree(techPhuTrach) : false;
+                const isHoTroFree = techHoTro ? isTechnicianFree(techHoTro) : false;
+
+                // Nếu có ít nhất một kỹ thuật được gán đang rãnh
+                if (isPhuTrachFree || isHoTroFree) {
+                    let freeTechName = isPhuTrachFree ? techPhuTrach : techHoTro;
+                    
+                    // Gửi thông báo Telegram khẩn cấp (kèm số lần cảnh báo cho trực quan)
+                    sendTimeoutTelegramNotification(task, freeTechName, alertCount + 1);
+
+                    // Cập nhật lại số lần đã báo và thời gian báo gần nhất lên Firebase
+                    update(ref(db, `managementTasks/${id}`), { 
+                        alertCount: alertCount + 1,
+                        lastAlertTime: now 
+                    });
+                }
+            }
+        }
+    });
+}
+
+// Cập nhật lại hàm gửi tin nhắn để hiển thị số lần nhắc nhở
+async function sendTimeoutTelegramNotification(taskData, freeTech, times) {
+    try {
+        const snapshot = await get(ref(db, 'settings/telegram'));
+        if (!snapshot.exists()) return;
+        const config = snapshot.val();
+        if (!config.botToken) return;
+
+        const message = encodeURIComponent(
+            `🚨 *[NHẮC NHỞ LẦN ${times}: CÔNG VIỆC BỊ TREO]*\n\n` +
+            `📋 *Mã CV:* ${taskData.maCv || 'N/A'}\n` +
+            `👤 *Khách hàng:* ${taskData.khachHang || 'N/A'}\n` +
+            `🛠️ *Kỹ thuật rãnh:* ${freeTech}\n` +
+            `📝 *Nội dung:* ${taskData.noiDung || 'N/A'}\n\n` +
+            `⚡ *Kỹ thuật đang rảnh việc. Yêu cầu tiếp nhận xử lý gấp CV!*`
+        );
+
+        // 1. Gửi vào nhóm quản trị
+        if (config.adminChatId) {
+            const adminUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${config.adminChatId}&text=${message}&parse_mode=Markdown`;
+            fetch(adminUrl).catch(err => console.error("Lỗi gửi nhóm:", err));
+        }
+
+        // 2. Gửi riêng tư cá nhân kỹ thuật
+        onValue(ref(db, 'staffs'), (staffSnapshot) => {
+            if (!staffSnapshot.exists()) return;
+            staffSnapshot.forEach((child) => {
+                const staff = child.val();
+                if (staff.name === freeTech && staff.telegramId) {
+                    const techUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage?chat_id=${staff.telegramId}&text=${message}&parse_mode=Markdown`;
+                    fetch(techUrl).catch(err => console.error("Lỗi gửi cá nhân:", err));
+                }
+            });
+        }, { onlyOnce: true });
+
+    } catch (error) {
+        console.error("Lỗi check timeout telegram:", error);
+    }
+}
+
+// Thiết lập tự động quét kiểm tra mỗi 1 phút một lần (60000 ms) khi ứng dụng đang mở
+setInterval(checkPendingTasksTimeout, 60000);
+
+// Hàm kiểm tra phiên bản mới thủ công khi bấm nút
+window.checkForAppUpdates = () => {
+    const updateIcon = document.getElementById('updateIcon');
+    if (updateIcon) updateIcon.classList.add('animate-spin');
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then((registration) => {
+            if (!registration) {
+                alert("Ứng dụng chưa được đăng ký Service Worker.");
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                return;
+            }
+
+            // Gọi lệnh ép Service Worker kiểm tra xem trên server có bản code mới hay không
+            registration.update().then(() => {
+                setTimeout(() => {
+                    if (updateIcon) updateIcon.classList.remove('animate-spin');
+                    
+                    // Nếu phát hiện có một worker mới đang chờ kích hoạt (đang có bản cập nhật)
+                    if (registration.waiting) {
+                        if (confirm("Đã có phiên bản mới của ứng dụng! Bạn có muốn cập nhật và tải lại ngay bây giờ không?")) {
+                            // Gửi tín hiệu đánh thức worker mới
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            window.location.reload();
+                        }
+                    } else {
+                        alert("Ứng dụng của bạn đang ở phiên bản mới nhất!");
+                    }
+                }, 1000);
+            }).catch((err) => {
+                if (updateIcon) updateIcon.classList.remove('animate-spin');
+                alert("Không thể kiểm tra cập nhật lúc này (kiểm tra lại kết nối mạng).");
+            });
+        });
+    } else {
+        alert("Trình duyệt không hỗ trợ tính năng cập nhật này.");
+    }
+};
+
+// ================= 1. XỬ LÝ TẠM NGƯNG CÓ LÝ DO =================
+let currentPauseTaskId = null;
+
+window.promptPauseTask = (taskId) => {
+    currentPauseTaskId = taskId;
+    const input = document.getElementById('inputPauseReason');
+    if (input) input.value = '';
+    const modal = document.getElementById('pauseReasonModal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closePauseModal = () => {
+    const modal = document.getElementById('pauseReasonModal');
+    if (modal) modal.classList.add('hidden');
+    currentPauseTaskId = null;
+};
+
+window.submitPauseTaskWithReason = () => {
+    const reason = document.getElementById('inputPauseReason')?.value.trim();
+    if (!reason) {
+        alert("Vui lòng nhập lý do tạm ngưng công việc!");
+        return;
+    }
+    if (!currentPauseTaskId) return;
+
+    // Lấy GPS thực tế khi tạm ngưng nếu có thể, sau đó cập nhật Firebase
+    getFreshGPS((freshGps) => {
+        update(ref(db, `managementTasks/${currentPauseTaskId}`), {
+            tinhTrang: 'Tạm ngưng',
+            lyDoTamNgung: reason,
+            gpsTamNgung: freshGps
+        }).then(() => {
+            alert("Đã cập nhật trạng thái tạm ngưng thành công!");
+            window.closePauseModal();
+        }).catch(err => {
+            alert("Lỗi: " + err.message);
+        });
+    });
+};
+
+
+// ================= 2. XỬ LÝ 3 NÚT HOÀN THÀNH (TÍNH PHÍ, BẢO HÀNH, HỖ TRỢ) =================
+let activeCompletionMode = 'tinhphi'; // Mặc định là tính phí
+
+window.openPaymentModal = (id) => {
+    const modal = document.getElementById('paymentModal');
+    const taskIdInput = document.getElementById('payTaskId');
+    if (taskIdInput) taskIdInput.value = id;
+    
+    // Mặc định mở ở chế độ Tính Phí
+    window.switchCompletionMode('tinhphi');
+    
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closePaymentModal = () => {
+    const modal = document.getElementById('paymentModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.switchCompletionMode = (mode) => {
+    activeCompletionMode = mode;
+    const btnTinhPhi = document.getElementById('btnModeTinhPhi');
+    const btnBaoHanh = document.getElementById('btnModeBaoHanh');
+    const btnHoTro = document.getElementById('btnModeHoTro');
+    const container = document.getElementById('completionFormContainer');
+
+    const activeClass = "py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-emerald-600 text-white shadow-md";
+    const inactiveClass = "py-2.5 px-2 rounded-xl font-extrabold text-xs transition flex flex-col items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200";
+
+    if (btnTinhPhi) btnTinhPhi.className = mode === 'tinhphi' ? activeClass : inactiveClass;
+    if (btnBaoHanh) btnBaoHanh.className = mode === 'baohanh' ? activeClass : inactiveClass;
+    if (btnHoTro) btnHoTro.className = mode === 'hotro' ? activeClass : inactiveClass;
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (mode === 'tinhphi') {
+        container.innerHTML = `
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <h4 class="font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i> Thông Tin Tính Phí & Thanh Toán</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Hình thức thanh toán</label>
+                        <select id="payHinhThuc" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="Tiền mặt">Tiền mặt</option>
+                            <option value="Chuyển khoản">Chuyển khoản</option>
+                            <option value="Quẹt thẻ">Quẹt thẻ</option>
+                            <option value="Công nợ">Công nợ (Ghi sổ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Số tiền (VNĐ)</label>
+                        <input type="number" id="paySoTien" placeholder="VD: 500000" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Ghi chú thanh toán</label>
+                    <input type="text" id="payGhiChuPhi" placeholder="Chi tiết phí dịch vụ..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
+                </div>
+            </div>
+        `;
+    } else if (mode === 'baohanh') {
+        container.innerHTML = `
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-200 space-y-3 text-blue-900">
+                <div class="font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-blue-600"></i> Xác Nhận Bảo Hành (Miễn Phí)</div>
+                <p class="text-[11px] text-blue-700">Công việc này nằm trong diện bảo hành, hệ thống ghi nhận chi phí bằng 0 và không tính phí khách hàng.</p>
+                <div>
+                    <label class="block font-bold text-blue-900 mb-1">Ghi chú bảo hành</label>
+                    <input type="text" id="payGhiChuBaoHanh" placeholder="VD: Bảo hành thiết bị thay thế..." class="w-full p-2.5 bg-white border border-blue-200 rounded-xl font-medium text-slate-700">
+                </div>
+            </div>
+        `;
+    } else if (mode === 'hotro') {
+        container.innerHTML = `
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 space-y-3 text-indigo-900">
+                <div class="font-black text-xs flex items-center gap-1.5"><i class="fa-solid fa-handshake-angle text-indigo-600"></i> Hỗ Trợ Kỹ Thuật (Miễn Phí)</div>
+                <div>
+                    <label class="block font-bold text-indigo-900 mb-1">Nhập lý do hỗ trợ <span class="text-rose-500">*</span></label>
+                    <textarea id="payLyDoHoTro" rows="3" placeholder="Nhập chi tiết nội dung hỗ trợ..." class="w-full p-2.5 bg-white border border-indigo-200 rounded-xl outline-none font-medium text-slate-700"></textarea>
+                </div>
+            </div>
+        `;
+    }
+};
+
+window.submitCompleteTaskWithPayment = (e) => {
+    e.preventDefault();
+    const id = document.getElementById('payTaskId').value;
+    if (!id) return;
+
+    if (activeCompletionMode === 'hotro') {
+        const lyDoHt = document.getElementById('payLyDoHoTro')?.value.trim();
+        if (!lyDoHt) {
+            alert("Vui lòng nhập lý do hỗ trợ!");
+            return;
+        }
+    }
+
+    // Lấy GPS mới nhất ngay tại thời điểm bấm hoàn thành
+    getFreshGPS((freshGps) => {
+        const task = allAssignedTasks[id] || {};
+        let tangCaList = task.tangCaList || [];
+        const nowISO = new Date().toISOString();
+
+        // Tự động kết thúc các ca tăng ca đang chạy nếu có
+        if (tangCaList.length > 0) {
+            tangCaList = tangCaList.map(s => {
+                if (s.trangThai === 'Đang tăng ca') {
+                    return {
+                        ...s,
+                        ketThuc: nowISO,
+                        gpsKetThuc: freshGps,
+                        trangThai: 'Đã kết thúc'
+                    };
+                }
+                return s;
+            });
+        }
+
+        let paymentData = {
+            tinhTrang: 'Đã hoàn thành',
+            thoiGianKetThuc: nowISO,
+            gpsHoanThanh: freshGps,
+            tangCaList: tangCaList,
+            hinhThucXuLy: activeCompletionMode
+        };
+
+        if (activeCompletionMode === 'tinhphi') {
+            const hinhThuc = document.getElementById('payHinhThuc')?.value || 'Tiền mặt';
+            const soTien = Number(document.getElementById('paySoTien')?.value) || 0;
+            const ghiChu = document.getElementById('payGhiChuPhi')?.value.trim() || '';
+
+            paymentData.chiPhi = soTien;
+            paymentData.soTienThanhToan = soTien;
+            paymentData.hinhThucThanhToan = hinhThuc; // Hỗ trợ cả 'Công nợ'
+            paymentData.ghiChuThanhToan = ghiChu;
+            paymentData.tinhTrangCongNo = (hinhThuc === 'Công nợ') ? 'Có nợ' : 'Không';
+        } else if (activeCompletionMode === 'baohanh') {
+            const ghiChuBh = document.getElementById('payGhiChuBaoHanh')?.value.trim() || '';
+            paymentData.chiPhi = 0;
+            paymentData.soTienThanhToan = 0;
+            paymentData.hinhThucThanhToan = 'Bảo hành (Miễn phí)';
+            paymentData.ghiChuBaoHanh = ghiChuBh;
+            paymentData.tinhTrangCongNo = 'Không';
+        } else if (activeCompletionMode === 'hotro') {
+            const lyDoHt = document.getElementById('payLyDoHoTro')?.value.trim() || '';
+            paymentData.chiPhi = 0;
+            paymentData.soTienThanhToan = 0;
+            paymentData.hinhThucThanhToan = 'Hỗ trợ (Miễn phí)';
+            paymentData.lyDoHoTro = lyDoHt;
+            paymentData.tinhTrangCongNo = 'Không';
+        }
+
+        update(ref(db, `managementTasks/${id}`), paymentData)
+            .then(() => {
+                alert("Đã xác nhận hoàn thành công việc thành công!");
+                window.closePaymentModal();
+                
+                // Gửi thông báo Telegram khi hoàn thành
+                const mergedData = { ...task, ...paymentData };
+                sendMobileTelegramNotification('complete', mergedData, `Đã hoàn thành theo hình thức: ${paymentData.hinhThucThanhToan}`);
+            })
+            .catch(err => {
+                alert("Lỗi: " + err.message);
+            });
+    });
+};
+// ================= QUẢN LÝ DANH MỤC ĐỀ XUẤT (PHIẾU XĂNG & VẬT TƯ) =================
+window.openFuelTabModal = () => {
+    document.getElementById('fuelTabModal').classList.remove('hidden');
+    
+    // Tự động set ô chọn tháng về tháng hiện tại (YYYY-MM)[cite: 2]
+    const monthInput = document.getElementById('filterFuelMonth');
+    if (monthInput) {
+        monthInput.value = new Date().toISOString().slice(0, 7);
+    }
+
+    loadTechFuelReceipts(); // Tải và hiển thị danh sách[cite: 2]
+};
+window.closeFuelTabModal = () => {
+    document.getElementById('fuelTabModal').classList.add('hidden');
+};
+
+window.openSupplyTabModal = () => {
+    document.getElementById('supplyTabModal').classList.remove('hidden');
+    loadTechSupplyReceipts(); // 👉 Gọi hàm tải danh sách đề xuất vật tư ngay khi mở modal
+};
+
+window.closeSupplyTabModal = () => {
+    document.getElementById('supplyTabModal').classList.add('hidden');
+};
+
+// Mở modal tạo phiếu xăng và đồng bộ danh sách công việc của kỹ thuật
+window.openCreateFuelModal = () => {
+    document.getElementById('fuelSoPhiếu').value = 'PX-' + Date.now().toString().slice(-4);
+    document.getElementById('fuelNgayTao').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('fuelKmDi').value = '';
+    document.getElementById('fuelKmVe').value = '';
+    document.getElementById('fuelTotalKmDisplay').textContent = '0 KM';
+    document.getElementById('fuelTaskSearchInput').value = '';
+    document.getElementById('fuelSelectedTaskValue').value = '';
+    
+    const suggestions = document.getElementById('fuelTaskSuggestions');
+    if (suggestions) suggestions.classList.add('hidden');
+
+    // Tải sẵn danh sách gợi ý ban đầu khi vừa mở modal
+    window.filterTechFuelTasks('');
+
+    document.getElementById('createFuelModal').classList.remove('hidden');
+};
+
+window.closeCreateFuelModal = () => {
+    document.getElementById('createFuelModal').classList.add('hidden');
+};
+
+// Tính toán tổng KM tự động (KM về - KM đi)
+window.calculateTotalKm = () => {
+    const kmDi = Number(document.getElementById('fuelKmDi')?.value) || 0;
+    const kmVe = Number(document.getElementById('fuelKmVe')?.value) || 0;
+    const total = Math.max(0, kmVe - kmDi);
+    document.getElementById('fuelTotalKmDisplay').textContent = `${total.toFixed(1)} KM`;
+};
+
+// Lưu phiếu xăng lên Firebase
+window.submitCreateFuel = (e) => {
+    e.preventDefault();
+    const editId = document.getElementById('editFuelId')?.value || '';
+    const soPhiếu = document.getElementById('fuelSoPhiếu')?.value || '';
+    const ngayTao = document.getElementById('fuelNgayTao')?.value || '';
+    const taskInfo = document.getElementById('fuelTaskSearchInput')?.value.trim() || '';
+    const kmDi = Number(document.getElementById('fuelKmDi')?.value) || 0;
+    const kmVe = Number(document.getElementById('fuelKmVe')?.value) || 0;
+    const tongKm = Math.max(0, kmVe - kmDi);
+
+    if (kmVe < kmDi) {
+        alert("Số KM về không thể nhỏ hơn số KM đi!");
+        return;
+    }
+
+    if (!taskInfo) {
+        alert("Vui lòng chọn hoặc nhập công việc liên quan!");
+        return;
+    }
+
+    const fuelPayload = {
+        soPhiếu: soPhiếu,
+        ngayTao: ngayTao,
+        congViec: taskInfo,
+        kmDi: kmDi,
+        kmVe: kmVe,
+        tongKm: tongKm,
+        kyThuhat: currentUser.name,
+        updatedAt: Date.now()
+    };
+
+    if (editId) {
+        // Cập nhật phiếu xăng cũ trên Firebase
+        update(ref(db, `fuelReceipts/${editId}`), fuelPayload)
+            .then(() => {
+                alert("Cập nhật phiếu xăng thành công!");
+                window.closeCreateFuelModal();
+            })
+            .catch(err => alert("Lỗi cập nhật: " + err.message));
+    } else {
+        // Tạo mới phiếu xăng
+        fuelPayload.createdAt = Date.now();
+        push(ref(db, 'fuelReceipts'), fuelPayload)
+            .then(() => {
+                alert("Tạo phiếu xăng thành công!");
+                window.closeCreateFuelModal();
+            })
+            .catch(err => alert("Lỗi tạo mới: " + err.message));
+    }
+};
+// Tải danh sách phiếu xăng của kỹ thuật hiện tại
+window.openCreateSupplyModal = () => {
+    document.getElementById('supNgayTao').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('supNguoiXuat').value = currentUser ? currentUser.name : '';
+    document.getElementById('supLoai').value = 'Mua công dụng cụ';
+    document.getElementById('supThoiGianCan').value = '';
+    document.getElementById('supNoiDung').value = '';
+    document.getElementById('supGhiChu').value = '';
+
+    const container = document.getElementById('supplyDeviceRowsContainer');
+    if (container) {
+        container.innerHTML = '';
+        window.addSupplyDeviceRow(); // Mặc định bật 1 dòng trống
+    }
+
+    document.getElementById('createSupplyModal').classList.remove('hidden');
+};
+
+window.closeCreateSupplyModal = () => {
+    document.getElementById('createSupplyModal').classList.add('hidden');
+};
+
+// Thêm dòng vật tư động trong form tạo đề xuất
+window.addSupplyDeviceRow = (tenVatTu = '', donViTinh = 'Cái', soLuong = 1) => {
+    const container = document.getElementById('supplyDeviceRowsContainer');
+    if (!container) return;
+
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-slate-100 supply-device-row';
+    tr.innerHTML = `
+        <td class="p-2 pl-3">
+            <input type="text" placeholder="Tên thiết bị / Model..." value="${tenVatTu}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-medium sup-name" required>
+        </td>
+        <td class="p-2">
+            <input type="text" placeholder="Cái, Bộ..." value="${donViTinh}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-slate-700 sup-unit" required>
+        </td>
+        <td class="p-2">
+            <input type="number" min="1" value="${soLuong}" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center text-blue-700 sup-qty" required>
+        </td>
+        <td class="p-2 text-center">
+            <button type="button" onclick="this.closest('tr').remove()" class="text-rose-500 hover:text-rose-700 bg-rose-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+        </td>
+    `;
+    container.appendChild(tr);
+};
+
+// Lưu phiếu đề xuất vật tư lên Firebase kèm trạng thái mặc định "Chờ duyệt"
+window.submitCreateSupply = (e) => {
+    e.preventDefault();
+    const ngayTao = document.getElementById('supNgayTao').value;
+    const nguoiĐềXuất = document.getElementById('supNguoiXuat').value;
+    const loaiĐềXuất = document.getElementById('supLoai').value;
+    const thoiGianCan = document.getElementById('supThoiGianCan').value;
+    const noiDung = document.getElementById('supNoiDung').value.trim();
+    const ghiChu = document.getElementById('supGhiChu').value.trim();
+
+    const rows = document.querySelectorAll('.supply-device-row');
+    const devicesList = [];
+
+    rows.forEach(row => {
+        const name = row.querySelector('.sup-name').value.trim();
+        const unit = row.querySelector('.sup-unit').value.trim() || 'Cái';
+        const qty = Number(row.querySelector('.sup-qty').value) || 1;
+
+        if (name) {
+            devicesList.push({ tenVatTu: name, donViTinh: unit, soLuong: qty });
+        }
+    });
+
+    if (devicesList.length === 0) {
+        alert("Vui lòng thêm ít nhất một vật tư thiết bị đề xuất!");
+        return;
+    }
+
+    const supplyPayload = {
+        ngayTao: ngayTao,
+        nguoiĐềXuất: nguoiĐềXuất,
+        loaiĐềXuất: loaiĐềXuất,
+        thoiGianCan: thoiGianCan,
+        noiDung: noiDung,
+        devices: devicesList,
+        ghiChu: ghiChu,
+        trangThaiDuyet: 'Chờ duyệt', // 👉 Bổ sung trạng thái phê duyệt mặc định
+        createdAt: Date.now()
+    };
+
+    push(ref(db, 'supplyRequests'), supplyPayload)
+        .then(() => {
+            alert("Gửi đề xuất vật tư thành công!");
+            window.closeCreateSupplyModal();
+            loadTechSupplyReceipts();
+        })
+        .catch(err => alert("Lỗi: " + err.message));
+};
+
+// Tải danh sách đề xuất vật tư kèm hiển thị trạng thái phê duyệt
+// ================= TẢI DANH SÁCH ĐỀ XUẤT VẬT TƯ ỔN ĐỊNH KHI F5 =================
+function loadTechSupplyReceipts() {
+    const container = document.getElementById('supplyListContainer');
+    if (!container || !currentUser) return;
+
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Đang tải dữ liệu...</p>';
+
+    onValue(ref(db, 'supplyRequests'), (snapshot) => {
+        container.innerHTML = '';
+        allTechSupplyCache = {}; // Reset cache
+
+        if (!snapshot.exists()) {
+            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-2xl border">Chưa có đề xuất vật tư nào.</p>';
+            return;
+        }
+
+        const requests = Object.entries(snapshot.val());
+        const myRequests = requests.filter(([id, item]) => item.nguoiĐềXuất === currentUser.name).reverse();
+
+        myRequests.forEach(([id, item]) => {
+            allTechSupplyCache[id] = { ...item, id: id }; // Lưu vào cache
+
+            let devicesHtml = '';
+            if (item.devices && Array.isArray(item.devices)) {
+                item.devices.forEach(d => {
+                    devicesHtml += `<div class="text-slate-700">• ${d.tenVatTu} (<strong class="text-blue-700">${d.soLuong} ${d.donViTinh}</strong>)</div>`;
+                });
+            }
+
+            const statusBadge = item.trangThaiDuyet === 'Đã duyệt' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
+
+            container.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-xs space-y-2 shadow-sm">
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">${item.loaiĐềXuất}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="window.openCreateSupplyModal('${id}')" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="window.deleteSupplyRequest('${id}')" class="text-rose-600 hover:text-rose-800 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="text-slate-800 font-bold">${item.noiDung}</div>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border ${statusBadge}">${item.trangThaiDuyet || 'Chờ duyệt'}</span>
+                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 space-y-0.5 text-[11px]">${devicesHtml}</div>
+                </div>
+            `;
+        });
+    });
+}
+
+// ================= TẢI DANH SÁCH PHIẾU XĂNG ỔN ĐỊNH KHI F5 =================
+let allTechFuelCache = {};
+
+// 1. Hàm tải dữ liệu phiếu xăng từ Firebase và lưu vào cache
+function loadTechFuelReceipts() {
+    const container = document.getElementById('fuelListContainer');
+    if (!container) return;
+
+    if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('techUser')) || null;
+    }
+    if (!currentUser) return;
+
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Đang tải dữ liệu...</p>[cite: 2]';
+
+    onValue(ref(db, 'fuelReceipts'), (snapshot) => {
+        allTechFuelCache = {}; // Reset cache mỗi khi dữ liệu thay đổi[cite: 2]
+
+        if (!snapshot.exists()) {
+            window.filterFuelList(); // Gọi hàm lọc để hiển thị thông báo trống và reset tổng KM về 0[cite: 2]
+            return;
+        }
+
+        const receipts = Object.entries(snapshot.val());
+        // Chỉ lọc lấy phiếu xăng của kỹ thuật hiện tại[cite: 2]
+        const myReceipts = receipts.filter(([id, item]) => item.kyThuhat === currentUser.name);
+
+        myReceipts.forEach(([id, item]) => {
+            // Lưu toàn bộ vào cache kèm theo ID để phục vụ cho việc Sửa/Xóa[cite: 2]
+            allTechFuelCache[id] = { ...item, id: id };
+        });
+
+        // Sau khi đã nạp dữ liệu vào cache, gọi hàm lọc theo tháng để render giao diện và tính tổng KM[cite: 2]
+        window.filterFuelList();
+    });
+}
+window.openCreateFuelModal = (editId = null) => {
+    // Hàm phụ trợ gán giá trị an toàn, tránh lỗi null làm sập script
+    const safeSetVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+    const safeSetHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+    const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    safeSetVal('editFuelId', '');
+    safeSetVal('fuelKmDi', '');
+    safeSetVal('fuelKmVe', '');
+    safeSetText('fuelTotalKmDisplay', '0 KM');
+    safeSetVal('fuelTaskSearchInput', '');
+    safeSetVal('fuelSelectedTaskValue', '');
+
+    if (editId && allTechFuelCache[editId]) {
+        const item = allTechFuelCache[editId];
+        safeSetHtml('fuelModalTitle', '<i class="fa-solid fa-pen-to-square text-emerald-600"></i> Sửa Phiếu Xăng');
+        safeSetVal('editFuelId', editId);
+        safeSetVal('fuelSoPhiếu', item.soPhiếu || '');
+        safeSetVal('fuelNgayTao', item.ngayTao || new Date().toISOString().slice(0, 10));
+        safeSetVal('fuelKmDi', item.kmDi || '');
+        safeSetVal('fuelKmVe', item.kmVe || '');
+        safeSetVal('fuelTaskSearchInput', item.congViec || '');
+        safeSetVal('fuelSelectedTaskValue', item.congViec || '');
+        if (typeof window.calculateTotalKm === 'function') {
+            window.calculateTotalKm();
+        }
+    } else {
+        safeSetHtml('fuelModalTitle', '<i class="fa-solid fa-circle-plus text-emerald-600"></i> Tạo Phiếu Xăng Mới');
+        safeSetVal('fuelSoPhiếu', 'PX-' + Date.now().toString().slice(-4));
+        safeSetVal('fuelNgayTao', new Date().toISOString().slice(0, 10));
+    }
+
+    const modal = document.getElementById('createFuelModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+};
+// 1. Lưu trữ danh sách công việc tạm thời khi mở modal phiếu xăng
+let availableTechTasksForFuel = {};
+
+// 2. Hàm lọc công việc theo từ khóa khi kỹ thuật gõ vào ô tìm kiếm
+window.filterTechFuelTasks = (keyword) => {
+    const suggestionsContainer = document.getElementById('fuelTaskSuggestions');
+    if (!suggestionsContainer) return;
+
+    suggestionsContainer.innerHTML = '';
+    const query = keyword.toLowerCase().trim();
+
+    // Lọc các công việc mà kỹ thuật hiện tại làm phụ trách hoặc hỗ trợ
+    const matchedTasks = Object.entries(allAssignedTasks || {}).filter(([id, task]) => {
+        const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
+        if (!isAssigned) return false;
+
+        const textToSearch = `${task.maCv || ''} ${task.khachHang || ''} ${task.noiDung || ''}`.toLowerCase();
+        return query === '' || textToSearch.includes(query);
+    });
+
+    if (matchedTasks.length === 0) {
+        suggestionsContainer.innerHTML = '<div class="p-2.5 text-xs text-slate-400 text-center">Không tìm thấy công việc phù hợp</div>';
+        suggestionsContainer.classList.remove('hidden');
+        return;
+    }
+
+    suggestionsContainer.classList.remove('hidden');
+
+    matchedTasks.reverse().forEach(([id, task]) => {
+        const displayStr = `[${task.maCv || 'CV'}] ${task.khachHang || ''} - ${task.noiDung || ''}`;
+        const div = document.createElement('div');
+        div.className = 'p-2.5 text-xs hover:bg-emerald-50 cursor-pointer font-medium text-slate-700 transition';
+        div.innerHTML = `<strong>[${task.maCv || 'CV'}]</strong> ${task.khachHang || ''} <span class="text-slate-400 block text-[10px]">${task.noiDung || ''}</span>`;
+        
+        div.onclick = () => {
+            document.getElementById('fuelTaskSearchInput').value = displayStr;
+            document.getElementById('fuelSelectedTaskValue').value = displayStr;
+            suggestionsContainer.classList.add('hidden');
+        };
+
+        suggestionsContainer.appendChild(div);
+    });
+};
+
+// 3. Đóng danh sách gợi ý khi bấm ra ngoài
+document.addEventListener('click', (e) => {
+    const searchInput = document.getElementById('fuelTaskSearchInput');
+    const suggestions = document.getElementById('fuelTaskSuggestions');
+    if (searchInput && suggestions && !searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.classList.add('hidden');
+    }
+});
+// 1. Hàm Xóa phiếu xăng
+window.deleteFuelReceipt = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa phiếu xăng này không?")) {
+        remove(ref(db, `fuelReceipts/${id}`))
+            .then(() => {
+                alert("Đã xóa phiếu xăng!");
+            })
+            .catch(err => alert("Lỗi khi xóa: " + err.message));
+    }
+};
+// 1. Hàm đổ danh sách kỹ thuật vào bộ lọc
+function populateStaffFilter() {
+    const staffFilter = document.getElementById('filterFuelStaff');
+    if (!staffFilter) return;
+
+    // Lấy dữ liệu từ allStaffsData (đã có sẵn trong file của bạn)
+    Object.values(allStaffsData).forEach(staff => {
+        const option = document.createElement('option');
+        option.value = staff.name;
+        option.textContent = staff.name;
+        staffFilter.appendChild(option);
+    });
+}
+
+// 2. Hàm lọc và tính tổng KM
+window.filterFuelList = () => {
+    const month = document.getElementById('filterFuelMonth').value; // YYYY-MM
+    const container = document.getElementById('fuelListContainer');
+    const totalDisplay = document.getElementById('totalKmDisplay');
+    
+    let totalKm = 0;
+    container.innerHTML = '';
+
+    // Lọc dữ liệu từ allTechFuelCache (đã chứa sẵn dữ liệu phiếu của kỹ thuật đó)
+    Object.values(allTechFuelCache).forEach(item => {
+        // Kiểm tra tháng (ngayTao có định dạng YYYY-MM-DD)
+        const itemMonth = item.ngayTao ? item.ngayTao.slice(0, 7) : '';
+        
+        if (itemMonth === month) {
+            totalKm += Number(item.tongKm || 0);
+            
+            // Render lại danh sách
+            container.innerHTML += `
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-3 text-xs space-y-1.5 shadow-sm mb-2">
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="text-emerald-700">${item.soPhiếu}</span>
+                        <div class="flex gap-2">
+                            <button onclick="window.openCreateFuelModal('${item.id}')" class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="window.deleteFuelReceipt('${item.id}')" class="text-rose-600 hover:text-rose-800"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="text-slate-600 font-medium">CV: ${item.congViec}</div>
+                    <div class="text-slate-500 text-[10px]">Ngày: ${item.ngayTao.split('-').reverse().join('/')}</div>
+                    <div class="text-right font-black text-emerald-700 text-sm border-t border-slate-100 pt-1">${item.tongKm} KM</div>
+                </div>
+            `;
+        }
+    });
+
+    totalDisplay.textContent = `${totalKm.toFixed(1)} KM`;
+};
+
+// Hàm Xóa đề xuất vật tư
+window.deleteSupplyRequest = (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa đề xuất vật tư này không?")) {
+        remove(ref(db, `supplyRequests/${id}`))
+            .then(() => alert("Đã xóa đề xuất!"))
+            .catch(err => alert("Lỗi: " + err.message));
+    }
+};
+
+// Hàm mở Modal (Hỗ trợ cả 2 chế độ: Tạo mới hoặc Sửa)
+window.openCreateSupplyModal = (editId = null) => {
+    const modal = document.getElementById('createSupplyModal');
+    if (!modal) return;
+
+    // Reset sạch các trường dữ liệu chung trước khi mở
+    const editSupplyIdEl = document.getElementById('editSupplyId');
+    if (editSupplyIdEl) editSupplyIdEl.value = '';
+
+    const supNgayTao = document.getElementById('supNgayTao');
+    if (supNgayTao) supNgayTao.value = new Date().toISOString().slice(0, 10);
+
+    const supNguoiXuat = document.getElementById('supNguoiXuat');
+    if (supNguoiXuat) supNguoiXuat.value = currentUser ? currentUser.name : '';
+
+    const supLoai = document.getElementById('supLoai');
+    if (supLoai) supLoai.value = 'Mua công dụng cụ';
+
+    const supThoiGianCan = document.getElementById('supThoiGianCan');
+    if (supThoiGianCan) supThoiGianCan.value = '';
+
+    const supNoiDung = document.getElementById('supNoiDung');
+    if (supNoiDung) supNoiDung.value = '';
+
+    const supGhiChu = document.getElementById('supGhiChu');
+    if (supGhiChu) supGhiChu.value = '';
+
+    const container = document.getElementById('supplyDeviceRowsContainer');
+    if (container) container.innerHTML = '';
+
+    // Nếu là chế độ Sửa (có truyền editId và tìm thấy trong cache)
+    if (editId && typeof allTechSupplyCache !== 'undefined' && allTechSupplyCache[editId]) {
+        const item = allTechSupplyCache[editId];
+        if (editSupplyIdEl) editSupplyIdEl.value = editId;
+        if (supNgayTao) supNgayTao.value = item.ngayTao || '';
+        if (supLoai) supLoai.value = item.loaiĐềXuất || 'Mua công dụng cụ';
+        if (supThoiGianCan) supThoiGianCan.value = item.thoiGianCan || '';
+        if (supNoiDung) supNoiDung.value = item.noiDung || '';
+        if (supGhiChu) supGhiChu.value = item.ghiChu || '';
+        
+        // Render lại danh sách thiết bị cũ của phiếu đó
+        if (item.devices && Array.isArray(item.devices)) {
+            item.devices.forEach(d => {
+                if (typeof window.addSupplyDeviceRow === 'function') {
+                    window.addSupplyDeviceRow(d.tenVatTu, d.donViTinh, d.soLuong);
+                }
+            });
+        }
+    } else {
+        // Chế độ Tạo mới hoàn toàn: Mặc định thêm sẵn 1 dòng thiết bị trống đầu tiên
+        if (typeof window.addSupplyDeviceRow === 'function') {
+            window.addSupplyDeviceRow('', 'Cái', 1);
+        }
+    }
+
+    modal.classList.remove('hidden');
+};
+// Hàm ẩn/hiện form đổi mật khẩu
+window.togglePasswordEdit = () => {
+    const container = document.getElementById('passwordEditContainer');
+    if (container) {
+        container.classList.toggle('hidden');
+        // Nếu mở form lên thì tự động focus vào ô mật khẩu hiện tại và reset các ô nhập cũ
+        if (!container.classList.contains('hidden')) {
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('oldPassword').focus();
+        }
+    }
+};
+// ================= HỆ THỐNG GỢI Ý & TÌM KIẾM NHANH KHÁCH HÀNG =================
+
+// Hàm lọc danh sách khách hàng từ các công việc đã có trên hệ thống (allAssignedTasks hoặc managementTasks)
+window.filterCustomerSuggestions = (keyword) => {
+    const dropdown = document.getElementById('customerDropdownList');
+    if (!dropdown) return;
+
+    const term = keyword.toLowerCase().trim();
+    if (!term) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+
+    // Quét toàn bộ các công việc cũ để lọc ra danh sách khách hàng duy nhất (Tên khách + SĐT)
+    const customerMap = new Map();
+    if (typeof allAssignedTasks !== 'undefined' && allAssignedTasks) {
+        Object.values(allAssignedTasks).forEach(task => {
+            if (task.khachHang) {
+                customerMap.set(task.khachHang.trim(), task.dienThoai || '');
+            }
+        });
+    }
+
+    // Chuyển đổi thành mảng và lọc theo từ khóa gõ vào
+    const matches = Array.from(customerMap.entries()).filter(([name, phone]) => {
+        return name.toLowerCase().includes(term) || phone.includes(term);
+    });
+
+    if (matches.length > 0) {
+        dropdown.innerHTML = '';
+        matches.forEach(([name, phone]) => {
+            const div = document.createElement('div');
+            div.className = 'p-2 hover:bg-emerald-50 cursor-pointer text-xs font-medium text-slate-700 flex justify-between items-center';
+            div.innerHTML = `<span><strong>${name}</strong></span> <span class="text-[10px] text-slate-400">${phone || ''}</span>`;
+            
+            // Khi bấm chọn khách hàng nào, hệ thống tự điền tên và số điện thoại tương ứng
+            div.onclick = () => {
+                document.getElementById('taskKhachHang').value = name;
+                const phoneInput = document.getElementById('taskDienThoai');
+                if (phoneInput && phone) {
+                    phoneInput.value = phone;
+                }
+                dropdown.classList.add('hidden');
+            };
+            dropdown.appendChild(div);
+        });
+        dropdown.classList.remove('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+    }
+};
+
+// Ẩn khung gợi ý khi click ra bên ngoài form
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('customerDropdownList');
+    const input = document.getElementById('taskKhachHang');
+    if (dropdown && input && !input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});

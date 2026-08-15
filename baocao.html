@@ -666,56 +666,69 @@
     </button>
 </nav>
 
-    <!-- ================= MODAL THÊM CÔNG VIỆC MỚI ================= -->
-    <div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+    <div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-3 animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-4 space-y-3 border border-slate-100 custom-scrollbar">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                 <i class="fa-solid fa-list-check text-emerald-600"></i> Tạo Mới Công Việc
             </h3>
-            <button onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">&times;</button>
+            <button onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg w-6 h-6 rounded-full flex items-center justify-center bg-slate-50">&times;</button>
         </div>
 
-        <form id="kpiForm" onsubmit="window.submitKPI(event)" class="space-y-3.5 text-xs">
-            <!-- Dòng 1: Ngày tạo, Mã CV, Tình trạng CV -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-    <div>
-    <label class="block font-bold text-slate-500 mb-1">Thời gian tạo <span class="text-rose-500">*</span></label>
-    <input type="datetime-local" id="taskNgayTao" required onchange="window.updateDefaultDeadline()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-</div>
-    <div>
-        <label class="block font-bold text-slate-500 mb-1">Mã CV (Tự động)</label>
-        <input type="text" id="taskMaCv" disabled class="w-full p-2.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black">
-    </div>
-    <div>
-        <label class="block font-bold text-slate-500 mb-1">Tình trạng CV</label>
-        <select id="taskTinhTrang" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-            <option value="Chờ triển khai">Chờ triển khai</option>
-            <option value="Đang thực hiện">Đang thực hiện</option>
-            <option value="Tạm ngưng">Tạm ngưng</option>
-            <option value="Đã hoàn thành">Đã hoàn thành</option>
-        </select>
-    </div>
-</div>
-
-            <!-- Dòng 2: Tên khách hàng & Số điện thoại -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form id="kpiForm" onsubmit="window.submitKPI(event)" class="space-y-2.5 text-xs">
+            
+            <!-- 1. Thông tin chung & Mã CV -->
+            <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Tên khách hàng <span class="text-rose-500">*</span></label>
-                    <input type="text" id="taskKhachHang" required placeholder="Tên khách hàng" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Mã CV</label>
+                    <input type="text" id="taskMaCv" disabled class="w-full p-1.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-lg font-black text-center text-xs">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Số điện thoại</label>
-                    <input type="text" id="taskDienThoai" placeholder="Số điện thoại KH" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Tình trạng</label>
+                    <select id="taskTinhTrang" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-xs outline-none">
+                        <option value="Chờ triển khai">Chờ triển khai</option>
+                        <option value="Đang thực hiện">Đang thực hiện</option>
+                        <option value="Tạm ngưng">Tạm ngưng</option>
+                        <option value="Đã hoàn thành">Đã hoàn thành</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- Dòng 3: Loại công việc & Mức độ ưu tiên -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- 2. Thời gian tạo & Deadline (Đã đưa lên trên cùng) -->
+            <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Loại công việc</label>
-                    <select id="taskLoaiCv" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="">-- Chọn loại công việc --</option>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Thời gian tạo</label>
+                    <input type="datetime-local" id="taskNgayTao" required onchange="window.updateDefaultDeadline()" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-[10px] outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Deadline</label>
+                    <input type="datetime-local" id="taskDeadline" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-rose-600 text-[10px] outline-none">
+                </div>
+            </div>
+
+            <!-- 3. Khách hàng & SĐT -->
+            <div class="grid grid-cols-2 gap-2 relative">
+    <div class="relative">
+        <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Khách hàng <span class="text-rose-500">*</span></label>
+        <input type="text" id="taskKhachHang" required autocomplete="off" placeholder="🔍 Gõ tên hoặc chọn khách..." oninput="window.filterCustomerSuggestions(this.value)" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+        
+        <!-- Khung danh sách gợi ý khách hàng -->
+        <div id="customerDropdownList" class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto z-50 hidden custom-scrollbar divide-y divide-slate-100"></div>
+    </div>
+    <div>
+        <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Số điện thoại</label>
+        <input type="text" id="taskDienThoai" placeholder="Số ĐT..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs outline-none">
+    </div>
+</div>
+
+            <!-- 4. Phân loại & Ưu tiên -->
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Loại CV</label>
+                    <select id="taskLoaiCv" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
+                        <option value="">-- Chọn loại --</option>
                         <option value="Bảo trì">Bảo trì</option>
                         <option value="Lắp đặt">Lắp đặt</option>
                         <option value="Sửa chữa">Sửa chữa</option>
@@ -723,9 +736,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Mức độ ưu tiên</label>
-                    <select id="taskUuTien" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="">-- Chọn mức ưu tiên --</option>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Ưu tiên</label>
+                    <select id="taskUuTien" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
                         <option value="Thường">Thường</option>
                         <option value="Trung bình">Trung bình</option>
                         <option value="Cao">Cao</option>
@@ -734,53 +746,43 @@
                 </div>
             </div>
 
-            <!-- Nội dung công việc -->
+            <!-- 5. Kỹ thuật phụ trách & Hỗ trợ -->
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Phụ trách</label>
+                    <select id="taskKtPhuTrach" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
+                        <option value="">-- Chọn --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Hỗ trợ</label>
+                    <select id="taskKtHoTro" class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 text-xs outline-none">
+                        <option value="">-- Không --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 6. Nội dung công việc -->
             <div>
-                <label class="block font-bold text-slate-500 mb-1">Nội dung công việc <span class="text-rose-500">*</span></label>
-                <textarea id="taskNoiDung" required rows="2.5" placeholder="Chi tiết nội dung..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium"></textarea>
+                <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Nội dung <span class="text-rose-500">*</span></label>
+                <textarea id="taskNoiDung" required rows="2" placeholder="Chi tiết công việc..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-xs font-medium"></textarea>
             </div>
 
-            <!-- Kỹ thuật phụ trách & Kỹ thuật hỗ trợ -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <div>
-        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật phụ trách</label>
-        <select id="taskKtPhuTrach" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-            <option value="">-- Chọn kỹ thuật --</option>
-        </select>
-    </div>
-    <div>
-        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật hỗ trợ</label>
-        <select id="taskKtHoTro" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-            <option value="">-- Không có hỗ trợ --</option>
-        </select>
-    </div>
-</div>
-
-            <!-- Dòng cuối: Deadline CV, Người tạo CV, Ghi chú -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Deadline CV</label>
-                    <input type="datetime-local" id="taskDeadline" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Người tạo CV</label>
-                    <input type="text" id="taskNguoiTao" disabled class="w-full p-2.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ghi chú</label>
-                    <input type="text" id="taskGhiChu" placeholder="Lưu ý..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
-                </div>
+            <!-- 7. Ghi chú -->
+            <div>
+                <label class="block font-bold text-slate-500 mb-0.5 text-[10px]">Ghi chú</label>
+                <input type="text" id="taskGhiChu" placeholder="Lưu ý thêm (nếu có)..." class="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs">
+                <input type="hidden" id="taskNguoiTao">
             </div>
 
-            <!-- Nút bấm hành động -->
-            <div class="pt-3 flex gap-2.5">
-                <button type="button" onclick="window.closeModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">Lưu Công Việc</button>
+            <!-- Nút hành động -->
+            <div class="pt-1.5 flex gap-2">
+                <button type="button" onclick="window.closeModal()" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl font-bold hover:bg-slate-200 transition text-xs">Hủy</button>
+                <button type="submit" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md text-xs">Lưu Công Việc</button>
             </div>
         </form>
     </div>
 </div>
-    
     <!-- ================= MODAL SỬA CÔNG VIỆC ================= -->
 <div id="editTaskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">

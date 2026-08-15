@@ -249,7 +249,7 @@ function renderMobileReport(entries) {
     });
 }
 
-// 8. Tính năng Dashboard Tổng quan
+// 8. Tính năng Dashboard Tổng quan & Thống kê tài chính
 function renderDashboardMetrics(entries) {
     let choTrienKhai = 0;
     let dangThucHien = 0;
@@ -258,12 +258,34 @@ function renderDashboardMetrics(entries) {
     let totalScore = 0;
     let totalTime = 0;
 
+    let totalRevenue = 0;
+    let totalDebt = 0;
+    let warrantyCount = 0;
+    let supportCount = 0;
+
     entries.forEach(([id, item]) => {
         const status = item.tinhTrang || 'Chờ triển khai';
         if (status === 'Chờ triển khai') choTrienKhai++;
         else if (status === 'Đang thực hiện') dangThucHien++;
         else if (status === 'Tạm ngưng') tamNgung++;
-        else if (status === 'Đã hoàn thành') hoanThanh++;
+        else if (status === 'Đã hoàn thành') {
+            hoanThanh++;
+
+            // 👉 Tính toán tài chính & dịch vụ chính xác từ dữ liệu Firebase
+            const hinhThuc = (item.hinhThucThanhToan || item.hinhThucXuLy || '').toLowerCase();
+            const soTien = Number(item.soTienThanhToan || item.chiPhi) || 0;
+            const congNo = item.tinhTrangCongNo || 'Không';
+
+            if (congNo === 'Có nợ') {
+                totalDebt += soTien;
+            } else if (hinhThuc.includes('bảo hành') || item.chiPhi === 0 || item.hinhThucXuLy === 'baohanh') {
+                warrantyCount++;
+            } else if (hinhThuc.includes('hỗ trợ') || hinhThuc.includes('hotro') || hinhThuc.includes('miễn phí')) {
+                supportCount++;
+            } else {
+                if (soTien > 0) totalRevenue += soTien;
+            }
+        }
 
         totalScore += Number(item.diemKpi) || 0;
 
@@ -276,14 +298,20 @@ function renderDashboardMetrics(entries) {
         totalTime += calcTime;
     });
 
+    // Cập nhật số liệu trạng thái lên Dashboard Admin
     if (document.getElementById('dashChoTrienKhai')) document.getElementById('dashChoTrienKhai').textContent = choTrienKhai;
     if (document.getElementById('dashDangThucHien')) document.getElementById('dashDangThucHien').textContent = dangThucHien;
     if (document.getElementById('dashTamNgung')) document.getElementById('dashTamNgung').textContent = tamNgung;
     if (document.getElementById('dashHoanThanh')) document.getElementById('dashHoanThanh').textContent = hoanThanh;
     if (document.getElementById('dashTotalScore')) document.getElementById('dashTotalScore').textContent = totalScore;
     if (document.getElementById('dashTotalTime')) document.getElementById('dashTotalTime').textContent = `${totalTime}p`;
-}
 
+    // 👉 Cập nhật số liệu tài chính & dịch vụ vào các thẻ HTML tương ứng
+    if (document.getElementById('adminTotalRevenue')) document.getElementById('adminTotalRevenue').textContent = `${totalRevenue.toLocaleString()} đ`;
+    if (document.getElementById('adminTotalDebt')) document.getElementById('adminTotalDebt').textContent = `${totalDebt.toLocaleString()} đ`;
+    if (document.getElementById('adminTotalWarranty')) document.getElementById('adminTotalWarranty').textContent = `${warrantyCount} CV`;
+    if (document.getElementById('adminTotalSupport')) document.getElementById('adminTotalSupport').textContent = `${supportCount} CV`;
+}
 // 9. Actions
 window.saveReview = (id) => {
     const diem = Number(document.getElementById(`diem_${id}`).value);
@@ -390,26 +418,36 @@ function renderAdminMasterTaskList(entries) {
             return timeStr.replace('T', ' ').substring(0, 16);
         };
 
-        // Khối hiển thị thông tin thanh toán & hoàn thành công việc
-        let paymentDetailsHtml = '';
+        // Tính toán tổng thời gian hoàn thành thực tế
+        let totalMinutes = 0;
+        if (item.thoiGianBatDau && item.thoiGianKetThuc) {
+            const startMs = new Date(item.thoiGianBatDau).getTime();
+            const endMs = new Date(item.thoiGianKetThuc).getTime();
+            totalMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+        } else if (item.thoiGian) {
+            totalMinutes = Number(item.thoiGian) || 0;
+        }
+
+        let timeDisplayStr = `${totalMinutes}p`;
+        if (totalMinutes >= 60) {
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            timeDisplayStr = mins > 0 ? `${hours}h ${mins}p` : `${hours}h`;
+        }
+
+        // Xác định Badge Icon hình thức xử lý (Tính phí, Bảo hành, Hỗ trợ)
+        let modeBadgeHtml = '';
+        const hinhThuc = item.hinhThucThanhToan || item.hinhThucXuLy || '';
+        
         if (item.tinhTrang === 'Đã hoàn thành') {
-            const xuLyText = item.hinhThucXuLy === 'baohanh' ? 'Bảo hành (Miễn phí)' : (item.hinhThucXuLy === 'hotro' ? 'Hỗ trợ kỹ thuật' : (item.hinhThucXuLy === 'tinhphi' ? 'Tính phí dịch vụ' : (item.hinhThucThanhToan || 'N/A')));
-            const soTienVal = Number(item.soTienThanhToan || item.chiPhi || 0).toLocaleString();
-            
-            paymentDetailsHtml = `
-                <div class="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 space-y-1.5 text-xs text-slate-700">
-                    <div class="font-extrabold text-emerald-900 border-b border-emerald-200 pb-1 flex items-center gap-1.5">
-                        <i class="fa-solid fa-receipt text-emerald-600"></i> Thông Tin Thanh Toán & Hoàn Thành
-                    </div>
-                    <div><strong>Hình thức xử lý:</strong> <span class="font-bold text-emerald-700">${xuLyText}</span></div>
-                    <div><strong>Thanh toán:</strong> ${item.hinhThucThanhToan || 'N/A'}</div>
-                    <div><strong>Số tiền:</strong> <span class="font-black text-emerald-800">${soTienVal} VNĐ</span></div>
-                    <div><strong>Công nợ:</strong> <span class="${item.tinhTrangCongNo === 'Có nợ' ? 'text-rose-600 font-bold' : 'text-slate-700'}">${item.tinhTrangCongNo || 'Không'}</span></div>
-                    ${item.ghiChuThanhToan ? `<div><strong>Ghi chú thanh toán:</strong> ${item.ghiChuThanhToan}</div>` : ''}
-                    ${item.lyDoHoTro ? `<div><strong>Lý do hỗ trợ:</strong> ${item.lyDoHoTro}</div>` : ''}
-                    ${item.ghiChuBaoHanh ? `<div><strong>Ghi chú bảo hành:</strong> ${item.ghiChuBaoHanh}</div>` : ''}
-                </div>
-            `;
+            if (hinhThuc.toLowerCase().includes('bảo hành') || item.chiPhi === 0) {
+                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-shield-halved"></i> Bảo hành</span>`;
+            } else if (hinhThuc.toLowerCase().includes('hỗ trợ')) {
+                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-handshake-angle"></i> Hỗ trợ</span>`;
+            } else {
+                const soTienStr = item.soTienThanhToan ? ` • ${Number(item.soTienThanhToan).toLocaleString()}đ` : '';
+                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-file-invoice-dollar"></i> Có phí${soTienStr}</span>`;
+            }
         }
 
         // Tổng hợp lịch sử tăng ca (nếu có)
@@ -429,33 +467,49 @@ function renderAdminMasterTaskList(entries) {
         }
 
         container.innerHTML += `
-            <!-- Thẻ công việc chính (Bấm vào phần thân để mở rộng chi tiết) -->
+            <!-- Thẻ công việc chính -->
             <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-2.5 transition">
                 <div class="flex justify-between items-start gap-2">
                     <div onclick="window.toggleMobileRowDetail('${id}')" class="cursor-pointer flex-1">
                         <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-mono">${item.maCv || 'N/A'}</span>
                         <h4 class="font-black text-slate-800 text-sm mt-1">${item.khachHang || 'Khách hàng'}</h4>
                     </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${statusColor}">${item.tinhTrang || 'Chờ triển khai'}</span>
-                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${statusColor} shrink-0">${item.tinhTrang || 'Chờ triển khai'}</span>
                 </div>
 
                 <p onclick="window.toggleMobileRowDetail('${id}')" class="text-xs text-slate-600 line-clamp-2 font-medium cursor-pointer">${item.noiDung || ''}</p>
 
-                <!-- Thanh công cụ chứa nút Sửa, Xóa và nút mở rộng -->
-                <div class="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                    <span onclick="window.toggleMobileRowDetail('${id}')" class="cursor-pointer">Phụ trách: <strong class="text-slate-700">${item.ktPhuTrach || 'Chưa phân công'}${supportHtml}</strong></span>
-                    
-                    <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
-                        <button onclick="window.openEditAdminTaskModal('${id}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                <!-- Thông tin phụ trách hiển thị phía trên -->
+                <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100" onclick="window.toggleMobileRowDetail('${id}')">
+                    Phụ trách: <strong class="text-slate-700">${item.ktPhuTrach || 'Chưa phân công'}${supportHtml}</strong>
+                </div>
+
+                <!-- DÒNG CUỐI: Thời gian hoàn thành (góc trái) & Badge phí (giữa) & Nút Sửa/Xóa (góc phải) -->
+                <div class="flex justify-between items-center pt-1.5" onclick="event.stopPropagation()">
+                    <!-- Góc trái: Tổng thời gian hoàn thành -->
+                    <div>
+                        ${item.tinhTrang === 'Đã hoàn thành' ? `
+                            <span class="bg-emerald-50 text-emerald-700 font-black px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1 text-[11px]">
+                                <i class="fa-solid fa-clock-rotate-left"></i> TG: ${timeDisplayStr}
+                            </span>` : '<span class="text-[10px] text-slate-400 italic">Chưa hoàn thành</span>'
+                        }
+                    </div>
+
+                    <!-- Ở giữa: Badge phí / bảo hành / hỗ trợ -->
+                    <div class="flex justify-center">
+                        ${modeBadgeHtml}
+                    </div>
+
+                    <!-- Góc phải: Nút Sửa, Xóa và mở rộng -->
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="window.openEditAdminTaskModal('${id}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 text-[10px]">
                             <i class="fa-solid fa-pen"></i> Sửa
                         </button>
-                        <button onclick="window.deleteAdminTask('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1">
+                        <button onclick="window.deleteAdminTask('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 text-[10px]">
                             <i class="fa-solid fa-trash"></i> Xóa
                         </button>
-                        <button onclick="window.toggleMobileRowDetail('${id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-xl font-bold transition ml-1" title="Xem chi tiết">
-                            <i class="fa-solid fa-chevron-down"></i>
+                        <button onclick="window.toggleMobileRowDetail('${id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-xl font-bold transition ml-0.5" title="Xem chi tiết">
+                            <i class="fa-solid fa-chevron-down text-[10px]"></i>
                         </button>
                     </div>
                 </div>
@@ -473,9 +527,6 @@ function renderAdminMasterTaskList(entries) {
                         <div><strong>Ghi chú:</strong> ${item.ghiChu || 'Không có'}</div>
                     </div>
 
-                    <!-- Khối thông tin thanh toán & hoàn thành (Chỉ hiện khi hoàn thành) -->
-                    ${paymentDetailsHtml}
-
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
                         <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
                             <i class="fa-solid fa-user-gear text-emerald-600"></i> Phân Công Nhân Sự
@@ -490,11 +541,8 @@ function renderAdminMasterTaskList(entries) {
                             <i class="fa-solid fa-location-crosshairs text-emerald-600"></i> Thời Gian & GPS
                         </div>
                         <div><strong>Bắt đầu:</strong> ${formatTime(item.thoiGianBatDau)}</div>
-                        <div><strong>Tạm ngưng:</strong> ${formatTime(item.thoiGianTamNgung)}</div>
                         <div><strong>Kết thúc:</strong> ${formatTime(item.thoiGianKetThuc)}</div>
-                        <div class="pt-1 border-t border-slate-200/60 mt-1"><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">${item.gpsThucHien}</a>` : 'Chưa có'}</div>
-                        <div><strong>GPS Tạm ngưng:</strong> ${item.gpsTamNgung ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsTamNgung)}" target="_blank" class="text-amber-600 underline font-bold">${item.gpsTamNgung}</a>` : 'Chưa có'}</div>
-                        <div><strong>GPS Hoàn thành:</strong> ${item.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">${item.gpsHoanThanh}</a>` : 'Chưa có'}</div>
+                        <div><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">${item.gpsThucHien}</a>` : 'Chưa có'}</div>
                     </div>
 
                     <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-200 space-y-2">

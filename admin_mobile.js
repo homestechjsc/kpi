@@ -930,25 +930,34 @@ window.filterAdminCustomerSuggestions = (keyword) => {
         return;
     }
 
-    const matches = Object.values(allAdminCustomersData).filter(cust => 
-        cust.name.toLowerCase().includes(term) || (cust.phone && cust.phone.includes(term))
-    );
+    // Quét toàn bộ các công việc từ biến toàn cục allManagementTasks
+    const customerMap = new Map();
+    if (typeof allManagementTasks !== 'undefined' && allManagementTasks) {
+        Object.values(allManagementTasks).forEach(task => {
+            if (task.khachHang) {
+                customerMap.set(task.khachHang.trim(), task.dienThoai || '');
+            }
+        });
+    }
+
+    // Lọc theo từ khóa gõ vào
+    const matches = Array.from(customerMap.entries()).filter(([name, phone]) => {
+        return name.toLowerCase().includes(term) || (phone && phone.includes(term));
+    });
 
     if (matches.length > 0) {
         dropdown.innerHTML = '';
-        matches.forEach(cust => {
+        matches.forEach(([name, phone]) => {
             const div = document.createElement('div');
-            div.className = 'p-3 hover:bg-emerald-50 cursor-pointer flex justify-between items-center transition text-xs';
-            div.innerHTML = `
-                <span class="font-bold text-slate-800">${cust.name}</span>
-                <span class="text-slate-400 font-medium">${cust.phone ? 'SĐT: ' + cust.phone : 'Chưa có SĐT'}</span>
-            `;
-            // Khi bấm chọn một khách hàng từ gợi ý, tự động điền tên và số điện thoại
+            div.className = 'p-2.5 hover:bg-emerald-50 cursor-pointer text-xs font-medium text-slate-700 flex justify-between items-center';
+            div.innerHTML = `<span><strong>${name}</strong></span> <span class="text-[10px] text-slate-400">${phone || ''}</span>`;
+            
+            // Khi bấm chọn khách hàng, tự động điền tên và số điện thoại
             div.onclick = () => {
-                document.getElementById('adminTaskKhachHang').value = cust.name;
+                document.getElementById('adminTaskKhachHang').value = name;
                 const phoneInput = document.getElementById('adminTaskDienThoai');
-                if (phoneInput && cust.phone) {
-                    phoneInput.value = cust.phone;
+                if (phoneInput && phone) {
+                    phoneInput.value = phone;
                 }
                 dropdown.classList.add('hidden');
             };
@@ -960,7 +969,7 @@ window.filterAdminCustomerSuggestions = (keyword) => {
     }
 };
 
-// Ẩn khung gợi ý khi bấm click ra ngoài màn hình
+// Ẩn khung gợi ý khi click ra bên ngoài form
 document.addEventListener('click', (e) => {
     const dropdown = document.getElementById('adminCustomerDropdownList');
     const input = document.getElementById('adminTaskKhachHang');

@@ -117,6 +117,7 @@ window.triggerDataLoad = () => {
     renderMobileReport(entries);
     renderDashboardMetrics(entries);
     renderAdminMasterTaskList(entries);
+    renderPerformanceReport(entries);
 };
 // 5. Nút đặt lại bộ lọc
 window.resetFilter = () => {
@@ -435,7 +436,7 @@ function renderAdminMasterTaskList(entries) {
             timeDisplayStr = mins > 0 ? `${hours}h ${mins}p` : `${hours}h`;
         }
 
-        // Xác định Badge Icon hình thức xử lý (Tính phí, Bảo hành, Hỗ trợ)
+        // Xác định Badge Icon hình thức xử lý (Tính phí, Bảo hành, Hỗ trợ) nằm ở bên phải
         let modeBadgeHtml = '';
         const hinhThuc = item.hinhThucThanhToan || item.hinhThucXuLy || '';
         
@@ -479,43 +480,44 @@ function renderAdminMasterTaskList(entries) {
 
                 <p onclick="window.toggleMobileRowDetail('${id}')" class="text-xs text-slate-600 line-clamp-2 font-medium cursor-pointer">${item.noiDung || ''}</p>
 
-                <!-- Thông tin phụ trách hiển thị phía trên -->
+                <!-- Thông tin phụ trách -->
                 <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100" onclick="window.toggleMobileRowDetail('${id}')">
                     Phụ trách: <strong class="text-slate-700">${item.ktPhuTrach || 'Chưa phân công'}${supportHtml}</strong>
                 </div>
 
-                <!-- DÒNG CUỐI: Thời gian hoàn thành (góc trái) & Badge phí (giữa) & Nút Sửa/Xóa (góc phải) -->
-                <div class="flex justify-between items-center pt-1.5" onclick="event.stopPropagation()">
+                <!-- DÒNG CUỐI: Tổng thời gian (trái) & Badge phí/bảo hành (phải) & Mũi tên mở rộng -->
+                <div class="flex justify-between items-center pt-1.5 cursor-pointer" onclick="window.toggleMobileRowDetail('${id}')">
                     <!-- Góc trái: Tổng thời gian hoàn thành -->
                     <div>
                         ${item.tinhTrang === 'Đã hoàn thành' ? `
                             <span class="bg-emerald-50 text-emerald-700 font-black px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1 text-[11px]">
                                 <i class="fa-solid fa-clock-rotate-left"></i> TG: ${timeDisplayStr}
-                            </span>` : '<span class="text-[10px] text-slate-400 italic">Chưa hoàn thành</span>'
+                            </span>` : '<span class="text-[10px] text-slate-400 italic">Chưa xong</span>'
                         }
                     </div>
 
-                    <!-- Ở giữa: Badge phí / bảo hành / hỗ trợ -->
-                    <div class="flex justify-center">
+                    <!-- Góc phải: Badge thu phí/bảo hành và icon mũi tên mở rộng -->
+                    <div class="flex items-center gap-2">
                         ${modeBadgeHtml}
-                    </div>
-
-                    <!-- Góc phải: Nút Sửa, Xóa và mở rộng -->
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="window.openEditAdminTaskModal('${id}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 text-[10px]">
-                            <i class="fa-solid fa-pen"></i> Sửa
-                        </button>
-                        <button onclick="window.deleteAdminTask('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1.5 rounded-xl font-bold transition flex items-center gap-1 text-[10px]">
-                            <i class="fa-solid fa-trash"></i> Xóa
-                        </button>
-                        <button onclick="window.toggleMobileRowDetail('${id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-xl font-bold transition ml-0.5" title="Xem chi tiết">
+                        <button class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-7 h-7 rounded-xl font-bold transition flex items-center justify-center" title="Xem chi tiết">
                             <i class="fa-solid fa-chevron-down text-[10px]"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- PHẦN CHI TIẾT MỞ RỘNG (ACCORDION DETAILS - ẨN MẶC ĐỊNH) -->
+                <!-- PHẦN CHI TIẾT MỞ RỘNG (Đã chuyển nút Sửa/Xóa vào đây) -->
                 <div id="mobile_detail_${id}" class="hidden space-y-3 pt-3 mt-2 border-t border-slate-100 text-xs text-slate-700" onclick="event.stopPropagation()">
+                    
+                    <!-- Nút thao tác Sửa / Xóa đưa vào trong phần mở rộng -->
+                    <div class="flex gap-2 pb-1">
+                        <button onclick="window.openEditAdminTaskModal('${id}')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                            <i class="fa-solid fa-pen"></i> Sửa Công Việc
+                        </button>
+                        <button onclick="window.deleteAdminTask('${id}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                            <i class="fa-solid fa-trash"></i> Xóa Công Việc
+                        </button>
+                    </div>
+
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
                         <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
                             <i class="fa-solid fa-circle-info text-emerald-600"></i> Thông Tin Chi Tiết
@@ -1014,3 +1016,153 @@ window.checkForAppUpdates = () => {
         alert("Trình duyệt không hỗ trợ tính năng cập nhật này.");
     }
 };
+// ================= HÀM TÍNH TOÁN & XẾP HẠNG HIỆU SUẤT KỸ THUẬT =================
+function renderPerformanceReport(entries) {
+    const container = document.getElementById('performanceReportList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const staffStats = {};
+    const maxScore = 10; // Đặt giá trị chuẩn tối đa cho biểu đồ thanh
+
+    entries.forEach(([id, item]) => {
+        const kt = item.ktPhuTrach || 'Chưa phân công';
+        if (!staffStats[kt]) {
+            staffStats[kt] = {
+                totalTasks: 0,
+                completedTasks: 0,
+                onTimeTasks: 0,
+                hasImages: 0,
+                hasMaps: 0,
+                hasConsulting: 0,
+                totalScore: 0
+            };
+        }
+
+        const stat = staffStats[kt];
+        stat.totalTasks++;
+
+        if (item.tinhTrang === 'Đã hoàn thành') {
+            stat.completedTasks++;
+            
+            // 1. Kiểm tra đúng hạn (Deadline >= Thời gian kết thúc)
+            if (item.deadline && item.thoiGianKetThuc) {
+                if (new Date(item.thoiGianKetThuc) <= new Date(item.deadline)) {
+                    stat.onTimeTasks++;
+                }
+            } else {
+                stat.onTimeTasks++; // Mặc định nếu không có deadline khắt khe
+            }
+
+            // 2. Tiêu chí hình ảnh
+            if (item.chupAnh) stat.hasImages++;
+
+            // 3. Tiêu chí đánh giá Maps
+            if (item.danhGiaMaps) stat.hasMaps++;
+
+            // 4. Tiêu chí tư vấn bán hàng
+            if (item.coTuVanBanHang) stat.hasConsulting++;
+
+            // 5. Điểm KPI tích lũy từ Admin
+            stat.totalScore += Number(item.diemKpi) || 0;
+        }
+    });
+
+    if (Object.keys(staffStats).length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Chưa có dữ liệu hiệu suất để đánh giá.</p>';
+        return;
+    }
+
+    // --- PHẦN 1: VẼ BIỂU ĐỒ TỔNG QUAN SO SÁNH CÁC KỸ THUẬT ---
+    let chartHtml = `
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl shadow-md space-y-3 mb-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <span class="font-extrabold text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-column"></i> Biểu Đồ So Sánh Hiệu Suất Kỹ Thuật
+                </span>
+                <span class="text-[10px] text-slate-400">Thang điểm 10</span>
+            </div>
+            <div class="space-y-2.5 pt-1">
+    `;
+
+    const processedStaffs = Object.entries(staffStats).map(([name, data]) => {
+        const completionRate = data.totalTasks > 0 ? (data.completedTasks / data.totalTasks) : 0;
+        const onTimeRate = data.completedTasks > 0 ? (data.onTimeTasks / data.completedTasks) : 0;
+        const imageRate = data.completedTasks > 0 ? (data.hasImages / data.completedTasks) : 0;
+        const mapsRate = data.completedTasks > 0 ? (data.hasMaps / data.completedTasks) : 0;
+
+        let score = ((onTimeRate * 0.4) + (completionRate * 0.3) + (imageRate * 0.15) + (mapsRate * 0.15)) * 10;
+        return { name, score: Number(score.toFixed(1)), data };
+    });
+
+    // Sắp xếp theo điểm hiệu suất từ cao xuống thấp
+    processedStaffs.sort((a, b) => b.score - a.score);
+
+    processedStaffs.forEach(st => {
+        const barWidth = Math.min(100, Math.max(10, (st.score / maxScore) * 100));
+        chartHtml += `
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                    <span class="font-bold text-slate-200">${st.name}</span>
+                    <span class="font-black text-emerald-400">${st.score} đ</span>
+                </div>
+                <div class="w-full bg-slate-700/80 h-3 rounded-full overflow-hidden p-0.5">
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700" style="width: ${barWidth}%"></div>
+                </div>
+            </div>
+        `;
+    });
+
+    chartHtml += `</div></div>`;
+
+    // --- PHẦN 2: CHI TIẾT TỪNG NHÂN SỰ ---
+    let detailsHtml = '';
+    Object.entries(staffStats).forEach(([name, data]) => {
+        const completionRate = data.totalTasks > 0 ? Math.round((data.completedTasks / data.totalTasks) * 100) : 0;
+        const onTimeRate = data.completedTasks > 0 ? Math.round((data.onTimeTasks / data.completedTasks) * 100) : 0;
+        const imageRate = data.completedTasks > 0 ? Math.round((data.hasImages / data.completedTasks) * 100) : 0;
+        const mapsRate = data.completedTasks > 0 ? Math.round((data.hasMaps / data.completedTasks) * 100) : 0;
+
+        let performanceScore = ((onTimeRate * 0.4) + (completionRate * 0.3) + (imageRate * 0.15) + (mapsRate * 0.15)) / 10;
+        performanceScore = Math.min(10, Math.max(0, performanceScore)).toFixed(1);
+
+        let badgeColor = 'bg-emerald-100 text-emerald-800';
+        if (performanceScore < 7) badgeColor = 'bg-amber-100 text-amber-800';
+        if (performanceScore < 5) badgeColor = 'bg-rose-100 text-rose-800';
+
+        detailsHtml += `
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2.5 text-xs mb-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-xs shadow-xs">
+                            ${name.charAt(0)}
+                        </div>
+                        <span class="font-black text-slate-800 text-sm">${name}</span>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-xl text-xs font-black ${badgeColor}">Hiệu suất: ${performanceScore}/10 đ</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 text-center">
+                        <span class="text-slate-400 block text-[9px] uppercase font-bold">Hoàn Thành CV</span>
+                        <strong class="text-slate-700 text-sm">${data.completedTasks}/${data.totalTasks}</strong> (${completionRate}%)
+                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 text-center">
+                        <span class="text-slate-400 block text-[9px] uppercase font-bold">Đúng Hạn Sớm</span>
+                        <strong class="text-emerald-600 text-sm">${onTimeRate}%</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 text-center">
+                        <span class="text-slate-400 block text-[9px] uppercase font-bold">Chụp Ảnh / Maps</span>
+                        <strong class="text-blue-600 text-sm">${data.hasImages} / ${data.hasMaps}</strong>
+                    </div>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200/60 text-center">
+                        <span class="text-slate-400 block text-[9px] uppercase font-bold">Tư Vấn Bán Hàng</span>
+                        <strong class="text-indigo-600 text-sm">${data.hasConsulting} CV</strong>
+                    </div>
+                </div>
+            </div>`;
+    });
+
+    // Gộp cả biểu đồ tổng quan và danh sách chi tiết vào container
+    container.innerHTML = chartHtml + detailsHtml;
+}

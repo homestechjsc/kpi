@@ -679,24 +679,24 @@
         <form id="kpiForm" onsubmit="window.submitKPI(event)" class="space-y-3.5 text-xs">
             <!-- Dòng 1: Ngày tạo, Mã CV, Tình trạng CV -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Ngày tạo</label>
-                    <input type="date" id="taskNgayTao" class="w-full p-2.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Mã CV (Tự động)</label>
-                    <input type="text" id="taskMaCv" disabled class="w-full p-2.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1">Tình trạng CV</label>
-                    <select id="taskTinhTrang" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="Chờ triển khai">Chờ triển khai</option>
-                        <option value="Đang thực hiện">Đang thực hiện</option>
-                        <option value="Tạm ngưng">Tạm ngưng</option>
-                        <option value="Đã hoàn thành">Đã hoàn thành</option>
-                    </select>
-                </div>
-            </div>
+    <div>
+    <label class="block font-bold text-slate-500 mb-1">Thời gian tạo <span class="text-rose-500">*</span></label>
+    <input type="datetime-local" id="taskNgayTao" required onchange="window.updateDefaultDeadline()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+</div>
+    <div>
+        <label class="block font-bold text-slate-500 mb-1">Mã CV (Tự động)</label>
+        <input type="text" id="taskMaCv" disabled class="w-full p-2.5 bg-slate-100 text-emerald-700 border border-slate-200 rounded-xl font-black">
+    </div>
+    <div>
+        <label class="block font-bold text-slate-500 mb-1">Tình trạng CV</label>
+        <select id="taskTinhTrang" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="Chờ triển khai">Chờ triển khai</option>
+            <option value="Đang thực hiện">Đang thực hiện</option>
+            <option value="Tạm ngưng">Tạm ngưng</option>
+            <option value="Đã hoàn thành">Đã hoàn thành</option>
+        </select>
+    </div>
+</div>
 
             <!-- Dòng 2: Tên khách hàng & Số điện thoại -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

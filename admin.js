@@ -371,20 +371,29 @@ function renderKpiTable(entries) {
 function renderAdminTasks() {
     const tbody = document.getElementById('adminTaskTableBody');
     if (!tbody) return;
-    const entries = Object.entries(allTasksData).reverse();
+    
+    // Lấy giá trị tháng từ ô "Kỳ báo cáo" ở góc phải Header (định dạng "YYYY-MM")
+    const monthInput = document.getElementById('filterMonth');
+    const selectedMonth = monthInput ? monthInput.value : '';
 
-    if (entries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-medium">Chưa có công việc nào được tạo.</td></tr>`;
+    const filteredEntries = Object.entries(allTasksData || {}).filter(([id, task]) => {
+        if (!selectedMonth) return true;
+        const taskMonth = task.ngayTao ? task.ngayTao.substring(0, 7) : '';
+        return taskMonth === selectedMonth;
+    }).reverse();
+
+    if (filteredEntries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-medium">Không có công việc nào trong kỳ báo cáo này.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = entries.map(([id, task]) => {
+    tbody.innerHTML = filteredEntries.map(([id, task]) => {
         let statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
         if (task.tinhTrang === 'Đang thực hiện') statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
         if (task.tinhTrang === 'Đã hoàn thành') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
         if (task.tinhTrang === 'Tạm ngưng') statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
 
-        // Hàm phụ để làm sạch định dạng thời gian (Cắt bỏ chữ T và phần mili-giây cho gọn)
+        // Hàm phụ để làm sạch định dạng thời gian
         const formatTime = (timeStr) => {
             if (!timeStr) return '<span class="text-slate-400 italic">Chưa cập nhật</span>';
             return timeStr.replace('T', ' ').substring(0, 16);
@@ -450,6 +459,27 @@ function renderAdminTasks() {
             tangCaDetailsHtml = `<div class="text-center py-6 text-slate-400 italic bg-white rounded-2xl border border-dashed border-slate-200">Không có lịch sử tăng ca cho công việc này</div>`;
         }
 
+        // Xử lý icon công nợ
+        const isTinhPhi = task.hinhThucXuLy === 'tinhphi' || task.hinhThucXuLy === 'Tính phí dịch vụ';
+        const isNo = task.tinhTrangCongNo === 'Có nợ';
+
+        let debtIconHtml = '';
+        if (isTinhPhi || Number(task.soTienThanhToan || task.chiPhi || 0) > 0) {
+            if (isNo) {
+                debtIconHtml = `
+                    <button onclick="event.stopPropagation(); window.toggleTaskDebtStatus('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 p-2 rounded-xl transition shadow-sm" title="Đang có nợ - Bấm để đổi thành Đã thanh toán">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </button>`;
+            } else {
+                debtIconHtml = `
+                    <button onclick="event.stopPropagation(); window.toggleTaskDebtStatus('${id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-2 rounded-xl transition shadow-sm" title="Đã thanh toán - Bấm để đổi thành Có nợ">
+                        <i class="fa-solid fa-money-check-dollar"></i>
+                    </button>`;
+            }
+        } else {
+            debtIconHtml = `<span class="text-slate-300 text-[10px]">Miễn phí</span>`;
+        }
+
         return `
             <!-- Dòng chính rút gọn -->
             <tr onclick="window.toggleRowDetail('${id}')" class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 cursor-pointer">
@@ -470,6 +500,7 @@ function renderAdminTasks() {
                 </td>
                 <td class="p-3.5 text-slate-600 font-medium">${task.nguoiTao || ''}</td>
                 <td class="p-3.5 text-center space-x-1" onclick="event.stopPropagation()">
+                    ${debtIconHtml}
                     <button onclick="window.openTaskModal('${id}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition" title="Sửa">
                         <i class="fa-solid fa-pen"></i>
                     </button>
@@ -479,7 +510,7 @@ function renderAdminTasks() {
                 </td>
             </tr>
 
-            <!-- Phần mở rộng chuyên nghiệp (Accordion Details) -->
+            <!-- Phần mở rộng chi tiết đầy đủ (Accordion Details) -->
             <tr id="detail_${id}" class="hidden bg-slate-50/70 border-b border-slate-200">
                 <td colspan="7" class="p-4">
                     <div class="bg-slate-100/80 p-4 rounded-3xl border border-slate-200 shadow-inner space-y-4 text-xs">
@@ -570,6 +601,19 @@ function renderSettingsUI() {
         `).join('');
     }
 }
+window.toggleTaskDebtStatus = (taskId) => {
+    const task = allTasksData[taskId];
+    if (!task) return;
+
+    const currentDebtStatus = task.tinhTrangCongNo || 'Không';
+    const newDebtStatus = currentDebtStatus === 'Có nợ' ? 'Không' : 'Có nợ';
+
+    update(ref(db, `managementTasks/${taskId}`), {
+        tinhTrangCongNo: newDebtStatus
+    }).catch(err => {
+        alert("Lỗi cập nhật công nợ: " + err.message);
+    });
+};
 
 window.addSettingItem = (e, type) => {
     e.preventDefault();
@@ -599,7 +643,13 @@ window.openTaskModal = (id = null) => {
     document.getElementById('taskForm').reset();
     document.getElementById('taskNgayTao').value = new Date().toISOString().split('T')[0];
 
+    // Lấy phần tử chứa thông tin thanh toán
+    const paymentContainer = document.getElementById('paymentSectionContainer');
+
     if (id && allTasksData[id]) {
+        // === CHẾ ĐỘ SỬA: Hiển thị khung thanh toán và đổ dữ liệu cũ ===
+        if (paymentContainer) paymentContainer.classList.remove('hidden');
+
         const t = allTasksData[id];
         document.getElementById('editTaskId').value = id;
         document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-emerald-600 mr-2"></i> Sửa Thông Tin Công Việc';
@@ -616,12 +666,13 @@ window.openTaskModal = (id = null) => {
         document.getElementById('taskKtHoTro').value = t.ktHoTro || '';
         document.getElementById('taskNguoiTao').value = t.nguoiTao || '';
         document.getElementById('taskGhiChu').value = t.ghiChu || '';
+        
         // Gán dữ liệu thanh toán cũ nếu có
-document.getElementById('taskHinhThucXuLy').value = t.hinhThucXuLy || 'tinhphi';
-document.getElementById('taskHinhThucThanhToan').value = t.hinhThucThanhToan || '';
-document.getElementById('taskSoTienThanhToan').value = t.soTienThanhToan || t.chiPhi || 0;
-document.getElementById('taskTinhTrangCongNo').value = t.tinhTrangCongNo || 'Không';
-document.getElementById('taskGhiChuThanhToan').value = t.ghiChuThanhToan || '';
+        document.getElementById('taskHinhThucXuLy').value = t.hinhThucXuLy || 'tinhphi';
+        document.getElementById('taskHinhThucThanhToan').value = t.hinhThucThanhToan || '';
+        document.getElementById('taskSoTienThanhToan').value = t.soTienThanhToan || t.chiPhi || 0;
+        document.getElementById('taskTinhTrangCongNo').value = t.tinhTrangCongNo || 'Không';
+        document.getElementById('taskGhiChuThanhToan').value = t.ghiChuThanhToan || '';
         
         // Gán dữ liệu ẩn (thời gian & GPS)
         document.getElementById('taskThoiGianBatDau').value = t.thoiGianBatDau || '';
@@ -632,37 +683,41 @@ document.getElementById('taskGhiChuThanhToan').value = t.ghiChuThanhToan || '';
         document.getElementById('taskGpsTamNgung').value = t.gpsTamNgung || '';
         document.getElementById('taskGpsHoanThanh').value = t.gpsHoanThanh || '';
     } else {
-    // --- PHẦN TẠO MỚI CÔNG VIỆC ---
-    document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-tasks text-emerald-600 mr-2"></i> Tạo Mới Công Việc';
-    document.getElementById('taskTinhTrang').value = 'Chờ triển khai';
-    
-    // 👉 1. Tự động gán thời điểm hiện tại cho ô Ngày/Giờ tạo (taskNgayTao)
-    const nowLocal = new Date();
-    const lYear = nowLocal.getFullYear();
-    const lMonth = String(nowLocal.getMonth() + 1).padStart(2, '0');
-    const lDay = String(nowLocal.getDate()).padStart(2, '0');
-    const lHours = String(nowLocal.getHours()).padStart(2, '0');
-    const lMinutes = String(nowLocal.getMinutes()).padStart(2, '0');
-    document.getElementById('taskNgayTao').value = `${lYear}-${lMonth}-${lDay}T${lHours}:${lMinutes}`;
+        // === CHẾ ĐỘ TẠO MỚI: Ẩn hoàn toàn khung thanh toán đi ===
+        if (paymentContainer) paymentContainer.classList.add('hidden');
 
-    // 👉 2. Tự động gán Deadline CV là thời gian hiện tại CỘNG THÊM 2 GIỜ
-    const deadlineTime = new Date(nowLocal.getTime() + 2 * 60 * 60 * 1000);
-    const dYear = deadlineTime.getFullYear();
-    const dMonth = String(deadlineTime.getMonth() + 1).padStart(2, '0');
-    const dDay = String(deadlineTime.getDate()).padStart(2, '0');
-    const dHours = String(deadlineTime.getHours()).padStart(2, '0');
-    const dMinutes = String(deadlineTime.getMinutes()).padStart(2, '0');
-    document.getElementById('taskDeadline').value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
+        // --- PHẦN TẠO MỚI CÔNG VIỆC ---
+        document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-tasks text-emerald-600 mr-2"></i> Tạo Mới Công Việc';
+        document.getElementById('taskTinhTrang').value = 'Chờ triển khai';
+        
+        // 👉 1. Tự động gán thời điểm hiện tại cho ô Ngày/Giờ tạo (taskNgayTao)
+        const nowLocal = new Date();
+        const lYear = nowLocal.getFullYear();
+        const lMonth = String(nowLocal.getMonth() + 1).padStart(2, '0');
+        const lDay = String(nowLocal.getDate()).padStart(2, '0');
+        const lHours = String(nowLocal.getHours()).padStart(2, '0');
+        const lMinutes = String(nowLocal.getMinutes()).padStart(2, '0');
+        document.getElementById('taskNgayTao').value = `${lYear}-${lMonth}-${lDay}T${lHours}:${lMinutes}`;
 
-    // 👉 3. Gán Người tạo CV mặc định là "Hệ thống"
-    document.getElementById('taskNguoiTao').value = 'Hệ thống';
+        // 👉 2. Tự động gán Deadline CV là thời gian hiện tại CỘNG THÊM 2 GIỜ
+        const deadlineTime = new Date(nowLocal.getTime() + 2 * 60 * 60 * 1000);
+        const dYear = deadlineTime.getFullYear();
+        const dMonth = String(deadlineTime.getMonth() + 1).padStart(2, '0');
+        const dDay = String(deadlineTime.getDate()).padStart(2, '0');
+        const dHours = String(deadlineTime.getHours()).padStart(2, '0');
+        const dMinutes = String(deadlineTime.getMinutes()).padStart(2, '0');
+        document.getElementById('taskDeadline').value = `${dYear}-${dMonth}-${dDay}T${dHours}:${dMinutes}`;
+
+        // 👉 3. Gán Người tạo CV mặc định là "Hệ thống"
+        document.getElementById('taskNguoiTao').value = 'Hệ thống';
+        
+        // Tự động sinh mã CV mới
+        const totalExistingTasks = Object.keys(allTasksData).length;
+        const autoCode = `CV-${String(totalExistingTasks + 1).padStart(2, '0')}`;
+        document.getElementById('taskMaCv').value = autoCode;
+    }
     
-    // Tự động sinh mã CV mới
-    const totalExistingTasks = Object.keys(allTasksData).length;
-    const autoCode = `CV-${String(totalExistingTasks + 1).padStart(2, '0')}`;
-    document.getElementById('taskMaCv').value = autoCode;
-}
-document.getElementById('taskModal').classList.remove('hidden');
+    document.getElementById('taskModal').classList.remove('hidden');
 };
 
 window.closeTaskModal = () => {
@@ -2442,6 +2497,7 @@ window.filterAdminTasksTable = () => {
             if (!timeStr) return '<span class="text-slate-400 italic">Chưa cập nhật</span>';
             return timeStr.replace('T', ' ').substring(0, 16);
         };
+        
 
         return `
             <tr onclick="window.toggleRowDetail('${id}')" class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 cursor-pointer">

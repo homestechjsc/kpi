@@ -117,38 +117,144 @@ onValue(ref(db, 'managementTasks'), (snapshot) => {
 
 // 2. Render bảng quản lý khách hàng và danh sách gợi ý chọn nhanh
 function renderCustomerTableAndDatalist() {
-    const tbody = document.getElementById('customerTableBody');
-    const datalist = document.getElementById('customerSuggestions');
+    window.filterCustomerTable();
     
-    if (tbody) tbody.innerHTML = '';
-    if (datalist) datalist.innerHTML = '';
-
-    const entries = Object.entries(allCustomersData);
-    if (entries.length > 0) {
-        entries.forEach(([key, cust]) => {
-            // Đổ dữ liệu vào bảng Quản lý khách hàng
-            if (tbody) {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-4 pl-6 font-bold text-slate-800">${cust.name}</td>
-                        <td class="p-4 text-slate-600">${cust.phone || 'N/A'}</td>
-                        <td class="p-4 text-emerald-600 font-bold">${cust.count} công việc</td>
-                        <td class="p-4 pr-6 text-center">
-                            <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-xl font-semibold">Hệ thống tự động lưu</span>
-                        </td>
-                    </tr>`;
-            }
-            // Đổ dữ liệu vào ô chọn nhanh khi tạo công việc
-            if (datalist) {
-                datalist.innerHTML += `<option value="${cust.name}">${cust.phone ? 'SĐT: ' + cust.phone : ''}</option>`;
-            }
+    // Đổ dữ liệu vào ô chọn nhanh khi tạo công việc (Datalist)
+    const datalist = document.getElementById('customerSuggestions');
+    if (datalist) {
+        datalist.innerHTML = '';
+        Object.values(allCustomersData).forEach(cust => {
+            datalist.innerHTML += `<option value="${cust.name}">${cust.phone ? 'SĐT: ' + cust.phone : ''}</option>`;
         });
-    } else {
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-400 font-medium">Chưa có dữ liệu khách hàng.</td></tr>`;
-        }
     }
 }
+
+// Hàm lọc trực tiếp bảng danh sách khách hàng dựa trên từ khóa gõ vào
+window.filterCustomerTable = () => {
+    const tbody = document.getElementById('customerTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const searchInput = document.getElementById('customerSearchKeyword');
+    const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    const entries = Object.entries(allCustomersData).filter(([key, cust]) => {
+        const name = (cust.name || '').toLowerCase();
+        const phone = (cust.phone || '').toLowerCase();
+        return !keyword || name.includes(keyword) || phone.includes(keyword);
+    });
+
+    if (entries.length > 0) {
+        entries.forEach(([key, cust]) => {
+            const safeCustJson = JSON.stringify(cust).replace(/"/g, '&quot;');
+            
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-4 pl-6 font-bold text-slate-800">${cust.name}</td>
+                    <td class="p-4 text-slate-600">${cust.phone || 'N/A'}</td>
+                    <td class="p-4 text-emerald-600 font-bold">${cust.count} công việc</td>
+                    <td class="p-4 text-center">
+                        <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-xl font-semibold">Tự động quét</span>
+                    </td>
+                    <td class="p-4 pr-6 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="window.openCustomerModal('${safeCustJson}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Sửa khách hàng">
+                                <i class="fa-solid fa-pen"></i> Sửa
+                            </button>
+                            <button onclick="window.deleteCustomer('${encodeURIComponent(cust.name)}')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Xóa thông tin khách hàng">
+                                <i class="fa-solid fa-trash"></i> Xóa
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+    } else {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-400 font-medium">Không tìm thấy khách hàng phù hợp.</td></tr>`;
+    }
+};
+
+// Mở Modal Sửa khách hàng
+window.openCustomerModal = (custJson) => {
+    const cust = JSON.parse(custJson);
+    document.getElementById('editOriginalCustomerName').value = cust.name;
+    document.getElementById('editCustomerName').value = cust.name;
+    document.getElementById('editCustomerPhone').value = cust.phone || '';
+    document.getElementById('customerModal').classList.remove('hidden');
+};
+
+// Đóng Modal Sửa khách hàng
+window.closeCustomerModal = () => {
+    document.getElementById('customerModal').classList.add('hidden');
+};
+
+// Lưu thay đổi thông tin khách hàng (Cập nhật đồng loạt tên/SĐT vào các công việc thuộc nhánh managementTasks)
+window.saveCustomerEdit = async (e) => {
+    e.preventDefault();
+    const originalName = document.getElementById('editOriginalCustomerName').value.trim();
+    const newName = document.getElementById('editCustomerName').value.trim();
+    const newPhone = document.getElementById('editCustomerPhone').value.trim();
+
+    if (!newName) {
+        alert("Tên khách hàng không được để trống!");
+        return;
+    }
+
+    try {
+        const snapshot = await get(ref(db, 'managementTasks'));
+        if (!snapshot.exists()) return;
+
+        const tasks = snapshot.val();
+        const updates = {};
+
+        // Quét tất cả công việc, nếu công việc nào thuộc khách hàng cũ thì cập nhật lại tên và SĐT mới
+        Object.entries(tasks).forEach(([taskId, task]) => {
+            if (task.khachHang && task.khachHang.trim() === originalName) {
+                updates[`managementTasks/${taskId}/khachHang`] = newName;
+                updates[`managementTasks/${taskId}/dienThoai`] = newPhone;
+            }
+        });
+
+        if (Object.keys(updates).length > 0) {
+            await update(ref(db), updates);
+            alert("Cập nhật thông tin khách hàng thành công!");
+            window.closeCustomerModal();
+        } else {
+            alert("Không tìm thấy công việc nào khớp với khách hàng này.");
+        }
+    } catch (error) {
+        alert("Lỗi khi cập nhật: " + error.message);
+    }
+};
+
+// Xóa khách hàng (Xóa thông tin khách hàng bằng cách xóa/cập nhật dữ liệu liên quan trong managementTasks)
+window.deleteCustomer = async (encodedName) => {
+    const customerName = decodeURIComponent(encodedName);
+    if (!confirm(`⚠️ Bạn có chắc chắn muốn xóa khách hàng "${customerName}"?\nThao tác này sẽ xóa thông tin tên và số điện thoại của khách hàng này khỏi các công việc liên quan.`)) {
+        return;
+    }
+
+    try {
+        const snapshot = await get(ref(db, 'managementTasks'));
+        if (!snapshot.exists()) return;
+
+        const tasks = snapshot.val();
+        const updates = {};
+
+        Object.entries(tasks).forEach(([taskId, task]) => {
+            if (task.khachHang && task.khachHang.trim() === customerName) {
+                updates[`managementTasks/${taskId}/khachHang`] = "Khách lẻ (Đã xóa)";
+                updates[`managementTasks/${taskId}/dienThoai`] = "";
+            }
+        });
+
+        if (Object.keys(updates).length > 0) {
+            await update(ref(db), updates);
+            alert("Đã xóa thông tin khách hàng thành công!");
+        }
+    } catch (error) {
+        alert("Lỗi khi xóa khách hàng: " + error.message);
+    }
+};
 
 // Đổ dữ liệu vào các thẻ <select>
 function populateDropdowns() {
@@ -179,7 +285,7 @@ function populateDropdowns() {
 window.triggerDataLoad = () => {
     const monthInput = document.getElementById('filterMonth');
     if (!monthInput) return;
-    const month = monthInput.value; // Định dạng "YYYY-MM"
+    const month = monthInput.value; 
     
     const entries = Object.entries(allKpiData).filter(([id, d]) => {
         const isCompleted = d.tinhTrang === 'Đã hoàn thành';
@@ -187,10 +293,15 @@ window.triggerDataLoad = () => {
         return isCompleted && isRightMonth;
     }).reverse();
 
-    renderKpiTable(entries);
-    renderReport(entries);
+    if (typeof renderKpiTable === 'function') renderKpiTable(entries);
+    if (typeof renderReport === 'function') renderReport(entries);
+    if (typeof renderDashboard === 'function') renderDashboard();
+    
+    // Đồng bộ gọi lọc bảng công việc theo tháng mới chọn
+    if (typeof window.filterAdminTasksTable === 'function') {
+        window.filterAdminTasksTable();
+    }
 };
-
 function renderKpiTable(entries) {
     const tbody = document.getElementById('adminKpiTable');
     if (!tbody) return;
@@ -701,17 +812,32 @@ window.switchTab = (tab) => {
     const targetTab = document.getElementById(tab);
     if (targetTab) targetTab.classList.remove('hidden');
 
-    // Reset tất cả các nút menu về trạng thái chưa chọn (chữ sáng, hover sáng mờ)
+    // Reset tất cả các nút menu
     document.querySelectorAll('.nav-btn').forEach(b => {
         b.classList.remove('bg-white', 'text-emerald-900', 'shadow-md', 'font-extrabold');
         b.classList.add('text-emerald-100', 'font-bold', 'hover:bg-white/10');
     });
     
-    // Highlight nút menu đang được chọn (nền trắng, chữ xanh đậm, có bóng nhẹ)
+    // Highlight nút menu đang được chọn
     const activeBtn = document.getElementById('nav_' + tab);
     if (activeBtn) {
         activeBtn.classList.remove('text-emerald-100', 'font-bold', 'hover:bg-white/10');
         activeBtn.classList.add('bg-white', 'text-emerald-900', 'shadow-md', 'font-extrabold');
+    }
+    
+    // =========================================================
+    // 👉 ĐIỀU KHIỂN HIỂN THỊ Ô KỲ BÁO CÁO Ở GÓC PHẢI HEADER
+    // =========================================================
+    const headerFilter = document.getElementById('headerFilterContainer');
+    if (headerFilter) {
+        // Chỉ định các tab được phép hiển thị ô Kỳ báo cáo ở Header
+        const allowedTabs = ['dashboardTab', 'kpiTab', 'taskTab', 'reportTab'];
+        
+        if (allowedTabs.includes(tab)) {
+            headerFilter.classList.remove('hidden'); // Hiển thị
+        } else {
+            headerFilter.classList.add('hidden');    // Ẩn đi ở các tab còn lại
+        }
     }
     
     // Cập nhật tiêu đề Header tương ứng
@@ -723,6 +849,7 @@ window.switchTab = (tab) => {
         'staffTab': 'Quản Lý Nhân Sự & Tài Khoản',
         'cameraTab': 'Quản Lý Thiết Bị Camera Công Trình',
         'customerTab': 'Quản Lý Danh Sách Khách Hàng',
+        'fuelSupplyAdminTab': 'Quản Lý Xăng & Vật Tư',
         'settingsTab': 'Cài Đặt Danh Mục Hệ Thống'
     };
     const titleEl = document.getElementById('headerTitle');
@@ -735,6 +862,10 @@ function renderDashboard() {
     const selectedMonth = monthInput ? monthInput.value : new Date().toISOString().slice(0, 7);
 
     let total = 0, waiting = 0, inProgress = 0, paused = 0, completed = 0;
+    let totalRevenue = 0;      // Tổng tiền thu
+    let totalDebt = 0;         // Tổng công nợ
+    let warrantyCount = 0;     // Tổng dịch vụ bảo hành
+    let freeSupportCount = 0;  // Tổng dịch vụ hỗ trợ miễn phí
     const staffStats = {};
     
     const listWaiting = document.getElementById('listWaitingTasks');
@@ -807,7 +938,22 @@ function renderDashboard() {
         } else if (status === 'Đã hoàn thành') {
             completed++;
         }
+        // Tính số tiền thanh toán
+            const amount = Number(task.soTienThanhToan || task.chiPhi || 0);
+            
+            // Kiểm tra tình trạng công nợ
+            if (task.tinhTrangCongNo === 'Có nợ') {
+                totalDebt += amount; // Hoặc cộng dồn khoản nợ nếu có trường quản lý riêng
+            } else {
+                totalRevenue += amount; // Đã thanh toán tính vào tiền thu
+            }
 
+            // Phân loại hình thức xử lý dịch vụ
+            if (task.hinhThucXuLy === 'baohanh') {
+                warrantyCount++;
+            } else if (task.hinhThucXuLy === 'hotro') {
+                freeSupportCount++;
+            }
         // Thống kê theo nhân sự phụ trách
         const kt = task.ktPhuTrach || 'Chưa phân công';
         if (!staffStats[kt]) {
@@ -842,6 +988,10 @@ function renderDashboard() {
     document.getElementById('dashWaiting').textContent = waiting;
     document.getElementById('dashInProgress').textContent = inProgress;
     document.getElementById('dashPaused').textContent = paused;
+    document.getElementById('dashTotalRevenue').textContent = totalRevenue.toLocaleString() + ' VNĐ';
+    document.getElementById('dashTotalDebt').textContent = totalDebt.toLocaleString() + ' VNĐ';
+    document.getElementById('dashWarrantyCount').textContent = warrantyCount;
+    document.getElementById('dashFreeSupportCount').textContent = freeSupportCount;
 
     document.getElementById('badgeWaitingCount').textContent = waitingItems;
     document.getElementById('badgeInProgressCount').textContent = inProgressItems;
@@ -2202,4 +2352,141 @@ window.deleteAdminSupplyRequest = (id) => {
             .then(() => alert("Đã xóa đề xuất vật tư thành công!"))
             .catch(err => alert("Lỗi khi xóa: " + err.message));
     }
+};
+window.filterAdminTasksTable = () => {
+    const tbody = document.getElementById('adminTaskTableBody');
+    if (!tbody) return;
+
+    // 1. Lấy giá trị từ bộ lọc Kỳ báo cáo ở góc phải Header (định dạng "YYYY-MM")
+    const filterMonthInput = document.getElementById('filterMonth');
+    const selectedMonth = filterMonthInput ? filterMonthInput.value : '';
+
+    const fromDateInput = document.getElementById('taskFilterFromDate');
+    const toDateInput = document.getElementById('taskFilterToDate');
+    const keywordInput = document.getElementById('taskSearchKeyword');
+    const statusSelect = document.getElementById('taskFilterStatus');
+    
+    const fromDate = fromDateInput ? fromDateInput.value : '';
+    const toDate = toDateInput ? toDateInput.value : '';
+    const keyword = keywordInput ? keywordInput.value.toLowerCase().trim() : '';
+    const selectedStatus = statusSelect ? statusSelect.value : '';
+
+    const entries = Object.entries(allTasksData).reverse();
+
+    const filteredEntries = entries.filter(([id, task]) => {
+        // 2. Kiểm tra điều kiện Kỳ báo cáo (tháng của ngày tạo công việc)
+        const taskMonth = task.ngayTao ? task.ngayTao.substring(0, 7) : '';
+        const matchesMonth = !selectedMonth || taskMonth === selectedMonth;
+        if (!matchesMonth) return false;
+
+        // 3. Lọc theo khoảng thời gian (Từ ngày - Đến ngày) nếu có chọn
+        const taskDate = task.ngayTao ? task.ngayTao.substring(0, 10) : '';
+        if (fromDate && taskDate < fromDate) return false;
+        if (toDate && taskDate > toDate) return false;
+
+        // 4. Lọc theo trạng thái
+        const tinhTrang = task.tinhTrang || 'Chờ triển khai';
+        if (selectedStatus && tinhTrang !== selectedStatus) return false;
+
+        // 5. Lọc đa năng trên TẤT CẢ CÁC TRƯỜNG
+        if (keyword) {
+            const searchableString = [
+                task.maCv,
+                task.ngayTao,
+                task.khachHang,
+                task.dienThoai,
+                task.loaiCv,
+                task.noiDung,
+                task.uuTien,
+                task.tinhTrang,
+                task.ktPhuTrach,
+                task.ktHoTro,
+                task.nguoiTao,
+                task.ghiChu
+            ].filter(Boolean).join(' ').toLowerCase();
+
+            if (!searchableString.includes(keyword)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    if (filteredEntries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-medium">Không tìm thấy công việc phù hợp trong kỳ báo cáo này.</td></tr>`;
+        return;
+    }
+
+    // Phần render HTML các dòng công việc giữ nguyên...
+    tbody.innerHTML = filteredEntries.map(([id, task]) => {
+        let statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+        if (task.tinhTrang === 'Đang thực hiện') statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+        if (task.tinhTrang === 'Đã hoàn thành') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        if (task.tinhTrang === 'Tạm ngưng') statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
+
+        const formatTime = (timeStr) => {
+            if (!timeStr) return '<span class="text-slate-400 italic">Chưa cập nhật</span>';
+            return timeStr.replace('T', ' ').substring(0, 16);
+        };
+
+        return `
+            <tr onclick="window.toggleRowDetail('${id}')" class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 cursor-pointer">
+                <td class="p-3.5 font-bold text-slate-800">
+                    <div>${task.ngayTao || ''}</div>
+                    <div class="text-[10px] text-emerald-600 font-mono">${task.maCv || ''}</div>
+                </td>
+                <td class="p-3.5">
+                    <div class="font-bold text-slate-900">${task.khachHang || ''}</div>
+                    <div class="text-[11px] text-slate-400">SĐT: ${task.dienThoai || 'Chưa cập nhật'}</div>
+                </td>
+                <td class="p-3.5 max-w-xs text-slate-600 font-medium truncate">${task.noiDung || ''}</td>
+                <td class="p-3.5 text-center">
+                    <span class="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold text-[10px]">${task.uuTien || ''}</span>
+                </td>
+                <td class="p-3.5 text-center">
+                    <span class="px-2.5 py-1 border rounded-full font-bold text-[10px] ${statusColor}">${task.tinhTrang || 'Chờ triển khai'}</span>
+                </td>
+                <td class="p-3.5 text-slate-600 font-medium">${task.nguoiTao || ''}</td>
+                <td class="p-3.5 text-center space-x-1" onclick="event.stopPropagation()">
+                    <button onclick="window.openTaskModal('${id}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition" title="Sửa">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="window.deleteTask('${id}')" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-2 rounded-xl transition" title="Xóa">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr id="detail_${id}" class="hidden bg-slate-50/70 border-b border-slate-200">
+                <td colspan="7" class="p-4">
+                    <div class="bg-slate-100/80 p-4 rounded-3xl border border-slate-200 shadow-inner space-y-4 text-xs">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1.5">
+                                <div class="font-extrabold text-slate-800 border-b pb-1 mb-1.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-info text-emerald-600"></i> Thông Tin Cơ Bản
+                                </div>
+                                <div><strong class="text-slate-500">Mã CV:</strong> <span class="font-mono font-bold text-emerald-700">${task.maCv || 'N/A'}</span></div>
+                                <div><strong class="text-slate-500">Loại công việc:</strong> <span class="text-blue-600 font-bold">${task.loaiCv || 'N/A'}</span></div>
+                                <div><strong class="text-slate-500">Số điện thoại:</strong> <a href="tel:${task.dienThoai}" class="text-blue-600 font-bold">${task.dienThoai || 'N/A'}</a></div>
+                            </div>
+                            <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1.5">
+                                <div class="font-extrabold text-slate-800 border-b pb-1 mb-1.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-gear text-emerald-600"></i> Phân Công Nhân Sự
+                                </div>
+                                <div><strong class="text-slate-500">Phụ trách chính:</strong> <span class="font-bold text-slate-800 text-sm">${task.ktPhuTrach || 'Chưa phân công'}</span></div>
+                                <div><strong class="text-slate-500">Kỹ thuật hỗ trợ:</strong> <span class="text-slate-700 font-semibold">${task.ktHoTro || 'Không'}</span></div>
+                            </div>
+                            <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1.5">
+                                <div class="font-extrabold text-slate-800 border-b pb-1 mb-1.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-crosshairs text-emerald-600"></i> Thời Gian Thực Tế
+                                </div>
+                                <div><strong class="text-slate-500">Bắt đầu CV:</strong> ${formatTime(task.thoiGianBatDau)}</div>
+                                <div><strong class="text-slate-500">Kết thúc CV:</strong> ${formatTime(task.thoiGianKetThuc)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 };

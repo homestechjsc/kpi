@@ -852,9 +852,18 @@ window.updateAssignedTaskStatus = (taskId, newStatus) => {
         { enableHighAccuracy: true, timeout: 10000 }
     );
 };
+// Hàm lấy thời gian chuẩn theo giờ địa phương Việt Nam (YYYY-MM-DDTHH:mm:ss)
+function getLocalISOString(date = new Date()) {
+    const tzOffsetMinutes = date.getTimezoneOffset(); 
+    const localDate = new Date(date.getTime() - (tzOffsetMinutes * 60000));
+    return localDate.toISOString().slice(0, 19); // Lấy đủ cả giây để đồng bộ chính xác
+}
 
 function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
-    const nowTime = new Date().toISOString();
+    // ❌ Sửa từ dòng: const nowTime = new Date().toISOString();
+    // ✅ Thành:
+    const nowTime = getLocalISOString(new Date());
+    
     let updatePayload = { tinhTrang: newStatus };
 
     if (newStatus === 'Đang thực hiện') {
@@ -871,7 +880,6 @@ function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
         .then(() => {
             alert(`Cập nhật trạng thái thành công: "${newStatus}"`);
 
-            // 👉 KÍCH HOẠT GỬI THÔNG BÁO TELEGRAM KHI BẮT ĐẦU HOẶC ĐỔI TRẠNG THÁI
             const currentTaskData = allAssignedTasks[taskId] || {};
             const mergedData = { ...currentTaskData, ...updatePayload };
             

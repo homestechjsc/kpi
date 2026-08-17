@@ -83,16 +83,14 @@
             <p class="text-xs text-slate-400 font-medium">Hệ thống giám sát tiến độ và đánh giá hiệu suất kỹ thuật thời gian thực</p>
         </div>
     </div>
-    
-    
-    <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl px-4 py-2 shadow-sm hover:border-emerald-300 transition">
-            <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                <i class="fa-solid fa-calendar-days text-emerald-600"></i> Kỳ báo cáo:
-            </span>
-            <input type="month" id="filterMonth" class="bg-transparent border-none text-xs font-black text-emerald-700 outline-none cursor-pointer" onchange="window.triggerDataLoad()">
-        </div>
-    </div>
+    <div id="headerFilterContainer" class="flex items-center gap-3">
+                    <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl px-4 py-2 shadow-sm hover:border-emerald-300 transition">
+                        <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-days text-emerald-600"></i> Kỳ báo cáo:
+                        </span>
+                        <input type="month" id="filterMonth" class="bg-transparent border-none text-xs font-black text-emerald-700 outline-none cursor-pointer" onchange="window.triggerDataLoad()">
+                    </div>
+                </div>
 </header>
 
             <div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
@@ -300,6 +298,35 @@
                 <!-- TAB: QUẢN LÝ CÔNG VIỆC -->
 <div id="taskTab" class="tab-content hidden space-y-6 pb-12">
     <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <!-- THANH TÌM KIẾM ĐA NĂNG & KHOẢNG THỜI GIAN QUẢN LÝ CÔNG VIỆC -->
+<div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200/80 mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5">
+        <span class="text-xs font-bold text-slate-500">Từ ngày:</span>
+        <input type="date" id="taskFilterFromDate" onchange="window.filterAdminTasksTable()" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
+    </div>
+    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5">
+        <span class="text-xs font-bold text-slate-500">Đến ngày:</span>
+        <input type="date" id="taskFilterToDate" onchange="window.filterAdminTasksTable()" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
+    </div>
+    <div class="flex-1 min-w-[240px] relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </span>
+        <input type="text" id="taskSearchKeyword" placeholder="🔍 Tìm kiếm đa năng mọi trường..." oninput="window.filterAdminTasksTable()" class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 transition">
+    </div>
+    <div class="flex items-center gap-2">
+        <select id="taskFilterStatus" onchange="window.filterAdminTasksTable()" class="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
+            <option value="">-- Tất cả trạng thái --</option>
+            <option value="Chờ triển khai">Chờ triển khai</option>
+            <option value="Đang thực hiện">Đang thực hiện</option>
+            <option value="Tạm ngưng">Tạm ngưng</option>
+            <option value="Đã hoàn thành">Đã hoàn thành</option>
+        </select>
+        <button onclick="window.resetTaskFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-2xl font-bold text-xs transition">
+            Đặt lại
+        </button>
+    </div>
+</div>
         
         <!-- HEADER CỦA BẢNG -->
         <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
@@ -420,7 +447,52 @@
             </div>
         </div>
     </div>
+    <!-- 👉 1.1. BỔ SUNG KHỐI THỐNG KÊ TÀI CHÍNH & DỊCH VỤ -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Tổng tiền thu -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-emerald-200/80 flex items-center justify-between group hover:border-emerald-400 transition bg-gradient-to-br from-emerald-50/30 to-white">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">Tổng Tiền Thu</span>
+                <h3 id="dashTotalRevenue" class="text-2xl lg:text-3xl font-black text-emerald-800 mt-1">0 VNĐ</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-emerald-200">
+                <i class="fa-solid fa-money-bill-wave"></i>
+            </div>
+        </div>
 
+        <!-- Tổng công nợ -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-rose-200/80 flex items-center justify-between group hover:border-rose-400 transition bg-gradient-to-br from-rose-50/30 to-white">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-rose-600">Tổng Công Nợ</span>
+                <h3 id="dashTotalDebt" class="text-2xl lg:text-3xl font-black text-rose-800 mt-1">0 VNĐ</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-rose-200">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+        </div>
+
+        <!-- Tổng dịch vụ bảo hành -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-blue-200/80 flex items-center justify-between group hover:border-blue-400 transition bg-gradient-to-br from-blue-50/30 to-white">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">Dịch Vụ Bảo Hành</span>
+                <h3 id="dashWarrantyCount" class="text-3xl font-black text-blue-800 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-blue-200">
+                <i class="fa-solid fa-shield-heart"></i>
+            </div>
+        </div>
+
+        <!-- Tổng dịch vụ hỗ trợ miễn phí -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-indigo-200/80 flex items-center justify-between group hover:border-indigo-400 transition bg-gradient-to-br from-indigo-50/30 to-white">
+            <div>
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600">Hỗ Trợ Miễn Phí</span>
+                <h3 id="dashFreeSupportCount" class="text-3xl font-black text-indigo-800 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-bold group-hover:scale-110 transition shadow-inner border border-indigo-200">
+                <i class="fa-solid fa-hands-holding-child"></i>
+            </div>
+        </div>
+    </div>
     <!-- 2. BIỂU ĐỒ KHỐI LƯỢNG CÔNG VIỆC KỸ THUẬT -->
     <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 space-y-4">
         <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -579,23 +651,6 @@
     </div>
 </div>
 <!-- TAB: QUẢN LÝ PHIẾU XĂNG & ĐỀ XUẤT VẬT TƯ -->
- <!-- THANH CÔNG CỤ BỘ LỌC ĐA NĂNG -->
-<div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200/80 flex flex-wrap items-center gap-3">
-    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
-        <span class="text-xs font-bold text-slate-500">Từ ngày:</span>
-        <input type="date" id="filterFromDate" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer" onchange="window.filterFuelSupplyData()">
-    </div>
-    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
-        <span class="text-xs font-bold text-slate-500">Đến ngày:</span>
-        <input type="date" id="filterToDate" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer" onchange="window.filterFuelSupplyData()">
-    </div>
-    <div class="flex-1 min-w-[200px]">
-        <input type="text" id="filterTechName" placeholder="🔍 Tìm theo tên kỹ thuật..." oninput="window.filterFuelSupplyData()" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500">
-    </div>
-    <button onclick="window.resetFuelSupplyFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-2xl font-bold text-xs transition">
-        Đặt lại
-    </button>
-</div>
 <div id="fuelSupplyAdminTab" class="tab-content hidden space-y-6 pb-12">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -661,6 +716,12 @@
                 </h3>
                 <p class="text-xs text-slate-400 font-medium mt-0.5">Khách hàng được tự động ghi nhận từ các phiếu công việc</p>
             </div>
+            <div class="w-full sm:w-72 relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="customerSearchKeyword" placeholder="🔍 Tìm kiếm tên hoặc SĐT..." oninput="window.filterCustomerTable()" class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-2 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 transition">
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
@@ -669,12 +730,40 @@
                         <th class="p-4 pl-6">Tên Khách Hàng</th>
                         <th class="p-4">Số Điện Thoại</th>
                         <th class="p-4">Tổng Số Công Việc</th>
-                        <th class="p-4 pr-6 text-center">Thao Tác</th>
+                        <th class="p-4 text-center">Nguồn Lưu</th>
+                        <th class="p-4 pr-6 text-center">Thao Tác</th> <!-- Cột thao tác mới -->
                     </tr>
                 </thead>
                 <tbody id="customerTableBody" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- MODAL SỬA THÔNG TIN KHÁCH HÀNG -->
+<div id="customerModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Chỉnh Sửa Thông Tin Khách Hàng
+            </h3>
+            <button onclick="window.closeCustomerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+        </div>
+        <form id="customerForm" onsubmit="window.saveCustomerEdit(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="editOriginalCustomerName">
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Tên khách hàng <span class="text-rose-500">*</span></label>
+                <input type="text" id="editCustomerName" required class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-600">Số điện thoại</label>
+                <input type="text" id="editCustomerPhone" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+            <div class="pt-3 flex gap-2">
+                <button type="button" onclick="window.closeCustomerModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-md">Lưu Thay Đổi</button>
+            </div>
+        </form>
     </div>
 </div>
                <!-- TAB: CÀI ĐẶT DANH MỤC -->

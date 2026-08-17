@@ -616,6 +616,12 @@ window.openTaskModal = (id = null) => {
         document.getElementById('taskKtHoTro').value = t.ktHoTro || '';
         document.getElementById('taskNguoiTao').value = t.nguoiTao || '';
         document.getElementById('taskGhiChu').value = t.ghiChu || '';
+        // Gán dữ liệu thanh toán cũ nếu có
+document.getElementById('taskHinhThucXuLy').value = t.hinhThucXuLy || 'tinhphi';
+document.getElementById('taskHinhThucThanhToan').value = t.hinhThucThanhToan || '';
+document.getElementById('taskSoTienThanhToan').value = t.soTienThanhToan || t.chiPhi || 0;
+document.getElementById('taskTinhTrangCongNo').value = t.tinhTrangCongNo || 'Không';
+document.getElementById('taskGhiChuThanhToan').value = t.ghiChuThanhToan || '';
         
         // Gán dữ liệu ẩn (thời gian & GPS)
         document.getElementById('taskThoiGianBatDau').value = t.thoiGianBatDau || '';
@@ -687,6 +693,13 @@ window.saveTask = (e) => {
         ktHoTro: document.getElementById('taskKtHoTro').value,
         nguoiTao: document.getElementById('taskNguoiTao').value.trim(),
         ghiChu: document.getElementById('taskGhiChu').value.trim(),
+        // 👉 Bổ sung các trường thông tin thanh toán mới cập nhật
+    hinhThucXuLy: document.getElementById('taskHinhThucXuLy').value,
+    hinhThucThanhToan: document.getElementById('taskHinhThucThanhToan').value.trim(),
+    soTienThanhToan: Number(document.getElementById('taskSoTienThanhToan').value) || 0,
+    chiPhi: Number(document.getElementById('taskSoTienThanhToan').value) || 0, // Đảm bảo tương thích với các phần code cũ nếu có gọi biến chiPhi
+    tinhTrangCongNo: document.getElementById('taskTinhTrangCongNo').value,
+    ghiChuThanhToan: document.getElementById('taskGhiChuThanhToan').value.trim(),
         
         // Giữ lại hoặc cập nhật các trường thời gian & GPS ẩn
         thoiGianBatDau: document.getElementById('taskThoiGianBatDau').value || existingTask.thoiGianBatDau || '',

@@ -919,6 +919,7 @@
                         </select>
                     </div>
                 </div>
+                
 
                 <!-- Cụm thông tin khách hàng trong Modal Tạo/Sửa công việc -->
 <div class="grid grid-cols-2 gap-3">
@@ -987,7 +988,45 @@
                         <input type="text" id="taskGhiChu" placeholder="Lưu ý..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
                 </div>
+                <div class="bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 space-y-3">
+        <div class="font-black text-emerald-900 text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-receipt text-emerald-600"></i> Cập Nhật Thông Tin Thanh Toán & Hoàn Thành
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Hình thức xử lý</label>
+                <select id="taskHinhThucXuLy" class="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
+                    <option value="tinhphi">Tính phí dịch vụ</option>
+                    <option value="baohanh">Bảo hành (Miễn phí)</option>
+                    <option value="hotro">Hỗ trợ kỹ thuật</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Hình thức thanh toán</label>
+                <input type="text" id="taskHinhThucThanhToan" placeholder="VD: Tiền mặt, Chuyển khoản..." class="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+        </div>
 
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Số tiền thanh toán (VNĐ)</label>
+                <input type="number" id="taskSoTienThanhToan" placeholder="0" class="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-black text-emerald-800">
+            </div>
+            <div>
+                <label class="block font-bold text-slate-500 mb-1">Tình trạng công nợ</label>
+                <select id="taskTinhTrangCongNo" class="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                    <option value="Không">Không nợ (Đã thanh toán)</option>
+                    <option value="Có nợ">Có nợ</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block font-bold text-slate-500 mb-1">Ghi chú thanh toán</label>
+            <input type="text" id="taskGhiChuThanhToan" placeholder="Ghi chú thêm về tiền nong..." class="w-full p-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+    </div>
                 <!-- Các trường thời gian & GPS được ẩn đi, sẽ tự động cập nhật khi kỹ thuật bấm thực hiện trên app mobile -->
                 <div class="hidden">
                     <div class="grid grid-cols-2 gap-3">

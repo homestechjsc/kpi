@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Trị Sản Phẩm & Danh Mục</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-emerald-500 selection:text-white pb-12">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        
+        <!-- HEADER -->
+        <header class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl border border-emerald-100 shadow-inner">
+                    <i class="fa-solid fa-cogs"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black text-slate-900 tracking-tight">Quản Trị Nội Dung Sản Phẩm</h1>
+                    <p class="text-xs text-slate-400 font-medium">Thêm mới, chỉnh sửa danh mục cha/con, giá cả và hình ảnh sản phẩm</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openProductModal('add')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Thêm Sản Phẩm Mới
+                </button>
+                <button onclick="openCategoryModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl font-bold text-xs transition shadow-md shadow-blue-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus"></i> Quản Lý Danh Mục
+                </button>
+                <a href="quantri.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl font-bold text-xs transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </header>
+
+        <!-- BẢNG DANH SÁCH SẢN PHẨM -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 rounded-full bg-emerald-600"></span> Danh Sách Toàn Bộ Sản Phẩm
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-extrabold tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="p-4 pl-6">SKU / Tên sản phẩm</th>
+                            <th class="p-4">Danh mục (Cha / Con)</th>
+                            <th class="p-4">Thông số kỹ thuật</th>
+                            <th class="p-4 text-right">Giá vốn</th>
+                            <th class="p-4 text-right">Giá bán lẻ</th>
+                            <th class="p-4 text-right">Giá niêm yết</th>
+                            <th class="p-4 pr-6 text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminProductTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                        <!-- Render từ Firebase -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================= MODAL THÊM / SỬA SẢN PHẨM ================= -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="productModalTitle" class="font-black text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-emerald-600"></i> Thêm Sản Phẩm Mới
+                </h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <form id="productForm" onsubmit="saveProduct(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="editProductId">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Mã SKU <span class="text-rose-500">*</span></label>
+                        <input type="text" id="prodSku" required placeholder="VD: CAM-01" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Danh mục cha <span class="text-rose-500">*</span></label>
+                        <select id="prodCategory" required onchange="updateSubCategoryDropdown()" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+                            <!-- Load động danh mục cha -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Danh mục con</label>
+                        <select id="prodSubCategory" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-blue-700">
+                            <option value="">-- Chọn danh mục con --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-600 mb-1">Tên sản phẩm <span class="text-rose-500">*</span></label>
+                    <input type="text" id="prodName" required placeholder="VD: Camera IP Wifi..." class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <!-- Nhập 3 mức giá -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Giá vốn (VNĐ)</label>
+                        <input type="number" id="prodCostPrice" placeholder="0" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Giá bán lẻ <span class="text-rose-500">*</span></label>
+                        <input type="number" id="prodRetailPrice" required placeholder="0" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-blue-700">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Giá niêm yết <span class="text-rose-500">*</span></label>
+                        <input type="number" id="prodListedPrice" required placeholder="0" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-black text-emerald-700">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-bold text-slate-600 mb-1">Thông số kỹ thuật & mô tả (Mỗi dòng là một ý)</label>
+                    <textarea id="prodSpecs" rows="3" placeholder="- Độ phân giải: Full HD&#10;- Góc nhìn: 110 độ" class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-medium"></textarea>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-slate-100">
+                    <label class="block font-black text-slate-700 uppercase tracking-wider text-[11px]">Quản Lý Hình Ảnh Sản Phẩm (URL)</label>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Ảnh lớn chính (Main Image)</label>
+                        <input type="text" id="prodImgMain" placeholder="https://..." class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Ảnh nhỏ 1 (Sub Image 1)</label>
+                            <input type="text" id="prodImgSub1" placeholder="https://..." class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Ảnh nhỏ 2 (Sub Image 2)</label>
+                            <input type="text" id="prodImgSub2" placeholder="https://..." class="w-full border border-slate-200 bg-slate-50 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closeProductModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-emerald-700 transition shadow-md">Lưu Sản Phẩm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL QUẢN LÝ DANH MỤC CHA & CON ================= -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus text-blue-600"></i> Quản Lý Danh Mục Cha & Con
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <!-- Form thêm Danh mục Cha -->
+            <div class="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <label class="block font-bold text-slate-700 text-xs uppercase">Thêm Danh Mục Cha</label>
+                <form onsubmit="saveParentCategory(event)" class="flex gap-2">
+                    <input type="text" id="newParentCategoryName" required placeholder="VD: Khóa cửa từ..." class="flex-1 border border-slate-200 bg-white rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-blue-700 transition">Thêm Cha</button>
+                </form>
+            </div>
+
+            <!-- Form thêm Danh mục Con -->
+            <div class="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <label class="block font-bold text-slate-700 text-xs uppercase">Thêm Danh Mục Con</label>
+                <form onsubmit="saveSubCategory(event)" class="space-y-2">
+                    <select id="parentCategorySelect" required class="w-full border border-slate-200 bg-white rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500 font-bold">
+                        <option value="">-- Chọn danh mục cha --</option>
+                    </select>
+                    <div class="flex gap-2">
+                        <input type="text" id="newSubCategoryName" required placeholder="VD: Khóa cửa nhôm, cửa gỗ..." class="flex-1 border border-slate-200 bg-white rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-emerald-700 transition">Thêm Con</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Danh sách hiển thị trực quan cấu trúc danh mục -->
+            <div class="space-y-2 pt-2">
+                <label class="block font-bold text-slate-700 text-xs uppercase">Cấu Trúc Danh Mục Hiện Tại</label>
+                <div id="categoryTreeContainer" class="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Load động bằng JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Script & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUREZAu7XSS6-JwdpUL-FbqFv0gLVIQMk",
+            authDomain: "kpihomestech.firebaseapp.com",
+            databaseURL: "https://kpihomestech-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "kpihomestech",
+            storageBucket: "kpihomestech.firebasestorage.app",
+            messagingSenderId: "154523584067",
+            appId: "1:154523584067:web:37e45fc5af9c3367c7f6f6"
+        };
+
+        const db = getDatabase(initializeApp(firebaseConfig));
+        let allProducts = {};
+        let allCategories = {};
+
+        onValue(ref(db, 'productCategories'), (snapshot) => {
+            allCategories = snapshot.exists() ? snapshot.val() : {};
+            renderCategoryManagement();
+            populateParentCategoryDropdowns();
+        });
+
+        onValue(ref(db, 'products'), (snapshot) => {
+            allProducts = snapshot.exists() ? snapshot.val() : {};
+            renderAdminProductTable(allProducts);
+        });
+
+        // Đổ dữ liệu vào dropdown chọn danh mục cha ở Modal thêm sản phẩm & quản lý danh mục
+        function populateParentCategoryDropdowns() {
+            const prodSelect = document.getElementById('prodCategory');
+            const catModalSelect = document.getElementById('parentCategorySelect');
+            
+            prodSelect.innerHTML = '<option value="">-- Chọn danh mục cha --</option>';
+            catModalSelect.innerHTML = '<option value="">-- Chọn danh mục cha --</option>';
+
+            Object.entries(allCategories).forEach(([id, cat]) => {
+                prodSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+                catModalSelect.innerHTML += `<option value="${id}">${cat.name}</option>`;
+            });
+        }
+
+        // Cập nhật danh mục con khi thay đổi danh mục cha trong form thêm/sửa sản phẩm
+        window.updateSubCategoryDropdown = (selectedSubCat = '') => {
+            const parentName = document.getElementById('prodCategory').value;
+            const subSelect = document.getElementById('prodSubCategory');
+            subSelect.innerHTML = '<option value="">-- Chọn danh mục con --</option>';
+
+            if (!parentName) return;
+
+            // Tìm danh mục cha tương ứng
+            const parentEntry = Object.entries(allCategories).find(([id, cat]) => cat.name === parentName);
+            if (parentEntry && parentEntry[1].subCategories) {
+                Object.entries(parentEntry[1].subCategories).forEach(([subId, subName]) => {
+                    const isSelected = subName === selectedSubCat ? 'selected' : '';
+                    subSelect.innerHTML += `<option value="${subName}" ${isSelected}>${subName}</option>`;
+                });
+            }
+        };
+
+        // Render giao diện cây danh mục trong Modal quản lý danh mục
+        function renderCategoryManagement() {
+            const container = document.getElementById('categoryTreeContainer');
+            container.innerHTML = '';
+            const entries = Object.entries(allCategories);
+
+            if (entries.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">Chưa có danh mục nào.</p>`;
+                return;
+            }
+
+            entries.forEach(([parentId, parentCat]) => {
+                let subsHtml = '';
+                if (parentCat.subCategories) {
+                    Object.entries(parentCat.subCategories).forEach(([subId, subName]) => {
+                        subsHtml += `
+                            <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-100 text-[11px] font-medium text-slate-700 ml-4 my-1">
+                                <span>↳ ${subName}</span>
+                                <button onclick="deleteSubCategory('${parentId}', '${subId}')" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    subsHtml = `<p class="text-[10px] text-slate-400 italic ml-4 py-1">Chưa có danh mục con</p>`;
+                }
+
+                container.innerHTML += `
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
+                        <div class="flex justify-between items-center font-bold text-slate-800 text-xs">
+                            <span class="text-emerald-700"><i class="fa-solid fa-folder mr-1"></i> ${parentCat.name}</span>
+                            <button onclick="deleteParentCategory('${parentId}')" class="text-rose-500 hover:text-rose-700 text-xs" title="Xóa danh mục cha"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        <div class="pl-2 border-l-2 border-emerald-200 mt-1">
+                            ${subsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Lưu danh mục cha
+        window.saveParentCategory = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newParentCategoryName').value.trim();
+            if (!name) return;
+            push(ref(db, 'productCategories'), { name }).then(() => {
+                document.getElementById('newParentCategoryName').value = '';
+                alert("Thêm danh mục cha thành công!");
+            });
+        };
+
+        // Lưu danh mục con trực thuộc danh mục cha được chọn
+        window.saveSubCategory = (e) => {
+            e.preventDefault();
+            const parentId = document.getElementById('parentCategorySelect').value;
+            const subName = document.getElementById('newSubCategoryName').value.trim();
+            if (!parentId || !subName) return;
+
+            push(ref(db, `productCategories/${parentId}/subCategories`), subName).then(() => {
+                document.getElementById('newSubCategoryName').value = '';
+                alert("Thêm danh mục con thành công!");
+            });
+        };
+
+        window.deleteParentCategory = (parentId) => {
+            if (confirm("Xóa danh mục cha này sẽ xóa toàn bộ danh mục con bên trong. Bạn có chắc chắn?")) {
+                remove(ref(db, `productCategories/${parentId}`)).then(() => alert("Đã xóa danh mục cha!"));
+            }
+        };
+
+        window.deleteSubCategory = (parentId, subId) => {
+            if (confirm("Xóa danh mục con này?")) {
+                remove(ref(db, `productCategories/${parentId}/subCategories/${subId}`)).then(() => alert("Đã xóa danh mục con!"));
+            }
+        };
+
+        function renderAdminProductTable(products) {
+            const tbody = document.getElementById('adminProductTableBody');
+            tbody.innerHTML = '';
+            const entries = Object.entries(products).reverse();
+
+            if (entries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 text-slate-400 font-medium">Chưa có sản phẩm nào.</td></tr>`;
+                return;
+            }
+
+            entries.forEach(([id, prod]) => {
+                const costPrice = Number(prod.costPrice || 0).toLocaleString();
+                const retailPrice = Number(prod.retailPrice || 0).toLocaleString();
+                const listedPrice = Number(prod.listedPrice || prod.price || 0).toLocaleString();
+                const safeJson = JSON.stringify(prod).replace(/"/g, '&quot;');
+
+                const categoryDisplay = prod.subCategory ? `${prod.category} <span class="text-slate-400">/</span> <span class="text-blue-600 font-bold">${prod.subCategory}</span>` : (prod.category || 'N/A');
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                        <td class="p-4 pl-6">
+                            <div class="font-bold text-slate-900">${prod.name}</div>
+                            <div class="text-[10px] text-emerald-600 font-mono">SKU: ${prod.sku || 'N/A'}</div>
+                        </td>
+                        <td class="p-4 font-semibold text-slate-700">${categoryDisplay}</td>
+                        <td class="p-4 max-w-xs text-xs text-slate-500 truncate">${prod.specs || 'N/A'}</td>
+                        <td class="p-4 text-right font-medium text-slate-600">${costPrice} đ</td>
+                        <td class="p-4 text-right font-bold text-blue-600">${retailPrice} đ</td>
+                        <td class="p-4 text-right font-black text-emerald-700">${listedPrice} đ</td>
+                        <td class="p-4 pr-6 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openProductModal('edit', '${id}', ${safeJson})" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-bold transition">Sửa</button>
+                                <button onclick="deleteProduct('${id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl font-bold transition">Xóa</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.openProductModal = (mode, id = null, prod = null) => {
+            const modal = document.getElementById('productModal');
+            const title = document.getElementById('productModalTitle');
+            document.getElementById('productForm').reset();
+            document.getElementById('prodSubCategory').innerHTML = '<option value="">-- Chọn danh mục con --</option>';
+
+            if (mode === 'add') {
+                title.innerHTML = `<i class="fa-solid fa-plus text-emerald-600"></i> Thêm Sản Phẩm Mới`;
+                document.getElementById('editProductId').value = '';
+            } else if (mode === 'edit' && prod) {
+                title.innerHTML = `<i class="fa-solid fa-pen text-emerald-600"></i> Chỉnh Sửa Sản Phẩm`;
+                document.getElementById('editProductId').value = id;
+                document.getElementById('prodSku').value = prod.sku || '';
+                document.getElementById('prodCategory').value = prod.category || '';
+                
+                // Gọi load danh mục con và gán giá trị cũ
+                window.updateSubCategoryDropdown(prod.subCategory || '');
+
+                document.getElementById('prodName').value = prod.name || '';
+                document.getElementById('prodCostPrice').value = prod.costPrice || '';
+                document.getElementById('prodRetailPrice').value = prod.retailPrice || '';
+                document.getElementById('prodListedPrice').value = prod.listedPrice || prod.price || '';
+                document.getElementById('prodSpecs').value = prod.specs || '';
+                document.getElementById('prodImgMain').value = prod.imgMain || '';
+                document.getElementById('prodImgSub1').value = prod.imgSub1 || '';
+                document.getElementById('prodImgSub2').value = prod.imgSub2 || '';
+            }
+            modal.classList.remove('hidden');
+        };
+
+        window.closeProductModal = () => {
+            document.getElementById('productModal').classList.add('hidden');
+        };
+
+        window.openCategoryModal = () => {
+            document.getElementById('categoryModal').classList.remove('hidden');
+        };
+
+        window.closeCategoryModal = () => {
+            document.getElementById('categoryModal').classList.add('hidden');
+        };
+
+        window.saveProduct = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editProductId').value;
+            const productData = {
+                sku: document.getElementById('prodSku').value.trim(),
+                category: document.getElementById('prodCategory').value,
+                subCategory: document.getElementById('prodSubCategory').value,
+                name: document.getElementById('prodName').value.trim(),
+                costPrice: Number(document.getElementById('prodCostPrice').value) || 0,
+                retailPrice: Number(document.getElementById('prodRetailPrice').value) || 0,
+                listedPrice: Number(document.getElementById('prodListedPrice').value) || 0,
+                price: Number(document.getElementById('prodListedPrice').value) || 0,
+                specs: document.getElementById('prodSpecs').value.trim(),
+                imgMain: document.getElementById('prodImgMain').value.trim(),
+                imgSub1: document.getElementById('prodImgSub1').value.trim(),
+                imgSub2: document.getElementById('prodImgSub2').value.trim()
+            };
+
+            if (id) {
+                update(ref(db, `products/${id}`), productData).then(() => {
+                    alert("Cập nhật sản phẩm thành công!");
+                    closeProductModal();
+                });
+            } else {
+                push(ref(db, 'products'), productData).then(() => {
+                    alert("Thêm sản phẩm mới thành công!");
+                    closeProductModal();
+                });
+            }
+        };
+
+        window.deleteProduct = (id) => {
+            if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này không?")) {
+                remove(ref(db, `products/${id}`)).then(() => alert("Đã xóa thành công!"));
+            }
+        };
+    </script>
+</body>
+</html>

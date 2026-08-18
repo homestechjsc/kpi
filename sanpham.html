@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tra Cứu Sản Phẩm | Mobile App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans pb-20 selection:bg-emerald-500 selection:text-white">
+    <div class="max-w-md sm:max-w-7xl mx-auto p-3 sm:p-6 space-y-4">
+        
+        <!-- HEADER MOBILE -->
+        <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base border border-emerald-100 shadow-inner">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-black text-slate-900 tracking-tight">Tra Cứu Sản Phẩm</h1>
+                    <p class="text-[10px] text-slate-400 font-medium">Sale & Kỹ Thuật Nội Bộ</p>
+                </div>
+            </div>
+            <a href="quantri.html" class="bg-slate-100 active:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold text-xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-left"></i> Quản Trị
+            </a>
+        </header>
+
+        <!-- THANH TÌM KIẾM & BỘ LỌC -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 space-y-2.5">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="productSearchKeyword" placeholder="🔍 Tìm tên, mã SKU, thông số..." oninput="filterProducts()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 focus:bg-white transition">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <select id="parentCategoryFilter" onchange="onParentCategoryChange()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500">
+                    <option value="">-- Tất cả danh mục --</option>
+                </select>
+                <select id="subCategoryFilter" onchange="filterProducts()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-700 outline-none focus:border-emerald-500" disabled>
+                    <option value="">-- Danh mục con --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- LƯỚI HIỂN THỊ SẢN PHẨM -->
+        <div id="productListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Sản phẩm render từ Firebase -->
+        </div>
+
+    </div>
+
+    <!-- ================= MODAL PHÓNG LỚN HÌNH ẢNH (LIGHTBOX) ================= -->
+    <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center hidden z-50 p-3" onclick="closeLightbox()">
+        <div class="relative w-full max-w-lg p-1" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" class="absolute -top-12 right-0 text-white hover:text-emerald-400 font-bold text-3xl px-3 py-1">&times;</button>
+            <img id="lightboxImage" src="" alt="Phóng lớn" class="w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-slate-800">
+        </div>
+    </div>
+
+    <!-- Firebase Script & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUREZAu7XSS6-JwdpUL-FbqFv0gLVIQMk",
+            authDomain: "kpihomestech.firebaseapp.com",
+            databaseURL: "https://kpihomestech-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "kpihomestech",
+            storageBucket: "kpihomestech.firebasestorage.app",
+            messagingSenderId: "154523584067",
+            appId: "1:154523584067:web:37e45fc5af9c3367c7f6f6"
+        };
+
+        const db = getDatabase(initializeApp(firebaseConfig));
+        let allProducts = {};
+        let allCategories = {};
+
+        onValue(ref(db, 'productCategories'), (snapshot) => {
+            allCategories = snapshot.exists() ? snapshot.val() : {};
+            populateParentCategoryFilter();
+        });
+
+        onValue(ref(db, 'products'), (snapshot) => {
+            allProducts = snapshot.exists() ? snapshot.val() : {};
+            filterProducts();
+        });
+
+        function populateParentCategoryFilter() {
+            const parentSelect = document.getElementById('parentCategoryFilter');
+            const currentVal = parentSelect.value;
+            parentSelect.innerHTML = '<option value="">-- Tất cả danh mục --</option>';
+
+            Object.entries(allCategories).forEach(([id, cat]) => {
+                parentSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+            });
+            parentSelect.value = currentVal;
+        }
+
+        window.onParentCategoryChange = () => {
+            const parentName = document.getElementById('parentCategoryFilter').value;
+            const subSelect = document.getElementById('subCategoryFilter');
+            subSelect.innerHTML = '<option value="">-- Danh mục con --</option>';
+
+            if (!parentName) {
+                subSelect.disabled = true;
+                filterProducts();
+                return;
+            }
+
+            const parentEntry = Object.entries(allCategories).find(([id, cat]) => cat.name === parentName);
+            if (parentEntry && parentEntry[1].subCategories) {
+                subSelect.disabled = false;
+                Object.entries(parentEntry[1].subCategories).forEach(([subId, subName]) => {
+                    subSelect.innerHTML += `<option value="${subName}">${subName}</option>`;
+                });
+            } else {
+                subSelect.disabled = true;
+            }
+            filterProducts();
+        };
+
+        window.filterProducts = () => {
+            const keyword = document.getElementById('productSearchKeyword').value.toLowerCase().trim();
+            const parentCat = document.getElementById('parentCategoryFilter').value;
+            const subCat = document.getElementById('subCategoryFilter').value;
+
+            const filtered = Object.entries(allProducts).filter(([id, prod]) => {
+                const matchKeyword = !keyword || 
+                    (prod.name || '').toLowerCase().includes(keyword) || 
+                    (prod.sku || '').toLowerCase().includes(keyword) || 
+                    (prod.specs || '').toLowerCase().includes(keyword) ||
+                    (prod.subCategory || '').toLowerCase().includes(keyword);
+                
+                const matchParent = !parentCat || prod.category === parentCat;
+                const matchSub = !subCat || prod.subCategory === subCat;
+
+                return matchKeyword && matchParent && matchSub;
+            });
+
+            renderProductGrid(Object.fromEntries(filtered));
+        };
+
+        function renderProductGrid(products) {
+            const container = document.getElementById('productListContainer');
+            container.innerHTML = '';
+            const entries = Object.entries(products);
+
+            if (entries.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-slate-200">Không tìm thấy sản phẩm.</div>`;
+                return;
+            }
+
+            entries.forEach(([id, prod]) => {
+                const retailVal = Number(prod.retailPrice || 0);
+                const listedVal = Number(prod.listedPrice || prod.price || 0);
+
+                const retailPrice = retailVal.toLocaleString();
+                const listedPrice = listedVal.toLocaleString();
+
+                let discountPercent = 0;
+                if (listedVal > 0 && retailVal > 0 && listedVal > retailVal) {
+                    discountPercent = Math.round(((listedVal - retailVal) / listedVal) * 100);
+                }
+
+                let specsHtml = '<span class="text-slate-400 italic">Không có thông số kỹ thuật.</span>';
+                if (prod.specs && prod.specs.trim() !== '') {
+                    const specLines = prod.specs.split('\n').filter(line => line.trim() !== '');
+                    specsHtml = `<ul class="list-disc list-inside space-y-1 text-slate-600">` + 
+                        specLines.map(line => `<li>${line.replace(/^-\s*/, '')}</li>`).join('') + 
+                        `</ul>`;
+                }
+
+                const mainImg = prod.imgMain || 'https://via.placeholder.com/400x300?text=No+Image';
+                let subImagesHtml = '';
+                
+                if (prod.imgSub1 || prod.imgSub2) {
+                    subImagesHtml = `<div class="grid grid-cols-2 gap-1.5">`;
+                    if (prod.imgSub1) {
+                        subImagesHtml += `<div class="h-14 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 active:opacity-75 transition" onclick="openLightbox('${prod.imgSub1}')"><img src="${prod.imgSub1}" alt="Ảnh nhỏ 1" class="w-full h-full object-cover"></div>`;
+                    }
+                    if (prod.imgSub2) {
+                        subImagesHtml += `<div class="h-14 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 active:opacity-75 transition" onclick="openLightbox('${prod.imgSub2}')"><img src="${prod.imgSub2}" alt="Ảnh nhỏ 2" class="w-full h-full object-cover"></div>`;
+                    }
+                    subImagesHtml += `</div>`;
+                }
+
+                const subCategoryBadge = prod.subCategory ? `
+                    <div class="absolute top-2.5 right-2.5 bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide shadow border border-white/20 z-10 flex items-center gap-1">
+                        <i class="fa-solid fa-tag text-[8px] text-emerald-400"></i> ${prod.subCategory}
+                    </div>` : '';
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between">
+                        <div class="space-y-2.5">
+                            <!-- Khung Hình Ảnh -->
+                            <div class="space-y-1.5">
+                                <div class="h-44 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 relative active:opacity-95 transition" onclick="openLightbox('${mainImg}')">
+                                    <img src="${mainImg}" alt="${prod.name}" class="w-full h-full object-cover">
+                                    ${subCategoryBadge}
+                                </div>
+                                ${subImagesHtml}
+                            </div>
+
+                            <div class="flex justify-between items-center pt-0.5">
+                                <span class="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border border-emerald-100">${prod.category || 'Chưa phân loại'}</span>
+                                <span class="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">SKU: ${prod.sku || 'N/A'}</span>
+                            </div>
+                            
+                            <h3 class="font-black text-slate-900 text-sm leading-snug">${prod.name}</h3>
+
+                            <!-- NÚT MỞ RỘNG THÔNG SỐ -->
+                            <div>
+                                <button onclick="toggleSpecs('${id}')" id="btn_specs_${id}" class="w-full bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-between">
+                                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-emerald-600"></i> Thông số kỹ thuật</span>
+                                    <i id="icon_specs_${id}" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-300"></i>
+                                </button>
+                                
+                                <div id="specs_content_${id}" class="hidden pt-2">
+                                    <div class="text-xs font-medium bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-inner">
+                                        ${specsHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KHỐI GIÁ ĐỒNG BỘ TONE EMERALD (XANH LỤC BẢO) -->
+                        <div class="pt-3 border-t border-slate-100 space-y-2 bg-gradient-to-br from-emerald-50/80 to-slate-50 p-3 rounded-xl border border-emerald-100 text-xs shadow-xs">
+                            <!-- Giá Bán Lẻ (Nổi bật, tone Emerald) -->
+                            <div class="flex justify-between items-center">
+                                <span class="bg-emerald-600 text-white px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shadow-xs">🔥 Giá Bán Lẻ</span>
+                                <span class="font-black text-emerald-800 text-base tracking-tight">${retailPrice} đ</span>
+                            </div>
+
+                            <!-- Giá Niêm Yết (Phụ trợ bên dưới) -->
+                            <div class="flex justify-between items-center border-t border-emerald-100 pt-1.5">
+                                <span class="text-slate-500 font-bold text-[11px]">Giá niêm yết gốc:</span>
+                                <div class="flex items-center gap-1.5">
+                                    ${discountPercent > 0 ? `<span class="bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-black text-[9px]">-${discountPercent}%</span>` : ''}
+                                    <span class="font-bold text-slate-400 line-through text-xs">${listedPrice} đ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.toggleSpecs = (id) => {
+            const content = document.getElementById(`specs_content_${id}`);
+            const icon = document.getElementById(`icon_specs_${id}`);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        };
+
+        window.openLightbox = (imgUrl) => {
+            document.getElementById('lightboxImage').src = imgUrl;
+            document.getElementById('imageLightboxModal').classList.remove('hidden');
+        };
+
+        window.closeLightbox = () => {
+            document.getElementById('imageLightboxModal').classList.add('hidden');
+        };
+    </script>
+</body>
+</html>

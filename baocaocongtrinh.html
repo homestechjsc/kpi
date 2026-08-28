@@ -18,85 +18,96 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans pb-20 selection:bg-emerald-500 selection:text-white">
 
-    <!-- HEADER CHUYÊN NGHIỆP -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-start">
-            <div class="flex items-center space-x-3">
-                <div class="bg-emerald-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-base">
+    <!-- HEADER TỐI ƯU GỌN GÀNG TRÊN MOBILE -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-3 py-2.5 shadow-xs space-y-2.5">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-emerald-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-sm">
                     <i class="fa-solid fa-building"></i>
                 </div>
                 <div>
-                    <h1 class="text-sm font-black text-slate-900 uppercase tracking-wide">Quản Lý Tiến Độ Đa Công Trình</h1>
-                    <p class="text-[11px] text-emerald-600 font-bold">Hệ thống giám sát hiện trường tập trung</p>
+                    <h1 class="text-xs font-black text-slate-900 uppercase tracking-wide">Quản Lý Tiến Độ</h1>
+                    <p class="text-[10px] text-emerald-600 font-bold">Giám sát thi công tập trung</p>
                 </div>
             </div>
+
+            <!-- Nút Trở về trang chính (Home) gọn gàng ở góc phải trên -->
+            <a href="baocao.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-9 h-9 rounded-xl flex items-center justify-center transition shadow-xs text-xs" title="Trở về trang chính">
+                <i class="fa-solid fa-house"></i>
+            </a>
         </div>
 
-        <!-- THANH CHỌN CÔNG TRÌNH & NÚT THAO TÁC -->
-        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
-            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                <span class="text-[10px] font-extrabold uppercase text-slate-400">Công trình:</span>
-                <select id="globalProjectSelect" onchange="window.switchCurrentProject(this.value)" class="bg-transparent font-black text-emerald-700 text-xs outline-none cursor-pointer">
-                    <option value="">-- Đang tải công trình... --</option>
+        <!-- THANH CHỌN CÔNG TRÌNH & CÔNG CỤ NHANH -->
+        <div class="flex items-center justify-between gap-1.5 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs">
+            <div class="flex items-center gap-1.5 overflow-hidden flex-1">
+                <span class="text-[9px] font-extrabold uppercase text-slate-400 shrink-0">Dự án:</span>
+                <select id="globalProjectSelect" onchange="window.switchCurrentProject(this.value)" class="bg-transparent font-black text-emerald-700 text-xs outline-none cursor-pointer truncate w-full">
+                    <option value="">-- Đang tải... --</option>
                 </select>
-                <!-- Nút Xuất QR Công Trình -->
-                <button onclick="window.openQrModal()" class="text-indigo-600 hover:text-indigo-800 p-1 ml-1" title="Xuất mã QR xem tiến độ cho khách hàng">
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button onclick="window.openQrModal()" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 w-7 h-7 rounded-lg flex items-center justify-center transition" title="Mã QR công trình">
                     <i class="fa-solid fa-qrcode text-xs"></i>
                 </button>
-                <button id="btnOpenProjectModal" onclick="window.openProjectModal()" class="hidden text-blue-600 hover:text-blue-800 p-1" title="Quản lý / Thêm công trình">
+                <button id="btnOpenProjectModal" onclick="window.openProjectModal()" class="hidden bg-blue-50 text-blue-600 hover:bg-blue-100 w-7 h-7 rounded-lg flex items-center justify-center transition" title="Cài đặt công trình">
                     <i class="fa-solid fa-gear text-xs"></i>
                 </button>
             </div>
+        </div>
 
-            <div id="authActionsContainer" class="flex items-center gap-2">
-                <button id="btnOpenCategoryModal" onclick="window.openCategoryModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 active:scale-95">
-                    <i class="fa-solid fa-folder-plus"></i> Khai Báo Hạng Mục
+        <!-- KHU VỰC THAO TÁC CHÍNH (ĐÃ THU GỌN HỢP LÝ) -->
+        <div id="authActionsContainer" class="grid grid-cols-2 gap-2">
+            <!-- Nút Khai Báo Hạng Mục -->
+            <button id="btnOpenCategoryModal" onclick="window.openCategoryModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-folder-plus"></i> Khai Báo Mục
+            </button>
+            <!-- Nút Báo Cáo Hằng Ngày -->
+            <button id="btnOpenReportModal" onclick="window.openReportModal()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-plus"></i> Báo Cáo Ngày
+            </button>
+            
+            <!-- Trạng thái khi chưa đăng nhập -->
+            <div id="loggedOutState" class="col-span-2">
+                <button onclick="window.openLoginModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống
                 </button>
-                <button id="btnOpenReportModal" onclick="window.openReportModal()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 active:scale-95">
-                    <i class="fa-solid fa-plus"></i> Báo Cáo Hằng Ngày
+            </div>
+            <!-- Trạng thái khi đã đăng nhập (Gọn gàng toàn khung) -->
+            <div id="loggedInState" class="hidden col-span-2 flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
+                <div class="text-xs truncate">
+                    <span class="text-slate-400 text-[9px] uppercase font-bold block">Tài khoản trực tuyến</span>
+                    <strong id="displayUserName" class="text-emerald-700 truncate">--</strong>
+                </div>
+                <button onclick="window.logout()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                 </button>
-                
-                <div id="loggedOutState">
-                    <button onclick="window.openLoginModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 active:scale-95">
-                        <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
-                    </button>
-                </div>
-                <div id="loggedInState" class="hidden flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                    <div class="text-xs">
-                        <span class="text-slate-400 block text-[9px] uppercase font-bold">Tài khoản</span>
-                        <strong id="displayUserName" class="text-emerald-700">--</strong>
-                    </div>
-                    <button onclick="window.logout()" class="text-rose-500 hover:text-rose-700 p-1 rounded-lg transition" title="Đăng xuất">
-                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
-                    </button>
-                </div>
             </div>
         </div>
     </header>
 
     <!-- MAIN CONTENT CONTAINER -->
-    <main class="max-w-5xl mx-auto p-4 space-y-6">
+    <main class="max-w-5xl mx-auto p-3 space-y-4">
         
-        <!-- THANH TỔNG QUAN CHỈ SỐ TIẾN ĐỘ CÔNG TRÌNH ĐANG CHỌN -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Tổng Hạng Mục</span>
-                <div id="statTotalItems" class="text-2xl font-black text-slate-800">0</div>
-                <div class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-layer-group mr-1"></i>Đã thiết lập</div>
+        <!-- THANH TỔNG QUAN CHỈ SỐ TIẾN ĐỘ -->
+        <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
+                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Tổng Hạng Mục</span>
+                <div id="statTotalItems" class="text-xl font-black text-slate-800">0</div>
+                <div class="text-[9px] text-emerald-600 font-bold"><i class="fa-solid fa-layer-group mr-0.5"></i>Đã thiết lập</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Đang Thi Công</span>
-                <div id="statDoingItems" class="text-2xl font-black text-amber-600">0</div>
-                <div class="text-[10px] text-slate-500 font-medium">Cuốn chiếu từng phần</div>
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
+                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Đang Thi Công</span>
+                <div id="statDoingItems" class="text-xl font-black text-amber-600">0</div>
+                <div class="text-[9px] text-slate-500 font-medium">Cuốn chiếu từng phần</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Đã Hoàn Thành</span>
-                <div id="statCompletedItems" class="text-2xl font-black text-emerald-600">0</div>
-                <div class="text-[10px] text-slate-500 font-medium">Đạt 100% nghiệm thu</div>
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
+                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Đã Hoàn Thành</span>
+                <div id="statCompletedItems" class="text-xl font-black text-emerald-600">0</div>
+                <div class="text-[9px] text-slate-500 font-medium">Đạt 100% nghiệm thu</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Tiến Độ Chung</span>
-                <div id="statOverallProgress" class="text-2xl font-black text-blue-600">0%</div>
+            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
+                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Tiến Độ Chung</span>
+                <div id="statOverallProgress" class="text-xl font-black text-blue-600">0%</div>
                 <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
                     <div id="overallProgressBar" class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
                 </div>
@@ -104,95 +115,91 @@
         </div>
 
         <!-- KHU VỰC HIỂN THỊ TRẠNG THÁI CÁC HẠNG MỤC CÔNG TRÌNH -->
-        <div class="space-y-3">
+        <div class="space-y-2.5">
             <div class="flex justify-between items-center px-1">
-                <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh Sách Hạng Mục & Tiến Độ Của Công Trình</h2>
+                <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh Sách Hạng Mục & Tiến Độ</h2>
             </div>
-            <div id="categoryProgressOverviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="categoryProgressOverviewList" class="grid grid-cols-1 gap-2.5"></div>
         </div>
 
-        <!-- TIÊU ĐỀ NHẬT KÝ & NÚT BẤM ICON LỌC GỌN GÀNG -->
-        <div class="flex justify-between items-center px-1 pt-2">
-            <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Nhật Ký Thi Công Hằng Ngày</h2>
+        <!-- TIÊU ĐỀ NHẬT KÝ & NÚT BẤM ICON LỌC -->
+        <div class="flex justify-between items-center px-1 pt-1">
+            <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Nhật Ký Thi Công</h2>
             <button onclick="window.toggleFilterPanel()" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-xs flex items-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc Tìm Kiếm <span id="filterActiveBadge" class="hidden w-2 h-2 rounded-full bg-emerald-500"></span>
+                <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc <span id="filterActiveBadge" class="hidden w-2 h-2 rounded-full bg-emerald-500"></span>
             </button>
         </div>
 
         <!-- KHUNG BỘ LỌC ẨN/HIỆN -->
-        <div id="filterPanel" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hidden space-y-3 text-xs animate-in fade-in duration-200">
+        <div id="filterPanel" class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm hidden space-y-3 text-xs animate-in fade-in duration-200">
             <div class="flex justify-between items-center border-b pb-2">
                 <span class="font-black text-slate-700 uppercase tracking-wider text-[11px]"><i class="fa-solid fa-sliders mr-1 text-emerald-600"></i> Tùy chọn lọc nhật ký</span>
                 <button onclick="window.toggleFilterPanel()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 gap-2.5">
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
+                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Từ ngày</label>
                     <input type="date" id="filterFromDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
+                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Đến ngày</label>
                     <input type="date" id="filterToDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Từ khóa tìm kiếm</label>
+                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Từ khóa tìm kiếm</label>
                     <input type="text" id="searchKeyword" oninput="window.filterReports()" placeholder="🔍 Tên hạng mục, nội dung, kỹ thuật..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium outline-none">
                 </div>
             </div>
             <div class="flex justify-end gap-2 pt-1">
-                <button onclick="window.resetDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold transition">Xóa bộ lọc (Tất cả)</button>
+                <button onclick="window.resetDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl font-bold transition text-[11px]">Xóa bộ lọc</button>
             </div>
         </div>
 
         <!-- DANH SÁCH NHẬT KÝ BÁO CÁO HẰNG NGÀY -->
-        <div class="space-y-4">
-            <div id="reportsListContainer" class="space-y-4">
-                <div class="bg-white p-8 rounded-2xl border text-center text-slate-400 text-xs">Chưa có nhật ký báo cáo nào.</div>
+        <div class="space-y-3">
+            <div id="reportsListContainer" class="space-y-3">
+                <div class="bg-white p-6 rounded-2xl border text-center text-slate-400 text-xs">Chưa có nhật ký báo cáo nào.</div>
             </div>
         </div>
 
     </main>
 
-    <!-- MODAL XEM ẢNH LIGHTBOX CÓ NÚT QUA LẠI QUA CÁC ẢNH -->
+    <!-- MODAL XEM ẢNH LIGHTBOX -->
     <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center hidden z-50 p-4 select-none">
-        <!-- Nút đóng góc phải trên -->
         <button onclick="window.closeLightbox()" class="absolute top-4 right-4 text-white hover:text-slate-300 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl transition z-50">
             <i class="fa-solid fa-xmark"></i>
         </button>
 
-        <!-- Nút Previous (Trái) -->
-        <button onclick="window.prevLightboxImage()" class="absolute left-4 text-white hover:bg-white/20 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg transition z-50">
+        <button onclick="window.prevLightboxImage()" class="absolute left-3 text-white hover:bg-white/20 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-base transition z-50">
             <i class="fa-solid fa-chevron-left"></i>
         </button>
 
-        <!-- Khung chứa ảnh chính -->
         <div class="max-w-4xl max-h-[85vh] flex flex-col items-center justify-center relative">
             <img id="lightboxImage" src="" class="max-w-full max-h-[78vh] object-contain rounded-xl shadow-2xl transition-all duration-200">
             <div id="lightboxCounter" class="text-white/80 text-xs font-bold mt-3 tracking-widest bg-white/10 px-3 py-1 rounded-full">1 / 1</div>
         </div>
 
-        <!-- Nút Next (Phải) -->
-        <button onclick="window.nextLightboxImage()" class="absolute right-4 text-white hover:bg-white/20 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg transition z-50">
+        <button onclick="window.nextLightboxImage()" class="absolute right-3 text-white hover:bg-white/20 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-base transition z-50">
             <i class="fa-solid fa-chevron-right"></i>
         </button>
     </div>
 
-    <!-- MODAL XUẤT MÃ QR CHO KHÁCH HÀNG -->
+    <!-- MODAL XUẤT MÃ QR -->
     <div id="qrModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4 border border-slate-100 text-center">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-5 space-y-3 border border-slate-100 text-center">
+            <div class="flex justify-between items-center border-b pb-2.5">
+                <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-qrcode text-indigo-600"></i> Mã QR Xem Tiến Độ
                 </h3>
-                <button onclick="window.closeQrModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+                <button onclick="window.closeQrModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
             </div>
             
             <div class="space-y-2">
-                <p id="qrProjectNameTitle" class="font-black text-emerald-700 text-sm">--</p>
-                <p class="text-[11px] text-slate-500">Khách hàng quét mã bên dưới để xem nhật ký thi công trực tiếp:</p>
+                <p id="qrProjectNameTitle" class="font-black text-emerald-700 text-xs">--</p>
+                <p class="text-[11px] text-slate-500">Khách hàng quét mã bên dưới để xem nhật ký thi công:</p>
                 
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 inline-block my-2">
-                    <img id="qrCodeImage" src="" alt="QR Code Tiến Độ" class="w-48 h-48 mx-auto rounded-lg">
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 inline-block my-1">
+                    <img id="qrCodeImage" src="" alt="QR Code Tiến Độ" class="w-44 h-44 mx-auto rounded-lg">
                 </div>
 
                 <div>
@@ -200,26 +207,26 @@
                 </div>
             </div>
 
-            <div class="pt-2 flex gap-2">
-                <button onclick="window.copyQrLink()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-xs transition shadow-sm">
+            <div class="pt-1 flex gap-2">
+                <button onclick="window.copyQrLink()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl font-bold text-xs transition shadow-sm">
                     <i class="fa-solid fa-copy mr-1"></i> Sao Chép Link
                 </button>
-                <button onclick="window.closeQrModal()" class="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Đóng</button>
+                <button onclick="window.closeQrModal()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition">Đóng</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL QUẢN LÝ CÔNG TRÌNH -->
     <div id="projectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-5 space-y-3 border border-slate-100 custom-scrollbar">
+            <div class="flex justify-between items-center border-b pb-2.5">
+                <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-building text-emerald-600"></i> Quản Lý Danh Sách Công Trình
                 </h3>
-                <button onclick="window.closeProjectModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+                <button onclick="window.closeProjectModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
             </div>
 
-            <form onsubmit="window.saveProject(event)" class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <form onsubmit="window.saveProject(event)" class="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs">
                 <input type="hidden" id="editProjectId">
                 <div class="flex justify-between items-center">
                     <span id="projFormTitle" class="font-bold text-slate-700">Thêm Công Trình Mới</span>
@@ -227,7 +234,7 @@
                 </div>
                 <div>
                     <label class="block font-bold text-slate-500 mb-1">Tên công trình / Dự án <span class="text-rose-500">*</span></label>
-                    <input type="text" id="projName" required placeholder="VD: Nhà xưởng Khu Công Nghiệp Tân Tạo..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
+                    <input type="text" id="projName" required placeholder="VD: Nhà xưởng KCN Tân Tạo..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-500 mb-1">Địa điểm / Ghi chú</label>
@@ -238,30 +245,30 @@
 
             <div class="space-y-2">
                 <div class="font-bold text-slate-700 text-xs uppercase tracking-wider">Danh sách công trình đã khai báo</div>
-                <div id="projectManageList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></div>
+                <div id="projectManageList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar"></div>
             </div>
         </div>
     </div>
 
     <!-- MODAL KHAI BÁO & SỬA HẠNG MỤC -->
     <div id="categoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-5 space-y-3 border border-slate-100 custom-scrollbar">
+            <div class="flex justify-between items-center border-b pb-2.5">
+                <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-folder-plus text-blue-600"></i> Khai Báo Hạng Mục Theo Công Trình
                 </h3>
-                <button onclick="window.closeCategoryModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+                <button onclick="window.closeCategoryModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
             </div>
 
-            <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between text-xs">
+            <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-2xl flex items-center justify-between text-xs">
                 <div>
-                    <span class="text-slate-500 block text-[10px] uppercase font-bold">Công trình áp dụng:</span>
-                    <strong id="modalCurrentProjectName" class="text-emerald-800 text-sm">--</strong>
+                    <span class="text-slate-500 block text-[9px] uppercase font-bold">Công trình áp dụng:</span>
+                    <strong id="modalCurrentProjectName" class="text-emerald-800 text-xs">--</strong>
                 </div>
-                <span class="bg-emerald-600 text-white px-2.5 py-1 rounded-xl text-[10px] font-bold">Cố định</span>
+                <span class="bg-emerald-600 text-white px-2 py-0.5 rounded-lg text-[9px] font-bold">Cố định</span>
             </div>
 
-            <form onsubmit="window.saveCategory(event)" class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <form onsubmit="window.saveCategory(event)" class="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs">
                 <input type="hidden" id="editCategoryId">
                 <div class="flex justify-between items-center">
                     <span id="catFormTitle" class="font-bold text-slate-700">Thêm Hạng Mục Mới</span>
@@ -273,7 +280,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Thời hạn dự kiến (Ngày) <span class="text-rose-500">*</span></label>
+                        <label class="block font-bold text-slate-500 mb-1">Thời hạn (Ngày) <span class="text-rose-500">*</span></label>
                         <input type="number" min="1" id="catDays" required placeholder="VD: 10" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-emerald-700">
                     </div>
                     <div>
@@ -285,40 +292,40 @@
             </form>
 
             <div class="space-y-2">
-                <div class="font-bold text-slate-700 text-xs uppercase tracking-wider">Danh sách hạng mục của công trình hiện tại</div>
-                <div id="categoryManageList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></div>
+                <div class="font-bold text-slate-700 text-xs uppercase tracking-wider">Danh sách hạng mục công trình</div>
+                <div id="categoryManageList" class="space-y-2 max-h-52 overflow-y-auto custom-scrollbar"></div>
             </div>
         </div>
     </div>
 
     <!-- MODAL BÁO CÁO HẰNG NGÀY -->
     <div id="reportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-100 custom-scrollbar">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 space-y-3.5 border border-slate-100 custom-scrollbar">
+            <div class="flex justify-between items-center border-b pb-2.5">
+                <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-file-pen text-emerald-600"></i> Nhật Ký Tiến Độ Hằng Ngày
                 </h3>
-                <button onclick="window.closeReportModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+                <button onclick="window.closeReportModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
             </div>
 
-            <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between text-xs">
+            <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-2xl flex items-center justify-between text-xs">
                 <div>
-                    <span class="text-slate-500 block text-[10px] uppercase font-bold">Báo cáo cho công trình:</span>
-                    <strong id="modalReportProjectName" class="text-emerald-800 text-sm">--</strong>
+                    <span class="text-slate-500 block text-[9px] uppercase font-bold">Báo cáo cho công trình:</span>
+                    <strong id="modalReportProjectName" class="text-emerald-800 text-xs">--</strong>
                 </div>
-                <span class="bg-emerald-600 text-white px-2.5 py-1 rounded-xl text-[10px] font-bold">Tập trung</span>
+                <span class="bg-emerald-600 text-white px-2 py-0.5 rounded-lg text-[9px] font-bold">Tập trung</span>
             </div>
 
-            <form id="reportForm" onsubmit="window.saveDailyReport(event)" class="space-y-3.5 text-xs">
+            <form id="reportForm" onsubmit="window.saveDailyReport(event)" class="space-y-3 text-xs">
                 <input type="hidden" id="editReportId">
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                         <label class="block font-bold text-slate-500 mb-1">Ngày báo cáo <span class="text-rose-500">*</span></label>
                         <input type="date" id="repNgayBaoCao" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật / Chỉ huy trưởng <span class="text-rose-500">*</span></label>
+                        <label class="block font-bold text-slate-500 mb-1">Kỹ thuật / Chỉ huy <span class="text-rose-500">*</span></label>
                         <input type="text" id="repNguoiBaoCao" required readonly class="w-full p-2.5 bg-slate-100 text-slate-700 font-black rounded-xl">
                     </div>
                 </div>
@@ -331,9 +338,9 @@
                     <p id="categoryHintInfo" class="text-[10px] text-slate-400 mt-1 italic"></p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Khối lượng lũy kế (%) <span class="text-rose-500">*</span></label>
+                        <label class="block font-bold text-slate-500 mb-1">Lũy kế (%) <span class="text-rose-500">*</span></label>
                         <input type="number" min="0" max="100" id="repPhanTram" required placeholder="VD: 30" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700">
                     </div>
                     <div>
@@ -341,7 +348,7 @@
                         <input type="number" min="1" id="repNhanSu" required placeholder="Số công nhân..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Thời tiết hiện trường</label>
+                        <label class="block font-bold text-slate-500 mb-1">Thời tiết</label>
                         <select id="repThoiTiet" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
                             <option value="Nắng ráo, thuận lợi">☀️ Nắng ráo, thuận lợi</option>
                             <option value="Có mưa, ảnh hưởng nhẹ">🌦️ Có mưa, ảnh hưởng nhẹ</option>
@@ -352,7 +359,7 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Vệ sinh & Gọn gàng mặt bằng công trình <span class="text-rose-500">*</span></label>
+                    <label class="block font-bold text-slate-500 mb-1">Vệ sinh & Gọn gàng mặt bằng <span class="text-rose-500">*</span></label>
                     <select id="repVeSinh" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
                         <option value="Sạch sẽ, gọn gàng, ngăn nắp">✨ Sạch sẽ, gọn gàng, ngăn nắp</option>
                         <option value="Tạm ổn, cần dọn dẹp thêm vật tư">🧹 Tạm ổn, cần dọn dẹp thêm vật tư</option>
@@ -361,8 +368,8 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-500 mb-1">Nội dung công việc triển khai trong ngày <span class="text-rose-500">*</span></label>
-                    <textarea id="repNoiDung" required rows="3" placeholder="Mô tả công việc thực hiện hôm nay..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
+                    <label class="block font-bold text-slate-500 mb-1">Nội dung công việc trong ngày <span class="text-rose-500">*</span></label>
+                    <textarea id="repNoiDung" required rows="2.5" placeholder="Mô tả công việc thực hiện hôm nay..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
                 </div>
 
                 <div>
@@ -382,8 +389,8 @@
                 </div>
 
                 <div class="pt-2 flex gap-2">
-                    <button type="button" onclick="window.closeReportModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
-                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Lưu Báo Cáo</button>
+                    <button type="button" onclick="window.closeReportModal()" class="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-md">Lưu Báo Cáo</button>
                 </div>
             </form>
         </div>
@@ -391,24 +398,24 @@
 
     <!-- MODAL ĐĂNG NHẬP -->
     <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md space-y-6 border border-slate-100">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-sm space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-2.5">
+                <h3 class="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-user-gear text-emerald-600"></i> Đăng Nhập Hệ Thống
                 </h3>
-                <button onclick="window.closeLoginModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+                <button onclick="window.closeLoginModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
             </div>
             
-            <form onsubmit="window.login(event)" class="space-y-4 text-xs">
+            <form onsubmit="window.login(event)" class="space-y-3 text-xs">
                 <div>
-                    <label class="block font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Tài khoản</label>
-                    <input type="text" id="loginUsername" required placeholder="Nhập tài khoản" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    <label class="block font-bold text-slate-600 mb-1 uppercase tracking-wider text-[10px]">Tài khoản</label>
+                    <input type="text" id="loginUsername" required placeholder="Nhập tài khoản" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Mật khẩu</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+                    <label class="block font-bold text-slate-600 mb-1 uppercase tracking-wider text-[10px]">Mật khẩu</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
-                <button type="submit" class="w-full bg-emerald-600 text-white p-3.5 rounded-xl font-bold shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 transition">Đăng Nhập</button>
+                <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition">Đăng Nhập</button>
             </form>
         </div>
     </div>
@@ -434,9 +441,9 @@
         let allCategories = {};
         let allDailyReports = {};
         let currentSelectedImages = [];
+        
         let currentUser = JSON.parse(localStorage.getItem('constructionUser')) || null;
         
-        // Biến toàn cục phục vụ xem lightbox qua lại nhanh giữa các ảnh
         let currentLightboxImages = [];
         let currentLightboxIndex = 0;
 
@@ -542,7 +549,6 @@
             alert("Đã sao chép liên kết xem tiến độ công trình!");
         };
 
-        // CÁC HÀM XEM LIGHTBOX ẢNH QUA LẠI
         window.openLightbox = (imagesArrayJson, index) => {
             try {
                 currentLightboxImages = JSON.parse(imagesArrayJson);
@@ -581,7 +587,6 @@
             }
         };
 
-        // Hỗ trợ phím mũi tên bàn phím (Trái/Phải/Esc) để duyệt ảnh nhanh
         document.addEventListener('keydown', (e) => {
             const modal = document.getElementById('imageLightboxModal');
             if (modal && !modal.classList.contains('hidden')) {
@@ -1068,7 +1073,6 @@
             document.getElementById('overallProgressBar').style.width = `${overallAvg}%`;
         };
 
-        // LỌC VÀ HIỂN THỊ NHẬT KÝ
         window.filterReports = () => {
             const fromDate = document.getElementById('filterFromDate').value;
             const toDate = document.getElementById('filterToDate').value;
@@ -1117,7 +1121,6 @@
                 let imagesHtml = '';
                 if (item.images && item.images.length > 0) {
                     let thumbs = '';
-                    // Truyền mảng JSON chứa các ảnh của báo cáo này vào hàm mở lightbox
                     const escapedImagesJson = JSON.stringify(item.images).replace(/"/g, '&quot;');
                     
                     item.images.forEach((url, imgIdx) => {

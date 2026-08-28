@@ -23,156 +23,1207 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
+<body class="bg-slate-100 text-slate-800 font-sans pb-10 selection:bg-emerald-500 selection:text-white">
 
-    <!-- HEADER TỐI ƯU BẢO MẬT & GỌN GÀNG -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-3 py-2.5 shadow-xs space-y-2.5">
-        <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-2.5">
-                <div class="bg-emerald-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 text-sm">
-                    <i class="fa-solid fa-building"></i>
+<header class="sticky top-0 z-40 w-full
+               bg-white/95 backdrop-blur-xl
+               border-b border-slate-200/80
+               shadow-sm">
+<div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5">
+
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+    <div class="flex items-center justify-between gap-3">
+
+        <!-- BRAND -->
+        <div class="flex items-center gap-2.5 min-w-0">
+
+            <div class="relative shrink-0">
+
+                <div class="w-10 h-10 rounded-xl
+                            bg-gradient-to-br from-emerald-500 to-emerald-700
+                            text-white
+                            flex items-center justify-center
+                            shadow-lg shadow-emerald-600/20">
+
+                    <i class="fa-solid fa-building-shield text-sm"></i>
+
                 </div>
-                <div>
-                    <h1 class="text-xs font-black text-slate-900 uppercase tracking-wide">Quản Lý Nhật Ký Công Trình</h1>
-                    <p class="text-[10px] text-emerald-600 font-bold">Giám sát thi công tập trung</p>
-                </div>
+
+                <!-- Online dot -->
+                <span class="absolute -right-0.5 -bottom-0.5
+                             w-3 h-3 rounded-full
+                             bg-emerald-500
+                             border-2 border-white"></span>
+
             </div>
 
-            <!-- Nút Trở về trang chính (Home) -->
-            <a href="baocao.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-9 h-9 rounded-xl flex items-center justify-center transition shadow-xs text-xs" title="Trở về trang chính">
-                <i class="fa-solid fa-house"></i>
-            </a>
+
+            <div class="min-w-0">
+
+                <div class="flex items-center gap-2">
+
+                    <h1 class="text-[13px] sm:text-sm
+                               font-black text-slate-900
+                               uppercase tracking-wide truncate">
+                        Quản Lý Tiến Độ
+                    </h1>
+
+                    <span class="hidden sm:inline-flex
+                                 items-center gap-1
+                                 px-1.5 py-0.5
+                                 rounded-md
+                                 bg-emerald-50
+                                 border border-emerald-100
+                                 text-[8px] font-black
+                                 text-emerald-600
+                                 uppercase">
+                        <i class="fa-solid fa-circle text-[5px]"></i>
+                        Live
+                    </span>
+
+                </div>
+
+                <p class="text-[9px] sm:text-[10px]
+                          text-slate-400
+                          font-semibold truncate">
+                    Giám sát thi công tập trung
+                </p>
+
+            </div>
+
         </div>
 
-        <!-- THANH CHỌN CÔNG TRÌNH & CÔNG CỤ NHANH -->
-        <div class="flex items-center justify-between gap-1.5 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs">
-            <div class="flex items-center gap-1.5 overflow-hidden flex-1">
-                <span class="text-[9px] font-extrabold uppercase text-slate-400 shrink-0">Dự án:</span>
-                <!-- Thêm id riêng để dễ kiểm soát khóa khi khách xem -->
-                <select id="globalProjectSelect" onchange="window.switchCurrentProject(this.value)" class="bg-transparent font-black text-emerald-700 text-xs outline-none cursor-pointer truncate w-full disabled:opacity-100 disabled:cursor-not-allowed">
-                    <option value="">-- Đang tải... --</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-                <button onclick="window.openQrModal()" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 w-7 h-7 rounded-lg flex items-center justify-center transition" title="Mã QR công trình">
-                    <i class="fa-solid fa-qrcode text-xs"></i>
-                </button>
-                <button id="btnOpenProjectModal" onclick="window.openProjectModal()" class="hidden bg-blue-50 text-blue-600 hover:bg-blue-100 w-7 h-7 rounded-lg flex items-center justify-center transition" title="Cài đặt công trình">
-                    <i class="fa-solid fa-gear text-xs"></i>
-                </button>
-            </div>
+
+        <!-- HOME -->
+        <a href="baocao.html"
+           class="group shrink-0
+                  w-9 h-9 sm:w-10 sm:h-10
+                  rounded-xl
+                  bg-slate-50
+                  border border-slate-200
+                  text-slate-500
+                  hover:bg-emerald-50
+                  hover:border-emerald-200
+                  hover:text-emerald-600
+                  flex items-center justify-center
+                  transition-all duration-200
+                  shadow-sm"
+           title="Trở về trang chính">
+
+            <i class="fa-solid fa-house
+                      text-xs
+                      group-hover:scale-110
+                      transition-transform"></i>
+
+        </a>
+
+    </div>
+
+
+    <!-- =========================
+         PROJECT BAR
+    ========================== -->
+    <div class="mt-2.5
+                flex items-center gap-2
+                p-1.5
+                rounded-2xl
+                bg-slate-50
+                border border-slate-200">
+
+        <!-- Project icon -->
+        <div class="w-9 h-9 shrink-0
+                    rounded-xl
+                    bg-white
+                    border border-slate-200
+                    flex items-center justify-center
+                    text-emerald-600
+                    shadow-sm">
+
+            <i class="fa-solid fa-city text-xs"></i>
+
         </div>
 
-        <!-- KHU VỰC THAO TÁC CHÍNH -->
-        <div id="authActionsContainer" class="grid grid-cols-2 gap-2">
-            <button id="btnOpenCategoryModal" onclick="window.openCategoryModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-folder-plus"></i> Khai Báo Mục
+
+        <!-- Project select -->
+        <div class="min-w-0 flex-1">
+
+            <span class="block
+                         text-[8px]
+                         uppercase
+                         tracking-widest
+                         font-black
+                         text-slate-400">
+                Công trình đang chọn
+            </span>
+
+            <select
+                id="globalProjectSelect"
+                onchange="window.switchCurrentProject(this.value)"
+                class="block w-full
+                       bg-transparent
+                       text-emerald-700
+                       font-black
+                       text-[11px]
+                       sm:text-xs
+                       outline-none
+                       cursor-pointer
+                       truncate
+                       disabled:opacity-100
+                       disabled:cursor-not-allowed">
+
+                <option value="">
+                    -- Đang tải công trình... --
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- Project tools -->
+        <div class="flex items-center gap-1 shrink-0">
+
+            <button
+                onclick="window.openQrModal()"
+                class="w-8 h-8
+                       rounded-xl
+                       bg-indigo-50
+                       border border-indigo-100
+                       text-indigo-600
+                       hover:bg-indigo-100
+                       hover:border-indigo-200
+                       flex items-center justify-center
+                       transition-all
+                       active:scale-95"
+                title="Mã QR công trình">
+
+                <i class="fa-solid fa-qrcode text-[11px]"></i>
+
             </button>
-            <button id="btnOpenReportModal" onclick="window.openReportModal()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-plus"></i> Báo Cáo Ngày
+
+
+            <button
+                id="btnOpenProjectModal"
+                onclick="window.openProjectModal()"
+                class="hidden w-8 h-8
+                       rounded-xl
+                       bg-blue-50
+                       border border-blue-100
+                       text-blue-600
+                       hover:bg-blue-100
+                       hover:border-blue-200
+                       flex items-center justify-center
+                       transition-all
+                       active:scale-95"
+                title="Cài đặt công trình">
+
+                <i class="fa-solid fa-gear text-[11px]"></i>
+
             </button>
-            
-            <div id="loggedOutState" class="col-span-2">
-                <button onclick="window.openLoginModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống
-                </button>
-            </div>
-            <div id="loggedInState" class="hidden col-span-2 flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
-                <div class="text-xs truncate">
-                    <span class="text-slate-400 text-[9px] uppercase font-bold block">Tài khoản trực tuyến</span>
-                    <strong id="displayUserName" class="text-emerald-700 truncate">--</strong>
-                </div>
-                <button onclick="window.logout()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-                </button>
-            </div>
-        </div>
-    </header>
 
-    <!-- MAIN CONTENT CONTAINER -->
-    <main class="max-w-5xl mx-auto p-3 space-y-4">
-        
-        <!-- THANH TỔNG QUAN CHỈ SỐ TIẾN ĐỘ -->
-        <div class="grid grid-cols-2 gap-2.5">
-            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
-                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Tổng Hạng Mục</span>
-                <div id="statTotalItems" class="text-xl font-black text-slate-800">0</div>
-                <div class="text-[9px] text-emerald-600 font-bold"><i class="fa-solid fa-layer-group mr-0.5"></i>Đã thiết lập</div>
-            </div>
-            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
-                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Đang Thi Công</span>
-                <div id="statDoingItems" class="text-xl font-black text-amber-600">0</div>
-                <div class="text-[9px] text-slate-500 font-medium">Cuốn chiếu từng phần</div>
-            </div>
-            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
-                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Đã Hoàn Thành</span>
-                <div id="statCompletedItems" class="text-xl font-black text-emerald-600">0</div>
-                <div class="text-[9px] text-slate-500 font-medium">Đạt 100% nghiệm thu</div>
-            </div>
-            <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-0.5">
-                <span class="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Tiến Độ Chung</span>
-                <div id="statOverallProgress" class="text-xl font-black text-blue-600">0%</div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
-                    <div id="overallProgressBar" class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-            </div>
         </div>
 
-        <!-- KHU VỰC HIỂN THỊ TRẠNG THÁI CÁC HẠNG MỤC CÔNG TRÌNH -->
-        <div class="space-y-2.5">
-            <div class="flex justify-between items-center px-1">
-                <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Danh Sách Hạng Mục & Tiến Độ</h2>
-            </div>
-            <div id="categoryProgressOverviewList" class="grid grid-cols-1 gap-2.5"></div>
-        </div>
+    </div>
 
-        <!-- TIÊU ĐỀ NHẬT KÝ & NÚT BẤM ICON LỌC -->
-        <div class="flex justify-between items-center px-1 pt-1">
-            <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Nhật Ký Thi Công</h2>
-            <button onclick="window.toggleFilterPanel()" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-xs flex items-center gap-1.5 active:scale-95">
-                <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc <span id="filterActiveBadge" class="hidden w-2 h-2 rounded-full bg-emerald-500"></span>
+
+    <!-- =========================
+         MAIN ACTIONS
+    ========================== -->
+    <div id="authActionsContainer"
+         class="mt-2 grid grid-cols-2 gap-2">
+
+
+        <!-- KHAI BÁO MỤC -->
+        <button
+            id="btnOpenCategoryModal"
+            onclick="window.openCategoryModal()"
+            class="hidden
+                   bg-blue-600
+                   hover:bg-blue-700
+                   text-white
+                   min-h-[40px]
+                   px-3
+                   rounded-xl
+                   font-black
+                   text-[10px]
+                   sm:text-xs
+                   transition-all
+                   shadow-sm shadow-blue-600/20
+                   flex items-center justify-center
+                   gap-1.5
+                   active:scale-[0.98]">
+
+            <i class="fa-solid fa-folder-plus"></i>
+
+            <span>Khai Báo Mục</span>
+
+        </button>
+
+
+        <!-- BÁO CÁO NGÀY -->
+        <button
+            id="btnOpenReportModal"
+            onclick="window.openReportModal()"
+            class="hidden
+                   bg-emerald-600
+                   hover:bg-emerald-700
+                   text-white
+                   min-h-[40px]
+                   px-3
+                   rounded-xl
+                   font-black
+                   text-[10px]
+                   sm:text-xs
+                   transition-all
+                   shadow-sm shadow-emerald-600/20
+                   flex items-center justify-center
+                   gap-1.5
+                   active:scale-[0.98]">
+
+            <i class="fa-solid fa-plus"></i>
+
+            <span>Báo Cáo Ngày</span>
+
+        </button>
+
+
+        <!-- =========================
+             LOGGED OUT
+        ========================== -->
+        <div id="loggedOutState"
+             class="col-span-2">
+
+            <button
+                onclick="window.openLoginModal()"
+                class="w-full
+                       min-h-[40px]
+                       bg-slate-900
+                       hover:bg-slate-800
+                       text-white
+                       rounded-xl
+                       font-black
+                       text-[10px]
+                       sm:text-xs
+                       transition-all
+                       shadow-sm
+                       flex items-center justify-center
+                       gap-2
+                       active:scale-[0.98]">
+
+                <span class="w-6 h-6
+                             rounded-lg
+                             bg-white/10
+                             flex items-center justify-center">
+
+                    <i class="fa-solid fa-right-to-bracket text-[10px]"></i>
+
+                </span>
+
+                Đăng Nhập Hệ Thống
+
             </button>
+
         </div>
 
-        <!-- KHUNG BỘ LỌC ẨN/HIỆN -->
-        <div id="filterPanel" class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm hidden space-y-3 text-xs animate-in fade-in duration-200">
-            <div class="flex justify-between items-center border-b pb-2">
-                <span class="font-black text-slate-700 uppercase tracking-wider text-[11px]"><i class="fa-solid fa-sliders mr-1 text-emerald-600"></i> Tùy chọn lọc nhật ký</span>
-                <button onclick="window.toggleFilterPanel()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
-            </div>
-            <div class="grid grid-cols-1 gap-2.5">
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Từ ngày</label>
-                    <input type="date" id="filterFromDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
+
+        <!-- =========================
+             LOGGED IN
+        ========================== -->
+        <div id="loggedInState"
+             class="hidden
+                    col-span-2
+                    items-center
+                    justify-between
+                    gap-3
+                    bg-emerald-50/70
+                    border border-emerald-100
+                    px-3 py-2
+                    rounded-xl">
+
+            <!-- User -->
+            <div class="flex items-center gap-2 min-w-0">
+
+                <div class="w-8 h-8 shrink-0
+                            rounded-lg
+                            bg-emerald-100
+                            text-emerald-600
+                            flex items-center justify-center">
+
+                    <i class="fa-solid fa-user text-[11px]"></i>
+
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Đến ngày</label>
-                    <input type="date" id="filterToDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
+
+                <div class="min-w-0">
+
+                    <span class="block
+                                 text-[8px]
+                                 text-emerald-600/70
+                                 uppercase
+                                 tracking-wider
+                                 font-black">
+
+                        Tài khoản trực tuyến
+
+                    </span>
+
+                    <strong
+                        id="displayUserName"
+                        class="block
+                               text-[11px]
+                               text-emerald-800
+                               font-black
+                               truncate">
+
+                        --
+
+                    </strong>
+
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-500 mb-1 text-[11px]">Từ khóa tìm kiếm</label>
-                    <input type="text" id="searchKeyword" oninput="window.filterReports()" placeholder="🔍 Tên hạng mục, nội dung, kỹ thuật..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium outline-none">
-                </div>
+
             </div>
-            <div class="flex justify-end gap-2 pt-1">
-                <button onclick="window.resetDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl font-bold transition text-[11px]">Xóa bộ lọc</button>
-            </div>
+
+
+            <!-- Logout -->
+            <button
+                onclick="window.logout()"
+                class="shrink-0
+                       bg-white
+                       hover:bg-rose-50
+                       text-rose-500
+                       hover:text-rose-600
+                       border border-slate-200
+                       hover:border-rose-200
+                       px-3
+                       py-2
+                       rounded-lg
+                       text-[10px]
+                       font-black
+                       transition-all
+                       flex items-center gap-1.5
+                       active:scale-95">
+
+                <i class="fa-solid fa-right-from-bracket"></i>
+
+                <span>Đăng xuất</span>
+
+            </button>
+
         </div>
 
-        <!-- DANH SÁCH NHẬT KÝ BÁO CÁO HẰNG NGÀY -->
-        <div class="space-y-3">
-            <div id="reportsListContainer" class="space-y-3">
-                <div class="bg-white p-6 rounded-2xl border text-center text-slate-400 text-xs">Chưa có nhật ký báo cáo nào.</div>
+    </div>
+
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-3 sm:px-5 py-4 space-y-5">
+
+<div class="flex items-center justify-between gap-3 px-1">
+    <div>
+        <p class="text-[9px] uppercase tracking-[0.18em]
+                  font-black text-emerald-600">
+            PROJECT OVERVIEW
+        </p>
+        <h2 class="text-sm sm:text-base
+                   font-black text-slate-800 mt-0.5">
+            Tổng Quan Tiến Độ
+        </h2>
+    </div>
+    <div class="hidden sm:flex items-center gap-1.5
+                text-[9px] font-bold text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+
+        Dữ liệu trực tuyến
+    </div>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+    <div class="group relative overflow-hidden
+                bg-white
+                rounded-2xl
+                border border-slate-200
+                p-3.5
+                shadow-sm
+                hover:shadow-md
+                hover:-translate-y-0.5
+                transition-all duration-200">
+
+        <div class="flex items-start justify-between">
+            <div>
+                <span class="text-[9px]
+                             font-black
+                             uppercase
+                             tracking-wider
+                             text-slate-400">
+                    Tổng Hạng Mục
+                </span>
+
+                <div id="statTotalItems"
+                     class="text-2xl
+                            font-black
+                            text-slate-800
+                            mt-1">
+                    0
+                </div>
+
             </div>
+            <div class="w-9 h-9
+                        rounded-xl
+                        bg-slate-100
+                        text-slate-600
+                        flex items-center justify-center">
+
+                <i class="fa-solid fa-layer-group text-xs"></i>
+
+            </div>
+
         </div>
 
-    </main>
+        <div class="mt-2
+                    text-[9px]
+                    font-bold
+                    text-slate-400">
 
-    <!-- FOOTER BẢN QUYỀN & HOTLINE HỖ TRỢ -->
-    <footer class="max-w-5xl mx-auto px-4 pt-6 pb-2 text-center space-y-1 text-xs border-t border-slate-200/80 mt-10">
-        <p class="font-black text-slate-700 tracking-wider">CÔNG TY CP ĐTPT CÔNG NGHỆ <span class="text-emerald-600">HOMESTECH</span></p>
-        <p class="text-slate-500 font-medium">Hotline hỗ trợ công trình: <a href="tel:0906255788" class="font-black text-emerald-700 hover:underline">0906.255.788 (Mr Bảo)</a></p>
-    </footer>
+            <i class="fa-solid fa-list-check mr-1"></i>
+            Đã thiết lập
+
+        </div>
+
+    </div>
+    <div class="group relative overflow-hidden
+                bg-white
+                rounded-2xl
+                border border-amber-100
+                p-3.5
+                shadow-sm
+                hover:shadow-md
+                hover:-translate-y-0.5
+                transition-all duration-200">
+
+        <div class="flex items-start justify-between">
+
+            <div>
+
+                <span class="text-[9px]
+                             font-black
+                             uppercase
+                             tracking-wider
+                             text-slate-400">
+                    Đang Thi Công
+                </span>
+
+                <div id="statDoingItems"
+                     class="text-2xl
+                            font-black
+                            text-amber-600
+                            mt-1">
+                    0
+                </div>
+            </div>
+            <div class="w-9 h-9
+                        rounded-xl
+                        bg-amber-50
+                        text-amber-600
+                        flex items-center justify-center">
+
+                <i class="fa-solid fa-person-digging text-xs"></i>
+
+            </div>
+        </div>
+        <div class="mt-2
+                    text-[9px]
+                    font-bold
+                    text-amber-600/70">
+
+            <i class="fa-solid fa-rotate mr-1"></i>
+            Cuốn chiếu từng phần
+
+        </div>
+
+    </div>
+    <div class="group relative overflow-hidden
+                bg-white
+                rounded-2xl
+                border border-emerald-100
+                p-3.5
+                shadow-sm
+                hover:shadow-md
+                hover:-translate-y-0.5
+                transition-all duration-200">
+
+        <div class="flex items-start justify-between">
+
+            <div>
+
+                <span class="text-[9px]
+                             font-black
+                             uppercase
+                             tracking-wider
+                             text-slate-400">
+                    Đã Hoàn Thành
+                </span>
+
+                <div id="statCompletedItems"
+                     class="text-2xl
+                            font-black
+                            text-emerald-600
+                            mt-1">
+                    0
+                </div>
+
+            </div>
+
+            <div class="w-9 h-9
+                        rounded-xl
+                        bg-emerald-50
+                        text-emerald-600
+                        flex items-center justify-center">
+
+                <i class="fa-solid fa-circle-check text-xs"></i>
+
+            </div>
+
+        </div>
+
+        <div class="mt-2
+                    text-[9px]
+                    font-bold
+                    text-emerald-600/70">
+
+            <i class="fa-solid fa-check mr-1"></i>
+            Đạt 100% nghiệm thu
+
+        </div>
+
+    </div>
+
+
+    <!-- OVERALL PROGRESS -->
+    <div class="group relative overflow-hidden
+                bg-white
+                rounded-2xl
+                border border-blue-100
+                p-3.5
+                shadow-sm
+                hover:shadow-md
+                hover:-translate-y-0.5
+                transition-all duration-200">
+
+        <div class="flex items-start justify-between">
+
+            <div>
+
+                <span class="text-[9px]
+                             font-black
+                             uppercase
+                             tracking-wider
+                             text-slate-400">
+                    Tiến Độ Chung
+                </span>
+
+                <div id="statOverallProgress"
+                     class="text-2xl
+                            font-black
+                            text-blue-600
+                            mt-1">
+                    0%
+                </div>
+
+            </div>
+
+            <div class="w-9 h-9
+                        rounded-xl
+                        bg-blue-50
+                        text-blue-600
+                        flex items-center justify-center">
+
+                <i class="fa-solid fa-chart-line text-xs"></i>
+
+            </div>
+
+        </div>
+
+        <div class="mt-2">
+
+            <div class="flex justify-between
+                        text-[8px]
+                        font-bold
+                        text-slate-400
+                        mb-1">
+
+                <span>Hoàn thành</span>
+
+                <span id="progressPercentLabel">0%</span>
+
+            </div>
+
+            <div class="w-full h-1.5
+                        bg-slate-100
+                        rounded-full
+                        overflow-hidden">
+
+                <div id="overallProgressBar"
+                     class="h-full
+                            bg-blue-600
+                            rounded-full
+                            transition-all
+                            duration-700"
+                     style="width:0%">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     03. CATEGORY PROGRESS
+====================================================== -->
+
+<section>
+
+    <div class="flex items-center justify-between
+                px-1 mb-2.5">
+
+        <div>
+
+            <h2 class="font-black
+                       text-slate-800
+                       text-xs
+                       uppercase
+                       tracking-wider">
+
+                <i class="fa-solid fa-chart-column
+                          text-emerald-600 mr-1"></i>
+
+                Hạng Mục & Tiến Độ
+
+            </h2>
+
+            <p class="text-[9px]
+                      text-slate-400
+                      font-medium
+                      mt-0.5">
+
+                Theo dõi tình trạng thực hiện từng hạng mục
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div id="categoryProgressOverviewList"
+         class="grid grid-cols-1 md:grid-cols-2
+                xl:grid-cols-3 gap-2.5">
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     04. CONSTRUCTION LOG HEADER
+====================================================== -->
+
+<section>
+
+    <div class="flex items-center justify-between
+                px-1 mb-2.5">
+
+        <div>
+
+            <h2 class="font-black
+                       text-slate-800
+                       text-xs
+                       uppercase
+                       tracking-wider">
+
+                <i class="fa-solid fa-clock-rotate-left
+                          text-emerald-600 mr-1"></i>
+
+                Nhật Ký Thi Công
+
+            </h2>
+
+            <p class="text-[9px]
+                      text-slate-400
+                      font-medium
+                      mt-0.5">
+
+                Lịch sử báo cáo và cập nhật công trình
+
+            </p>
+
+        </div>
+
+
+        <!-- FILTER BUTTON -->
+        <button
+            onclick="window.toggleFilterPanel()"
+            class="group
+                   bg-white
+                   hover:bg-emerald-50
+                   border border-slate-200
+                   hover:border-emerald-200
+                   text-slate-600
+                   hover:text-emerald-700
+                   px-3 py-2
+                   rounded-xl
+                   font-black
+                   text-[10px]
+                   transition-all
+                   shadow-sm
+                   flex items-center
+                   gap-1.5
+                   active:scale-95">
+
+            <i class="fa-solid fa-filter
+                      text-emerald-600
+                      group-hover:scale-110
+                      transition-transform"></i>
+
+            Bộ Lọc
+
+            <span id="filterActiveBadge"
+                  class="hidden
+                         w-2 h-2
+                         rounded-full
+                         bg-emerald-500
+                         ring-2 ring-emerald-100">
+            </span>
+
+        </button>
+
+    </div>
+
+
+    <!-- =================================================
+         FILTER PANEL
+    ================================================== -->
+
+    <div id="filterPanel"
+         class="hidden
+                bg-white
+                p-4
+                rounded-2xl
+                border border-slate-200
+                shadow-sm
+                space-y-3
+                text-xs
+                animate-in fade-in duration-200">
+
+
+        <!-- FILTER HEADER -->
+        <div class="flex justify-between
+                    items-center
+                    border-b border-slate-100
+                    pb-3">
+
+            <div class="flex items-center gap-2">
+
+                <div class="w-7 h-7
+                            rounded-lg
+                            bg-emerald-50
+                            text-emerald-600
+                            flex items-center justify-center">
+
+                    <i class="fa-solid fa-sliders text-[10px]"></i>
+
+                </div>
+
+                <div>
+
+                    <span class="block
+                                 font-black
+                                 text-slate-700
+                                 uppercase
+                                 tracking-wider
+                                 text-[10px]">
+
+                        Bộ lọc nhật ký
+
+                    </span>
+
+                    <span class="block
+                                 text-[9px]
+                                 text-slate-400
+                                 mt-0.5">
+
+                        Lọc dữ liệu theo thời gian hoặc từ khóa
+
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <button
+                onclick="window.toggleFilterPanel()"
+                class="w-7 h-7
+                       rounded-lg
+                       hover:bg-slate-100
+                       text-slate-400
+                       hover:text-slate-600
+                       flex items-center justify-center
+                       transition">
+
+                <i class="fa-solid fa-xmark text-xs"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- FILTER INPUTS -->
+        <div class="grid grid-cols-1
+                    sm:grid-cols-2
+                    lg:grid-cols-3 gap-2.5">
+
+            <!-- FROM -->
+            <div>
+
+                <label class="block
+                              font-black
+                              text-slate-500
+                              mb-1.5
+                              text-[9px]
+                              uppercase
+                              tracking-wider">
+
+                    Từ ngày
+
+                </label>
+
+                <input
+                    type="date"
+                    id="filterFromDate"
+                    onchange="window.filterReports()"
+                    class="w-full
+                           bg-slate-50
+                           border border-slate-200
+                           focus:border-emerald-400
+                           focus:ring-2
+                           focus:ring-emerald-100
+                           rounded-xl
+                           px-3 py-2.5
+                           font-bold
+                           text-slate-700
+                           text-xs
+                           outline-none
+                           transition">
+
+            </div>
+
+
+            <!-- TO -->
+            <div>
+
+                <label class="block
+                              font-black
+                              text-slate-500
+                              mb-1.5
+                              text-[9px]
+                              uppercase
+                              tracking-wider">
+
+                    Đến ngày
+
+                </label>
+
+                <input
+                    type="date"
+                    id="filterToDate"
+                    onchange="window.filterReports()"
+                    class="w-full
+                           bg-slate-50
+                           border border-slate-200
+                           focus:border-emerald-400
+                           focus:ring-2
+                           focus:ring-emerald-100
+                           rounded-xl
+                           px-3 py-2.5
+                           font-bold
+                           text-slate-700
+                           text-xs
+                           outline-none
+                           transition">
+
+            </div>
+
+
+            <!-- SEARCH -->
+            <div class="sm:col-span-2 lg:col-span-1">
+
+                <label class="block
+                              font-black
+                              text-slate-500
+                              mb-1.5
+                              text-[9px]
+                              uppercase
+                              tracking-wider">
+
+                    Tìm kiếm
+
+                </label>
+
+                <div class="relative">
+
+                    <i class="fa-solid fa-magnifying-glass
+                              absolute left-3 top-1/2
+                              -translate-y-1/2
+                              text-slate-400
+                              text-[10px]"></i>
+
+                    <input
+                        type="text"
+                        id="searchKeyword"
+                        oninput="window.filterReports()"
+                        placeholder="Hạng mục, nội dung, kỹ thuật..."
+                        class="w-full
+                               bg-slate-50
+                               border border-slate-200
+                               focus:border-emerald-400
+                               focus:ring-2
+                               focus:ring-emerald-100
+                               rounded-xl
+                               pl-8 pr-3 py-2.5
+                               font-medium
+                               text-xs
+                               outline-none
+                               transition">
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- RESET -->
+        <div class="flex justify-end
+                    pt-1">
+
+            <button
+                onclick="window.resetDateFilter()"
+                class="bg-slate-100
+                       hover:bg-slate-200
+                       text-slate-600
+                       px-3.5 py-2
+                       rounded-xl
+                       font-black
+                       transition
+                       text-[10px]
+                       flex items-center gap-1.5">
+
+                <i class="fa-solid fa-rotate-left"></i>
+
+                Xóa bộ lọc
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         REPORT LIST
+    ================================================== -->
+
+    <div class="mt-3">
+
+        <div id="reportsListContainer"
+             class="space-y-3">
+
+            <!-- EMPTY STATE -->
+            <div class="bg-white
+                        p-8
+                        rounded-2xl
+                        border border-slate-200
+                        text-center
+                        shadow-sm">
+
+                <div class="w-12 h-12
+                            mx-auto
+                            rounded-2xl
+                            bg-slate-50
+                            border border-slate-100
+                            text-slate-300
+                            flex items-center justify-center">
+
+                    <i class="fa-solid fa-clipboard-list text-lg"></i>
+
+                </div>
+
+                <p class="mt-3
+                          text-xs
+                          font-black
+                          text-slate-500">
+
+                    Chưa có nhật ký báo cáo
+
+                </p>
+
+                <p class="mt-1
+                          text-[9px]
+                          text-slate-400">
+
+                    Các báo cáo thi công sẽ xuất hiện tại đây.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+</main>
+
+
+    <!-- FOOTER HOMESTECH - PRO SAAS -->
+
+<footer class="w-full mt-14 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-950 text-white relative overflow-hidden">
+<!-- Decorative glow -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 -left-20 w-56 h-56 bg-teal-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+<div class="relative max-w-6xl mx-auto px-5 py-8">
+
+    <!-- TOP -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+        <!-- BRAND -->
+        <div class="flex items-center gap-4">
+
+            <div class="w-12 h-12 rounded-2xl 
+                        bg-white/10 backdrop-blur-sm
+                        border border-white/10
+                        flex items-center justify-center
+                        shadow-lg shadow-black/20">
+
+                <i class="fa-solid fa-house-signal text-emerald-300 text-xl"></i>
+
+            </div>
+
+            <div>
+                <h3 class="text-sm font-black tracking-wide text-white">
+                    HOMESTECH
+                </h3>
+
+                <p class="text-[10px] text-emerald-200/70 font-medium mt-0.5">
+                    TECHNOLOGY • SMART HOME • SECURITY
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- HOTLINE -->
+        <a href="tel:0906255788"
+           class="group flex items-center gap-3
+                  bg-white/10 hover:bg-white/15
+                  border border-white/10 hover:border-emerald-400/40
+                  rounded-2xl px-4 py-3
+                  backdrop-blur-sm
+                  transition-all duration-200">
+
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20
+                        flex items-center justify-center">
+
+                <i class="fa-solid fa-phone-volume text-emerald-300
+                          group-hover:scale-110 transition-transform"></i>
+
+            </div>
+
+            <div>
+                <p class="text-[9px] uppercase tracking-widest
+                          text-emerald-200/60 font-bold">
+                    Hotline hỗ trợ
+                </p>
+
+                <p class="text-sm font-black text-white tracking-wide">
+                    0906.255.788
+                    <span class="text-emerald-300 text-[10px] font-bold">
+                        · Mr Bảo
+                    </span>
+                </p>
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <!-- DIVIDER -->
+    <div class="my-6 h-px bg-gradient-to-r
+                from-transparent via-emerald-700/60 to-transparent"></div>
+
+
+    <!-- COMPANY INFO -->
+    <div class="flex flex-col md:flex-row
+                md:items-center md:justify-between gap-3">
+
+        <div class="flex items-start gap-2 text-emerald-100/70">
+
+            <i class="fa-solid fa-location-dot
+                      text-emerald-400 mt-0.5 text-xs"></i>
+
+            <p class="text-[11px] leading-relaxed">
+                <span class="font-bold text-emerald-100">
+                    CÔNG TY CP ĐTPT CÔNG NGHỆ HOMESTECH
+                </span>
+                <br class="md:hidden">
+
+                <span class="hidden md:inline mx-1 text-emerald-700">
+                    •
+                </span>
+
+                287/28 Phan Đình Phùng, Phường Xuân Hương, Đà Lạt
+            </p>
+
+        </div>
+
+
+        <!-- STATUS -->
+        <div class="flex items-center gap-2 text-[10px]
+                    text-emerald-200/60">
+
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex
+                             h-full w-full rounded-full
+                             bg-emerald-400 opacity-50"></span>
+
+                <span class="relative inline-flex rounded-full
+                             h-2 w-2 bg-emerald-400"></span>
+            </span>
+
+            Hệ thống đang hoạt động
+
+        </div>
+
+    </div>
+
+
+    <!-- COPYRIGHT -->
+    <div class="mt-5 text-center">
+
+        <p class="text-[9px] text-white/30 font-medium tracking-wide">
+            © 2026 HOMESTECH JSC · All Rights Reserved
+        </p>
+
+    </div>
+
+</div>
+</footer>
+
 
     <!-- MODAL XEM ẢNH LIGHTBOX -->
     <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center hidden z-50 p-4 select-none">
@@ -430,7 +1481,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT XỬ LÝ DỮ LIỆU & BẢO MẬT QUYỀN XEM -->
+    <!-- SCRIPT XỬ LÝ DỮ LIỆU & GIAO DIỆN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -481,8 +1532,6 @@
                 if (loggedOutState) loggedOutState.classList.add('hidden');
                 if (loggedInState) loggedInState.classList.remove('hidden');
                 if (displayUserName) displayUserName.textContent = currentUser.name;
-                
-                // Kỹ thuật đã đăng nhập được phép chọn đổi công trình
                 if (projectSelect) projectSelect.disabled = false;
             } else {
                 if (btnProj) btnProj.classList.add('hidden');
@@ -490,14 +1539,11 @@
                 if (btnRep) btnRep.classList.add('hidden');
                 if (loggedOutState) loggedOutState.classList.remove('hidden');
                 if (loggedInState) loggedInState.classList.add('hidden');
-
-                // 🛠️ CHƯA ĐĂNG NHẬP (KHÁCH HÀNG XEM): Khóa cứng không cho thay đổi dự án khác
                 if (projectSelect) projectSelect.disabled = true;
             }
 
-            // Nếu quét link QR cụ thể, bắt buộc khóa dự án và không cho đổi
-            if (urlProjectId && projectSelect) {
-                projectSelect.disabled = true;
+            if (urlProjectId && !currentUser) {
+                if (projectSelect) projectSelect.disabled = true;
             }
         }
 
@@ -701,7 +1747,6 @@
                 return;
             }
 
-            // Nếu có tham số ?project=ID trên URL (khách quét QR), ưu tiên khóa đúng dự án đó
             if (urlProjectId && allProjects[urlProjectId]) {
                 currentProjectId = urlProjectId;
             } else if (!currentProjectId || !allProjects[currentProjectId]) {
@@ -723,7 +1768,6 @@
 
         window.switchCurrentProject = (projId) => {
             if (!projId) return;
-            // Nếu chưa đăng nhập và có link QR thì chặn không cho đổi dự án
             if (!currentUser && urlProjectId) {
                 alert("Chế độ xem tiến độ công trình dành cho khách hàng!");
                 return;
@@ -1046,15 +2090,29 @@
 
             catEntries.forEach(([catId, catItem]) => {
                 let maxP = 0;
+                let hasReport = false;
+                
                 Object.values(allDailyReports).forEach(rep => {
-                    if (rep.categoryId === catId && Number(rep.phanTram) > maxP) maxP = Number(rep.phanTram);
+                    if (rep.categoryId === catId) {
+                        hasReport = true;
+                        if (Number(rep.phanTram) > maxP) {
+                            maxP = Number(rep.phanTram);
+                        }
+                    }
                 });
 
                 sumAllPercent += maxP;
-                if (maxP >= 100) completedCats++;
-                else doingCats++;
 
-                let statusBadge = maxP >= 100 ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">Hoàn thành</span>' : '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">Đang triển khai</span>';
+                let statusBadge = '';
+                if (!hasReport) {
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600">Chờ triển khai</span>';
+                } else if (maxP >= 100) {
+                    completedCats++;
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">Đã hoàn thành</span>';
+                } else {
+                    doingCats++;
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">Đang triển khai</span>';
+                }
 
                 let editBtnHtml = currentUser ? `
                     <div class="flex items-center gap-1.5">

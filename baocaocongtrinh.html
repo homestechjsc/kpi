@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="overflow-y-scroll" style="scrollbar-width: none; -ms-overflow-style: none;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +9,23 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar {
+            width: 0px !important;
+            height: 0px !important;
+            display: none !important;
+        }
+        html, body {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
         @media screen and (max-width: 768px) {
             input, select, textarea { font-size: 16px !important; }
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans pb-20 selection:bg-emerald-500 selection:text-white">
+<body class="bg-slate-100 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">
 
-    <!-- HEADER TỐI ƯU GỌN GÀNG TRÊN MOBILE -->
+    <!-- HEADER TỐI ƯU BẢO MẬT & GỌN GÀNG -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-3 py-2.5 shadow-xs space-y-2.5">
         <div class="flex justify-between items-center">
             <div class="flex items-center space-x-2.5">
@@ -31,7 +38,7 @@
                 </div>
             </div>
 
-            <!-- Nút Trở về trang chính (Home) gọn gàng ở góc phải trên -->
+            <!-- Nút Trở về trang chính (Home) -->
             <a href="baocao.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-9 h-9 rounded-xl flex items-center justify-center transition shadow-xs text-xs" title="Trở về trang chính">
                 <i class="fa-solid fa-house"></i>
             </a>
@@ -41,7 +48,8 @@
         <div class="flex items-center justify-between gap-1.5 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs">
             <div class="flex items-center gap-1.5 overflow-hidden flex-1">
                 <span class="text-[9px] font-extrabold uppercase text-slate-400 shrink-0">Dự án:</span>
-                <select id="globalProjectSelect" onchange="window.switchCurrentProject(this.value)" class="bg-transparent font-black text-emerald-700 text-xs outline-none cursor-pointer truncate w-full">
+                <!-- Thêm id riêng để dễ kiểm soát khóa khi khách xem -->
+                <select id="globalProjectSelect" onchange="window.switchCurrentProject(this.value)" class="bg-transparent font-black text-emerald-700 text-xs outline-none cursor-pointer truncate w-full disabled:opacity-100 disabled:cursor-not-allowed">
                     <option value="">-- Đang tải... --</option>
                 </select>
             </div>
@@ -55,24 +63,20 @@
             </div>
         </div>
 
-        <!-- KHU VỰC THAO TÁC CHÍNH (ĐÃ THU GỌN HỢP LÝ) -->
+        <!-- KHU VỰC THAO TÁC CHÍNH -->
         <div id="authActionsContainer" class="grid grid-cols-2 gap-2">
-            <!-- Nút Khai Báo Hạng Mục -->
             <button id="btnOpenCategoryModal" onclick="window.openCategoryModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
                 <i class="fa-solid fa-folder-plus"></i> Khai Báo Mục
             </button>
-            <!-- Nút Báo Cáo Hằng Ngày -->
             <button id="btnOpenReportModal" onclick="window.openReportModal()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
                 <i class="fa-solid fa-plus"></i> Báo Cáo Ngày
             </button>
             
-            <!-- Trạng thái khi chưa đăng nhập -->
             <div id="loggedOutState" class="col-span-2">
                 <button onclick="window.openLoginModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống
                 </button>
             </div>
-            <!-- Trạng thái khi đã đăng nhập (Gọn gàng toàn khung) -->
             <div id="loggedInState" class="hidden col-span-2 flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
                 <div class="text-xs truncate">
                     <span class="text-slate-400 text-[9px] uppercase font-bold block">Tài khoản trực tuyến</span>
@@ -163,6 +167,12 @@
         </div>
 
     </main>
+
+    <!-- FOOTER BẢN QUYỀN & HOTLINE HỖ TRỢ -->
+    <footer class="max-w-5xl mx-auto px-4 pt-6 pb-2 text-center space-y-1 text-xs border-t border-slate-200/80 mt-10">
+        <p class="font-black text-slate-700 tracking-wider">BẢN QUYỀN THUỘC VỀ <span class="text-emerald-600">HOMESTECH</span></p>
+        <p class="text-slate-500 font-medium">Hotline hỗ trợ công trình: <a href="tel:0906255788" class="font-black text-emerald-700 hover:underline">0906.255.788 (Mr Bảo)</a></p>
+    </footer>
 
     <!-- MODAL XEM ẢNH LIGHTBOX -->
     <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center hidden z-50 p-4 select-none">
@@ -420,7 +430,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT XỬ LÝ DỮ LIỆU & GIAO DIỆN -->
+    <!-- SCRIPT XỬ LÝ DỮ LIỆU & BẢO MẬT QUYỀN XEM -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -441,7 +451,6 @@
         let allCategories = {};
         let allDailyReports = {};
         let currentSelectedImages = [];
-        
         let currentUser = JSON.parse(localStorage.getItem('constructionUser')) || null;
         
         let currentLightboxImages = [];
@@ -463,6 +472,7 @@
             const loggedOutState = document.getElementById('loggedOutState');
             const loggedInState = document.getElementById('loggedInState');
             const displayUserName = document.getElementById('displayUserName');
+            const projectSelect = document.getElementById('globalProjectSelect');
 
             if (currentUser) {
                 if (btnProj) btnProj.classList.remove('hidden');
@@ -471,17 +481,23 @@
                 if (loggedOutState) loggedOutState.classList.add('hidden');
                 if (loggedInState) loggedInState.classList.remove('hidden');
                 if (displayUserName) displayUserName.textContent = currentUser.name;
+                
+                // Kỹ thuật đã đăng nhập được phép chọn đổi công trình
+                if (projectSelect) projectSelect.disabled = false;
             } else {
                 if (btnProj) btnProj.classList.add('hidden');
                 if (btnCat) btnCat.classList.add('hidden');
                 if (btnRep) btnRep.classList.add('hidden');
                 if (loggedOutState) loggedOutState.classList.remove('hidden');
                 if (loggedInState) loggedInState.classList.add('hidden');
+
+                // 🛠️ CHƯA ĐĂNG NHẬP (KHÁCH HÀNG XEM): Khóa cứng không cho thay đổi dự án khác
+                if (projectSelect) projectSelect.disabled = true;
             }
 
-            if (urlProjectId && !currentUser) {
-                const selectEl = document.getElementById('globalProjectSelect');
-                if (selectEl) selectEl.disabled = true;
+            // Nếu quét link QR cụ thể, bắt buộc khóa dự án và không cho đổi
+            if (urlProjectId && projectSelect) {
+                projectSelect.disabled = true;
             }
         }
 
@@ -685,7 +701,10 @@
                 return;
             }
 
-            if (!currentProjectId || !allProjects[currentProjectId]) {
+            // Nếu có tham số ?project=ID trên URL (khách quét QR), ưu tiên khóa đúng dự án đó
+            if (urlProjectId && allProjects[urlProjectId]) {
+                currentProjectId = urlProjectId;
+            } else if (!currentProjectId || !allProjects[currentProjectId]) {
                 currentProjectId = entries[0][0];
             }
 
@@ -704,6 +723,11 @@
 
         window.switchCurrentProject = (projId) => {
             if (!projId) return;
+            // Nếu chưa đăng nhập và có link QR thì chặn không cho đổi dự án
+            if (!currentUser && urlProjectId) {
+                alert("Chế độ xem tiến độ công trình dành cho khách hàng!");
+                return;
+            }
             currentProjectId = projId;
             localStorage.setItem('currentConstructionProjectId', currentProjectId);
             window.renderCategoriesOverview();
@@ -738,6 +762,7 @@
         };
 
         window.openCategoryModal = () => {
+            if (!currentUser) { alert("Vui lòng đăng nhập!"); window.openLoginModal(); return; }
             if (!currentProjectId || !allProjects[currentProjectId]) { 
                 alert("Vui lòng chọn công trình trước!"); 
                 return; 
@@ -1010,7 +1035,7 @@
             let sumAllPercent = 0;
 
             if (totalCats === 0) {
-                container.innerHTML = '<div class="col-span-2 text-slate-400 text-center py-4 bg-white rounded-2xl border text-xs">Công trình này chưa có hạng mục nào. Hãy bấm "Khai Báo Hạng Mục".</div>';
+                container.innerHTML = '<div class="col-span-2 text-slate-400 text-center py-4 bg-white rounded-2xl border text-xs">Công trình này chưa có hạng mục nào.</div>';
                 document.getElementById('statTotalItems').textContent = 0;
                 document.getElementById('statDoingItems').textContent = 0;
                 document.getElementById('statCompletedItems').textContent = 0;

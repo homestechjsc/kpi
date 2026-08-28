@@ -111,27 +111,41 @@
             <div id="categoryProgressOverviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
         </div>
 
-        <!-- BỘ LỌC TỪ NGÀY - ĐẾN NGÀY & TÌM KIẾM -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center text-xs">
-            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <div class="flex items-center gap-1">
-                    <span class="font-bold text-slate-500 text-[11px]">Từ:</span>
-                    <input type="date" id="filterFromDate" onchange="window.filterReports()" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 font-bold text-slate-700 outline-none">
-                </div>
-                <div class="flex items-center gap-1">
-                    <span class="font-bold text-slate-500 text-[11px]">Đến:</span>
-                    <input type="date" id="filterToDate" onchange="window.filterReports()" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 font-bold text-slate-700 outline-none">
-                </div>
-                <button onclick="window.resetDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl font-bold transition">Tất cả</button>
+        <!-- TIÊU ĐỀ NHẬT KÝ & NÚT BẤM ICON LỌC GỌN GÀNG -->
+        <div class="flex justify-between items-center px-1 pt-2">
+            <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Nhật Ký Thi Công Hằng Ngày</h2>
+            <button onclick="window.toggleFilterPanel()" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-xs flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-filter text-emerald-600"></i> Bộ Lọc Tìm Kiếm <span id="filterActiveBadge" class="hidden w-2 h-2 rounded-full bg-emerald-500"></span>
+            </button>
+        </div>
+
+        <!-- KHUNG BỘ LỌC ẨN/HIỆN (COLLAPSIBLE FILTER PANEL) -->
+        <div id="filterPanel" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hidden space-y-3 text-xs animate-in fade-in duration-200">
+            <div class="flex justify-between items-center border-b pb-2">
+                <span class="font-black text-slate-700 uppercase tracking-wider text-[11px]"><i class="fa-solid fa-sliders mr-1 text-emerald-600"></i> Tùy chọn lọc nhật ký</span>
+                <button onclick="window.toggleFilterPanel()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
             </div>
-            <div class="w-full sm:w-64">
-                <input type="text" id="searchKeyword" oninput="window.filterReports()" placeholder="🔍 Tìm kiếm nhật ký..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 font-medium outline-none">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Từ ngày</label>
+                    <input type="date" id="filterFromDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Đến ngày</label>
+                    <input type="date" id="filterToDate" onchange="window.filterReports()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Từ khóa tìm kiếm</label>
+                    <input type="text" id="searchKeyword" oninput="window.filterReports()" placeholder="🔍 Tên hạng mục, nội dung, kỹ thuật..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-1">
+                <button onclick="window.resetDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold transition">Xóa bộ lọc (Tất cả)</button>
             </div>
         </div>
 
         <!-- DANH SÁCH NHẬT KÝ BÁO CÁO HẰNG NGÀY -->
         <div class="space-y-4">
-            <h2 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider px-1">Nhật Ký Thi Công Hằng Ngày</h2>
             <div id="reportsListContainer" class="space-y-4">
                 <div class="bg-white p-8 rounded-2xl border text-center text-slate-400 text-xs">Chưa có nhật ký báo cáo nào.</div>
             </div>
@@ -313,7 +327,6 @@
                     </div>
                 </div>
 
-                <!-- BỔ SUNG MỤC VỆ SINH CÔNG TRÌNH -->
                 <div>
                     <label class="block font-bold text-slate-500 mb-1">Vệ sinh & Gọn gàng mặt bằng công trình <span class="text-rose-500">*</span></label>
                     <select id="repVeSinh" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
@@ -407,6 +420,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const urlProjectId = urlParams.get('project');
         let currentProjectId = urlProjectId || localStorage.getItem('currentConstructionProjectId') || '';
+
+        // Đóng/mở khung bộ lọc hằng ngày
+        window.toggleFilterPanel = () => {
+            const panel = document.getElementById('filterPanel');
+            if (panel) panel.classList.toggle('hidden');
+        };
 
         function updateAuthUI() {
             const btnProj = document.getElementById('btnOpenProjectModal');
@@ -768,7 +787,6 @@
             document.getElementById('repPhanTram').value = maxP > 0 ? maxP : '';
         };
 
-        // BÁO CÁO HẰNG NGÀY (CÓ THÊM THỜI TIẾT & VỆ SINH)
         window.openReportModal = () => {
             if (!currentUser) { alert("Vui lòng đăng nhập!"); window.openLoginModal(); return; }
             if (!currentProjectId || !allProjects[currentProjectId]) { alert("Vui lòng chọn công trình trước!"); return; }
@@ -984,14 +1002,22 @@
             document.getElementById('overallProgressBar').style.width = `${overallAvg}%`;
         };
 
-        // LỌC VÀ HIỂN THỊ NHẬT KÝ (KÈM THỜI TIẾT & VỆ SINH)
+        // LỌC VÀ HIỂN THỊ NHẬT KÝ
         window.filterReports = () => {
             const fromDate = document.getElementById('filterFromDate').value;
             const toDate = document.getElementById('filterToDate').value;
             const keyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
             const container = document.getElementById('reportsListContainer');
+            const badge = document.getElementById('filterActiveBadge');
+            
             if (!container) return;
             container.innerHTML = '';
+
+            // Kiểm tra xem có đang áp dụng bộ lọc nào không để hiển thị chấm xanh báo hiệu
+            if (badge) {
+                if (fromDate || toDate || keyword) badge.classList.remove('hidden');
+                else badge.classList.add('hidden');
+            }
 
             const entries = Object.entries(allDailyReports).filter(([id, item]) => item.projectId === currentProjectId);
             

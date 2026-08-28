@@ -153,7 +153,6 @@
                 <p id="qrProjectNameTitle" class="font-black text-emerald-700 text-sm">--</p>
                 <p class="text-[11px] text-slate-500">Khách hàng quét mã bên dưới để xem nhật ký thi công trực tiếp:</p>
                 
-                <!-- Khu vực chứa ảnh QR Code -->
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 inline-block my-2">
                     <img id="qrCodeImage" src="" alt="QR Code Tiến Độ" class="w-48 h-48 mx-auto rounded-lg">
                 </div>
@@ -294,15 +293,34 @@
                     <p id="categoryHintInfo" class="text-[10px] text-slate-400 mt-1 italic"></p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Khối lượng lũy kế hoàn thành (%) <span class="text-rose-500">*</span></label>
+                        <label class="block font-bold text-slate-500 mb-1">Khối lượng lũy kế (%) <span class="text-rose-500">*</span></label>
                         <input type="number" min="0" max="100" id="repPhanTram" required placeholder="VD: 30" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-500 mb-1">Nhân sự hiện trường (Người)</label>
-                        <input type="number" min="1" id="repNhanSu" required placeholder="Tổng số công nhân..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                        <label class="block font-bold text-slate-500 mb-1">Nhân sự (Người)</label>
+                        <input type="number" min="1" id="repNhanSu" required placeholder="Số công nhân..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
                     </div>
+                    <div>
+                        <label class="block font-bold text-slate-500 mb-1">Thời tiết hiện trường</label>
+                        <select id="repThoiTiet" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
+                            <option value="Nắng ráo, thuận lợi">☀️ Nắng ráo, thuận lợi</option>
+                            <option value="Có mưa, ảnh hưởng nhẹ">🌦️ Có mưa, ảnh hưởng nhẹ</option>
+                            <option value="Mưa lớn, tạm dừng thi công">🌧️ Mưa lớn, tạm dừng thi công</option>
+                            <option value="Âm u, mát mẻ">⛅ Âm u, mát mẻ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- BỔ SUNG MỤC VỆ SINH CÔNG TRÌNH -->
+                <div>
+                    <label class="block font-bold text-slate-500 mb-1">Vệ sinh & Gọn gàng mặt bằng công trình <span class="text-rose-500">*</span></label>
+                    <select id="repVeSinh" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none">
+                        <option value="Sạch sẽ, gọn gàng, ngăn nắp">✨ Sạch sẽ, gọn gàng, ngăn nắp</option>
+                        <option value="Tạm ổn, cần dọn dẹp thêm vật tư">🧹 Tạm ổn, cần dọn dẹp thêm vật tư</option>
+                        <option value="Chưa dọn dẹp, còn bừa bộn sau ca làm">⚠️ Chưa dọn dẹp, còn bừa bộn sau ca làm</option>
+                    </select>
                 </div>
 
                 <div>
@@ -386,7 +404,6 @@
         let currentSelectedImages = [];
         let currentUser = JSON.parse(localStorage.getItem('constructionUser')) || null;
         
-        // Kiểm tra URL xem có truyền sẵn tham số ?project=ID không (dành cho khách hàng quét QR)
         const urlParams = new URLSearchParams(window.location.search);
         const urlProjectId = urlParams.get('project');
         let currentProjectId = urlProjectId || localStorage.getItem('currentConstructionProjectId') || '';
@@ -414,11 +431,9 @@
                 if (loggedInState) loggedInState.classList.add('hidden');
             }
 
-            // Nếu khách hàng truy cập qua link QR, ẩn các nút chỉnh sửa hệ thống đi nếu chưa đăng nhập
             if (urlProjectId && !currentUser) {
-                // Chế độ khách hàng xem công trình cụ thể
                 const selectEl = document.getElementById('globalProjectSelect');
-                if (selectEl) selectEl.disabled = true; // Khóa không cho đổi công trình khác
+                if (selectEl) selectEl.disabled = true;
             }
         }
 
@@ -459,7 +474,6 @@
         window.openLoginModal = () => document.getElementById('loginModal').classList.remove('hidden');
         window.closeLoginModal = () => document.getElementById('loginModal').classList.add('hidden');
 
-        // XUẤT MÃ QR CÔNG TRÌNH
         window.openQrModal = () => {
             if (!currentProjectId || !allProjects[currentProjectId]) {
                 alert("Vui lòng chọn công trình trước khi xuất mã QR!");
@@ -468,11 +482,9 @@
             const proj = allProjects[currentProjectId];
             document.getElementById('qrProjectNameTitle').textContent = proj.name;
 
-            // Tạo link chia sẻ gắn kèm ID công trình trên URL hiện tại
             const shareUrl = `${window.location.origin}${window.location.pathname}?project=${currentProjectId}`;
             document.getElementById('qrShareLinkInput').value = shareUrl;
 
-            // Dùng API public để tạo ảnh QR Code tự động
             const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
             document.getElementById('qrCodeImage').src = qrImageUrl;
 
@@ -489,14 +501,12 @@
             alert("Đã sao chép liên kết xem tiến độ công trình!");
         };
 
-        // LẮNG NGHE DỮ LIỆU CÔNG TRÌNH
         onValue(ref(db, 'constructionProjects'), (snapshot) => {
             allProjects = snapshot.exists() ? snapshot.val() : {};
             window.populateProjectSelect();
             window.renderProjectManageList();
         });
 
-        // LẮNG NGHE HẠNG MỤC
         onValue(ref(db, 'constructionCategories'), (snapshot) => {
             allCategories = snapshot.exists() ? snapshot.val() : {};
             window.renderCategoriesOverview();
@@ -504,14 +514,12 @@
             window.renderCategoryManageList();
         });
 
-        // LẮNG NGHE NHẬT KÝ BÁO CÁO HẰNG NGÀY
         onValue(ref(db, 'constructionDailyReports'), (snapshot) => {
             allDailyReports = snapshot.exists() ? snapshot.val() : {};
             window.renderCategoriesOverview();
             window.filterReports();
         });
 
-        // QUẢN LÝ CÔNG TRÌNH
         window.openProjectModal = () => {
             window.resetProjectForm();
             window.renderProjectManageList();
@@ -634,7 +642,6 @@
             });
         };
 
-        // QUẢN LÝ HẠNG MỤC
         window.openCategoryModal = () => {
             if (!currentProjectId || !allProjects[currentProjectId]) { 
                 alert("Vui lòng chọn công trình trước!"); 
@@ -761,7 +768,7 @@
             document.getElementById('repPhanTram').value = maxP > 0 ? maxP : '';
         };
 
-        // BÁO CÁO HẰNG NGÀY
+        // BÁO CÁO HẰNG NGÀY (CÓ THÊM THỜI TIẾT & VỆ SINH)
         window.openReportModal = () => {
             if (!currentUser) { alert("Vui lòng đăng nhập!"); window.openLoginModal(); return; }
             if (!currentProjectId || !allProjects[currentProjectId]) { alert("Vui lòng chọn công trình trước!"); return; }
@@ -775,6 +782,8 @@
             document.getElementById('repCategoryId').value = '';
             document.getElementById('repPhanTram').value = '';
             document.getElementById('repNhanSu').value = '';
+            document.getElementById('repThoiTiet').value = 'Nắng ráo, thuận lợi';
+            document.getElementById('repVeSinh').value = 'Sạch sẽ, gọn gàng, ngăn nắp';
             document.getElementById('repNoiDung').value = '';
             document.getElementById('repPhatSinh').value = '';
             document.getElementById('categoryHintInfo').textContent = '';
@@ -832,6 +841,8 @@
                 categoryName: allCategories[categoryId] ? allCategories[categoryId].name : 'Khác',
                 phanTram: phanTram,
                 nhanSu: Number(document.getElementById('repNhanSu').value) || 1,
+                thoiTiet: document.getElementById('repThoiTiet').value,
+                veSinh: document.getElementById('repVeSinh').value,
                 noiDung: document.getElementById('repNoiDung').value.trim(),
                 phatSinh: document.getElementById('repPhatSinh').value.trim(),
                 images: currentSelectedImages,
@@ -866,6 +877,8 @@
             document.getElementById('repCategoryId').value = item.categoryId || '';
             document.getElementById('repPhanTram').value = item.phanTram || 0;
             document.getElementById('repNhanSu').value = item.nhanSu || 1;
+            document.getElementById('repThoiTiet').value = item.thoiTiet || 'Nắng ráo, thuận lợi';
+            document.getElementById('repVeSinh').value = item.veSinh || 'Sạch sẽ, gọn gàng, ngăn nắp';
             document.getElementById('repNoiDung').value = item.noiDung || '';
             document.getElementById('repPhatSinh').value = item.phatSinh || '';
             
@@ -896,7 +909,6 @@
             window.filterReports();
         };
 
-        // HIỂN THỊ TỔNG QUAN HẠNG MỤC
         window.renderCategoriesOverview = () => {
             const container = document.getElementById('categoryProgressOverviewList');
             if (!container) return;
@@ -972,7 +984,7 @@
             document.getElementById('overallProgressBar').style.width = `${overallAvg}%`;
         };
 
-        // LỌC NHẬT KÝ
+        // LỌC VÀ HIỂN THỊ NHẬT KÝ (KÈM THỜI TIẾT & VỆ SINH)
         window.filterReports = () => {
             const fromDate = document.getElementById('filterFromDate').value;
             const toDate = document.getElementById('filterToDate').value;
@@ -1021,7 +1033,7 @@
                 }
 
                 container.innerHTML += `
-                    <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-2 text-xs">
+                    <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-2.5 text-xs">
                         <div class="flex justify-between items-center border-b pb-2">
                             <div>
                                 <span class="font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">${item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : ''}</span>
@@ -1032,9 +1044,16 @@
                                 ${actionBtn}
                             </div>
                         </div>
-                        <div class="text-slate-700"><strong>Kỹ thuật:</strong> ${item.nguoiBaoCao} | <strong>Nhân sự:</strong> ${item.nhanSu} người</div>
-                        <div class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border">${item.noiDung}</div>
-                        ${item.phatSinh ? `<div class="text-rose-600 bg-rose-50 p-2.5 rounded-xl border"><strong>Phát sinh:</strong> ${item.phatSinh}</div>` : ''}
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border text-slate-700">
+                            <div><strong>👨‍🔧 Kỹ thuật:</strong> ${item.nguoiBaoCao}</div>
+                            <div><strong>👷 Nhân sự:</strong> ${item.nhanSu} người</div>
+                            <div><strong>⛅ Thời tiết:</strong> ${item.thoiTiet || 'N/A'}</div>
+                        </div>
+                        <div class="text-slate-700 bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100">
+                            <strong>🧹 Vệ sinh công trình:</strong> <span class="font-bold text-emerald-800">${item.veSinh || 'N/A'}</span>
+                        </div>
+                        <div class="text-slate-600 p-1"><strong>Nội dung:</strong> ${item.noiDung}</div>
+                        ${item.phatSinh ? `<div class="text-rose-600 bg-rose-50 p-2.5 rounded-xl border"><strong>⚠️ Phát sinh:</strong> ${item.phatSinh}</div>` : ''}
                         ${imagesHtml}
                     </div>
                 `;

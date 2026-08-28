@@ -119,7 +119,7 @@
             </button>
         </div>
 
-        <!-- KHUNG BỘ LỌC ẨN/HIỆN (COLLAPSIBLE FILTER PANEL) -->
+        <!-- KHUNG BỘ LỌC ẨN/HIỆN -->
         <div id="filterPanel" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hidden space-y-3 text-xs animate-in fade-in duration-200">
             <div class="flex justify-between items-center border-b pb-2">
                 <span class="font-black text-slate-700 uppercase tracking-wider text-[11px]"><i class="fa-solid fa-sliders mr-1 text-emerald-600"></i> Tùy chọn lọc nhật ký</span>
@@ -152,6 +152,30 @@
         </div>
 
     </main>
+
+    <!-- MODAL XEM ẢNH LIGHTBOX CÓ NÚT QUA LẠI QUA CÁC ẢNH -->
+    <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center hidden z-50 p-4 select-none">
+        <!-- Nút đóng góc phải trên -->
+        <button onclick="window.closeLightbox()" class="absolute top-4 right-4 text-white hover:text-slate-300 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl transition z-50">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <!-- Nút Previous (Trái) -->
+        <button onclick="window.prevLightboxImage()" class="absolute left-4 text-white hover:bg-white/20 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg transition z-50">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <!-- Khung chứa ảnh chính -->
+        <div class="max-w-4xl max-h-[85vh] flex flex-col items-center justify-center relative">
+            <img id="lightboxImage" src="" class="max-w-full max-h-[78vh] object-contain rounded-xl shadow-2xl transition-all duration-200">
+            <div id="lightboxCounter" class="text-white/80 text-xs font-bold mt-3 tracking-widest bg-white/10 px-3 py-1 rounded-full">1 / 1</div>
+        </div>
+
+        <!-- Nút Next (Phải) -->
+        <button onclick="window.nextLightboxImage()" class="absolute right-4 text-white hover:bg-white/20 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg transition z-50">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
 
     <!-- MODAL XUẤT MÃ QR CHO KHÁCH HÀNG -->
     <div id="qrModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4 animate-in fade-in duration-200">
@@ -389,11 +413,6 @@
         </div>
     </div>
 
-    <!-- MODAL XEM ẢNH -->
-    <div id="imageLightboxModal" class="fixed inset-0 bg-slate-950/90 flex items-center justify-center hidden z-50 p-4" onclick="this.classList.add('hidden')">
-        <img id="lightboxImage" src="" class="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl">
-    </div>
-
     <!-- SCRIPT XỬ LÝ DỮ LIỆU & GIAO DIỆN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -417,11 +436,14 @@
         let currentSelectedImages = [];
         let currentUser = JSON.parse(localStorage.getItem('constructionUser')) || null;
         
+        // Biến toàn cục phục vụ xem lightbox qua lại nhanh giữa các ảnh
+        let currentLightboxImages = [];
+        let currentLightboxIndex = 0;
+
         const urlParams = new URLSearchParams(window.location.search);
         const urlProjectId = urlParams.get('project');
         let currentProjectId = urlProjectId || localStorage.getItem('currentConstructionProjectId') || '';
 
-        // Đóng/mở khung bộ lọc hằng ngày
         window.toggleFilterPanel = () => {
             const panel = document.getElementById('filterPanel');
             if (panel) panel.classList.toggle('hidden');
@@ -519,6 +541,55 @@
             navigator.clipboard.writeText(input.value);
             alert("Đã sao chép liên kết xem tiến độ công trình!");
         };
+
+        // CÁC HÀM XEM LIGHTBOX ẢNH QUA LẠI
+        window.openLightbox = (imagesArrayJson, index) => {
+            try {
+                currentLightboxImages = JSON.parse(imagesArrayJson);
+                currentLightboxIndex = index;
+                window.renderLightboxImage();
+                document.getElementById('imageLightboxModal').classList.remove('hidden');
+            } catch (err) {
+                console.error("Lỗi mở ảnh:", err);
+            }
+        };
+
+        window.closeLightbox = () => {
+            document.getElementById('imageLightboxModal').classList.add('hidden');
+        };
+
+        window.prevLightboxImage = () => {
+            if (currentLightboxImages.length === 0) return;
+            currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+            window.renderLightboxImage();
+        };
+
+        window.nextLightboxImage = () => {
+            if (currentLightboxImages.length === 0) return;
+            currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+            window.renderLightboxImage();
+        };
+
+        window.renderLightboxImage = () => {
+            const imgEl = document.getElementById('lightboxImage');
+            const counterEl = document.getElementById('lightboxCounter');
+            if (imgEl && currentLightboxImages.length > 0) {
+                imgEl.src = currentLightboxImages[currentLightboxIndex];
+                if (counterEl) {
+                    counterEl.textContent = `${currentLightboxIndex + 1} / ${currentLightboxImages.length}`;
+                }
+            }
+        };
+
+        // Hỗ trợ phím mũi tên bàn phím (Trái/Phải/Esc) để duyệt ảnh nhanh
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('imageLightboxModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                if (e.key === 'ArrowLeft') window.prevLightboxImage();
+                if (e.key === 'ArrowRight') window.nextLightboxImage();
+                if (e.key === 'Escape') window.closeLightbox();
+            }
+        });
 
         onValue(ref(db, 'constructionProjects'), (snapshot) => {
             allProjects = snapshot.exists() ? snapshot.val() : {};
@@ -915,11 +986,6 @@
             }
         };
 
-        window.openLightbox = (src) => {
-            document.getElementById('lightboxImage').src = src;
-            document.getElementById('imageLightboxModal').classList.remove('hidden');
-        };
-
         window.resetDateFilter = () => {
             document.getElementById('filterFromDate').value = '';
             document.getElementById('filterToDate').value = '';
@@ -1013,7 +1079,6 @@
             if (!container) return;
             container.innerHTML = '';
 
-            // Kiểm tra xem có đang áp dụng bộ lọc nào không để hiển thị chấm xanh báo hiệu
             if (badge) {
                 if (fromDate || toDate || keyword) badge.classList.remove('hidden');
                 else badge.classList.add('hidden');
@@ -1052,8 +1117,11 @@
                 let imagesHtml = '';
                 if (item.images && item.images.length > 0) {
                     let thumbs = '';
-                    item.images.forEach(url => {
-                        thumbs += `<div class="aspect-square rounded-xl overflow-hidden border cursor-pointer" onclick="window.openLightbox('${url}')"><img src="${url}" class="w-full h-full object-cover"></div>`;
+                    // Truyền mảng JSON chứa các ảnh của báo cáo này vào hàm mở lightbox
+                    const escapedImagesJson = JSON.stringify(item.images).replace(/"/g, '&quot;');
+                    
+                    item.images.forEach((url, imgIdx) => {
+                        thumbs += `<div class="aspect-square rounded-xl overflow-hidden border cursor-pointer hover:opacity-90 transition" onclick="window.openLightbox('${escapedImagesJson}', ${imgIdx})"><img src="${url}" class="w-full h-full object-cover"></div>`;
                     });
                     imagesHtml = `<div class="grid grid-cols-5 gap-2 pt-1">${thumbs}</div>`;
                 }

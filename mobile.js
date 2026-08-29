@@ -1060,6 +1060,27 @@ window.switchTab = (tab) => {
 };
 // ================= QUẢN LÝ TĂNG CA (HỖ TRỢ NHIỀU LẦN/NGÀY) =================
 
+// Hàm kiểm tra ngoài giờ làm việc chuẩn xác (Sáng 07h30-11h30 & Chiều 13h30-17h30, Chủ Nhật nghỉ)
+function checkIsOvertime() {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTimeVal = hours * 60 + minutes;
+
+    if (dayOfWeek === 0) return true; // Chủ Nhật nghỉ tính cả ngày là ngoài giờ
+
+    const morningEnd = 11 * 60 + 30; // 11h30
+    const afternoonStart = 13 * 60 + 30; // 13h30
+    const afternoonEnd = 17 * 60 + 30; // 17h30
+
+    // Ngoài giờ: từ 11h30 đến 13h30 HOẶC sau 17h30 (đến trước 07h30 sáng hôm sau)
+    const isLunchBreakOvertime = (currentTimeVal > morningEnd && currentTimeVal < afternoonStart);
+    const isEveningOvertime = (currentTimeVal > afternoonEnd || currentTimeVal < 7 * 60 + 30);
+
+    return isLunchBreakOvertime || isEveningOvertime;
+}
+
 // Mở Modal nhập lý do khi kỹ thuật bấm nút Bắt đầu tăng ca
 window.openTangCaModal = (taskId) => {
     document.getElementById('tangCaTaskId').value = taskId;
@@ -1085,6 +1106,7 @@ window.submitStartTangCa = (e) => {
         saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, freshGps);
     });
 };
+
 function saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, gpsStart) {
     const task = allAssignedTasks[taskId];
     if (!task) return;
@@ -1105,8 +1127,9 @@ function saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, gpsStart) {
         .then(() => {
             alert("Đã bắt đầu phiên tăng ca!");
             window.closeTangCaModal();
-            // 👉 GỬI THÔNG BÁO TELEGRAM KHI BẮT ĐẦU TĂNG CA
-sendMobileTelegramNotification('start_overtime', task, `Bắt đầu phiên tăng ca mới.\n- Lý do: ${lyDo}\n- Dự kiến: ${thoiGianDuKien} phút`);        })
+            // Gửi thông báo Telegram khi bắt đầu tăng ca
+            sendMobileTelegramNotification('start_overtime', task, `Bắt đầu phiên tăng ca mới.\n- Lý do: ${lyDo}\n- Dự kiến: ${thoiGianDuKien} phút`);
+        })
         .catch(err => alert("Lỗi: " + err.message));
 }
 
@@ -1119,18 +1142,21 @@ window.endTangCaSession = (taskId, sessionId) => {
         processEndTangCa(taskId, sessionId, freshGps);
     });
 };
+
 function processEndTangCa(taskId, sessionId, gpsEnd) {
     const task = allAssignedTasks[taskId];
     let tangCaList = task.tangCaList || [];
+    let endedSession = null;
 
     tangCaList = tangCaList.map(s => {
         if (s.id === sessionId) {
-            return {
+            endedSession = {
                 ...s,
                 ketThuc: new Date().toISOString(),
                 gpsKetThuc: gpsEnd,
                 trangThai: 'Đã kết thúc'
             };
+            return endedSession;
         }
         return s;
     });
@@ -1138,10 +1164,11 @@ function processEndTangCa(taskId, sessionId, gpsEnd) {
     update(ref(db, `managementTasks/${taskId}`), { tangCaList })
         .then(() => {
             alert("Đã kết thúc phiên tăng ca!");
-            // 👉 GỬI THÔNG BÁO TELEGRAM KHI KẾT THÚC TĂNG CA
+            // Gửi thông báo Telegram khi kết thúc tăng ca an toàn không bị lỗi
             if (endedSession) {
                 const durationMins = Math.round((new Date(endedSession.ketThuc) - new Date(endedSession.batDau)) / 60000);
-sendMobileTelegramNotification('end_overtime', task, `Đã kết thúc phiên tăng ca "${endedSession.lyDo}". Thời gian thực tế: ${durationMins} phút.`);            }
+                sendMobileTelegramNotification('end_overtime', task, `Đã kết thúc phiên tăng ca "${endedSession.lyDo}". Thời gian thực tế: ${durationMins} phút.`);
+            }
         })
         .catch(err => alert("Lỗi: " + err.message));
 }

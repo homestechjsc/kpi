@@ -1212,11 +1212,9 @@ function renderPerformanceReport(entries) {
     // Gộp cả biểu đồ tổng quan và danh sách chi tiết vào container
     container.innerHTML = chartHtml + detailsHtml;
 }
-// Đặt đoạn mã này ở cuối file JavaScript
-document.addEventListener('focusin', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        setTimeout(() => {
-            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+// Khắc phục triệt để lỗi không focus được input/textarea trên PWA standalone mode
+document.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        e.target.focus();
     }
-});
+}, { passive: true });

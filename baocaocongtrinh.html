@@ -431,7 +431,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT XỬ LÝ DỮ LIỆU & GIAO DIỆN CHUẨN XÁC -->
+    <!-- SCRIPT XỬ LÝ DỮ LIỆU & GIAO DIỆN TỐI ƯU NÉN ẢNH -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -608,7 +608,7 @@
             }
         });
 
-        // Lắng nghe dữ liệu tối ưu theo công trình để load cực nhanh
+        // Lắng nghe dữ liệu tối ưu theo công trình
         onValue(ref(db, 'constructionProjects'), (snapshot) => {
             allProjects = snapshot.exists() ? snapshot.val() : {};
             window.populateProjectSelect();
@@ -908,16 +908,47 @@
 
         window.closeReportModal = () => document.getElementById('reportModal').classList.add('hidden');
 
+        // 🚀 TỐI ƯU & NÉN ẢNH ĐỂ TRÁNH LỖI LÚC LƯU ĐƯỢC LÚC KHÔNG
         window.handleImageSelection = (event) => {
             const files = event.target.files;
             if (!files) return;
             if (currentSelectedImages.length + files.length > 10) { alert("Tối đa 10 hình ảnh!"); return; }
+
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    currentSelectedImages.push(e.target.result);
-                    if (currentSelectedImages.length > 10) currentSelectedImages = currentSelectedImages.slice(0, 10);
-                    window.renderImagePreview();
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const MAX_WIDTH = 1000;
+                        const MAX_HEIGHT = 1000;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Nén chất lượng JPEG còn 0.75 để dung lượng siêu nhẹ, truyền tải mượt mà vào Firebase
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                        currentSelectedImages.push(compressedDataUrl);
+                        if (currentSelectedImages.length > 10) currentSelectedImages = currentSelectedImages.slice(0, 10);
+                        window.renderImagePreview();
+                    };
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             });
@@ -929,14 +960,29 @@
             const countText = document.getElementById('imageCountText');
             if (!container) return;
             container.innerHTML = '';
-            countText.textContent = currentSelectedImages.length;
+            if (countText) countText.textContent = currentSelectedImages.length;
+            
             currentSelectedImages.forEach((img, idx) => {
-                container.innerHTML += `
-                    <div class="relative group aspect-square bg-slate-100 rounded-xl overflow-hidden border">
-                        <img src="${img}" class="w-full h-full object-cover">
-                        <button type="button" onclick="currentSelectedImages.splice(${idx},1); window.renderImagePreview();" class="absolute top-1 right-1 bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">×</button>
-                    </div>
-                `;
+                const div = document.createElement('div');
+                div.className = 'relative group aspect-square bg-slate-100 rounded-xl overflow-hidden border border-slate-200';
+                
+                const imageEl = document.createElement('img');
+                imageEl.src = img;
+                imageEl.className = 'w-full h-full object-cover';
+                div.appendChild(imageEl);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-md transition active:scale-95';
+                deleteBtn.innerHTML = '&times;';
+                
+                // Gán sự kiện trực tiếp qua hàm removePreviewImage
+                deleteBtn.onclick = () => {
+                    window.removePreviewImage(idx);
+                };
+                
+                div.appendChild(deleteBtn);
+                container.appendChild(div);
             });
         };
 
@@ -967,13 +1013,13 @@
                 update(ref(db, `constructionDailyReports/${editId}`), payload).then(() => {
                     alert("Cập nhật nhật ký thành công!");
                     window.closeReportModal();
-                });
+                }).catch(err => alert("Lỗi lưu báo cáo: " + err.message));
             } else {
                 payload.createdAt = Date.now();
                 push(ref(db, 'constructionDailyReports'), payload).then(() => {
                     alert("Lưu báo cáo hằng ngày thành công!");
                     window.closeReportModal();
-                });
+                }).catch(err => alert("Lỗi lưu báo cáo: " + err.message));
             }
         };
 
@@ -996,14 +1042,18 @@
             document.getElementById('repNoiDung').value = item.noiDung || '';
             document.getElementById('repPhatSinh').value = item.phatSinh || '';
             
-            currentSelectedImages = item.images || [];
+            // 👉 KHẮC PHỤC: Gán chính xác mảng ảnh cũ vào biến quản lý để hiển thị và cho phép xóa/thêm mới
+            currentSelectedImages = item.images ? [...item.images] : [];
             window.renderImagePreview();
             window.onCategorySelectChange();
 
             document.getElementById('modalReportProjectName').textContent = allProjects[currentProjectId] ? allProjects[currentProjectId].name : '--';
             document.getElementById('reportModal').classList.remove('hidden');
         };
-
+        window.removePreviewImage = (index) => {
+            currentSelectedImages.splice(index, 1);
+            window.renderImagePreview();
+        };
         window.deleteReport = (id) => {
             if (!currentUser) { alert("Vui lòng đăng nhập!"); return; }
             if (confirm("Xóa báo cáo nhật ký này?")) {
@@ -1018,7 +1068,6 @@
             window.filterReports();
         };
 
-        // Hàm tính toán và render tổng quan tiến độ các hạng mục
         window.renderCategoriesOverview = () => {
             const container = document.getElementById('categoryProgressOverviewList');
             if (!container) return;
@@ -1116,7 +1165,8 @@
             const badge = document.getElementById('filterActiveBadge');
             
             if (!container) return;
-            container.innerHTML = '';
+            
+            container.innerHTML = '<div class="bg-white p-6 rounded-2xl border text-center text-slate-400 text-xs">Đang tải nhật ký...</div>';
 
             if (badge) {
                 if (fromDate || toDate || keyword) badge.classList.remove('hidden');
@@ -1145,6 +1195,7 @@
                 return;
             }
 
+            let htmlContent = '';
             filtered.forEach(([id, item]) => {
                 let actionBtn = currentUser ? `
                     <div class="flex items-center gap-1.5">
@@ -1164,7 +1215,7 @@
                     imagesHtml = `<div class="grid grid-cols-5 gap-2 pt-1">${thumbs}</div>`;
                 }
 
-                container.innerHTML += `
+                htmlContent += `
                     <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-2.5 text-xs">
                         <div class="flex justify-between items-center border-b pb-2">
                             <div>
@@ -1190,6 +1241,7 @@
                     </div>
                 `;
             });
+            container.innerHTML = htmlContent;
         };
 
         updateAuthUI();

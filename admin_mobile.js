@@ -1212,3 +1212,11 @@ function renderPerformanceReport(entries) {
     // Gộp cả biểu đồ tổng quan và danh sách chi tiết vào container
     container.innerHTML = chartHtml + detailsHtml;
 }
+// Đặt đoạn mã này ở cuối file JavaScript
+document.addEventListener('focusin', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }
+});

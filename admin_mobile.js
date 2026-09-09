@@ -100,16 +100,33 @@ window.triggerDataLoad = () => {
 
         return matchMonth && matchStaff && matchDateRange;
     });
+    
+    // Sắp xếp theo thứ tự ưu tiên trạng thái:
+    // 1 - Chờ triển khai, 2 - Đang thực hiện, 3 - Tạm ngưng, 4 - Đã hoàn thành
+    entries.sort(([idA, taskA], [idB, taskB]) => {
+        const getStatusWeight = (status) => {
+            if (status === 'Chờ triển khai') return 1;
+            if (status === 'Đang thực hiện') return 2;
+            if (status === 'Tạm ngưng') return 3;
+            if (status === 'Đã hoàn thành') return 4;
+            return 5;
+        };
 
-    // Sắp xếp đưa việc chưa chấm điểm lên đầu, sau đó theo ngày mới nhất
-    entries.sort((a, b) => {
-        const aChamped = a[1].diemKpi !== undefined && a[1].diemKpi !== null && a[1].diemKpi !== "" && Number(a[1].diemKpi) > 0;
-        const bChamped = b[1].diemKpi !== undefined && b[1].diemKpi !== null && b[1].diemKpi !== "" && Number(b[1].diemKpi) > 0;
+        const weightA = getStatusWeight(taskA.tinhTrang);
+        const weightB = getStatusWeight(taskB.tinhTrang);
+
+        if (weightA !== weightB) {
+            return weightA - weightB;
+        }
+
+        // Nếu cùng trạng thái thì ưu tiên việc chưa chấm điểm lên trước, sau đó theo ngày mới nhất
+        const aChamped = taskA.diemKpi !== undefined && taskA.diemKpi !== null && taskA.diemKpi !== "" && Number(taskA.diemKpi) > 0;
+        const bChamped = taskB.diemKpi !== undefined && taskB.diemKpi !== null && taskB.diemKpi !== "" && Number(taskB.diemKpi) > 0;
 
         if (aChamped !== bChamped) {
             return aChamped ? 1 : -1;
         }
-        return (b[1].ngayTao || '').localeCompare(a[1].ngayTao || '');
+        return (taskB.ngayTao || '').localeCompare(taskA.ngayTao || '');
     });
 
     // Render lại toàn bộ các khu vực dữ liệu

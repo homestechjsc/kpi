@@ -771,37 +771,7 @@ function renderAssignedTasks() {
             editDeleteButtons = `<div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-2"><button onclick="window.openEditTaskModal('${id}')" class="bg-blue-50 text-blue-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-pen mr-1"></i> Sửa</button><button onclick="window.deleteTaskByTech('${id}')" class="bg-rose-50 text-rose-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-trash mr-1"></i> Xóa</button></div>`;
         }
 
-        // 4. 👉 ĐỊNH NGHĨA BIẾN historyPauseHtml TẠI ĐÂY TRƯỚC KHI ĐƯA VÀO TEMPLATE
-        let historyPauseHtml = '';
-        if (task.pauseHistory && task.pauseHistory.length > 0) {
-            historyPauseHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
-                <div class="font-bold text-amber-700 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Lịch sử tạm ngưng (${task.pauseHistory.length} lần):</div>`;
-            task.pauseHistory.forEach((p, idx) => {
-                historyPauseHtml += `
-                    <div class="pl-2 border-l-2 border-amber-400 space-y-0.5 bg-amber-50/50 p-2 rounded-xl">
-                        <div><strong>• Lần ${idx+1}:</strong> ${p.lyDo}</div>
-                        <div class="text-[10px] text-slate-500">⏳ Tạm ngưng lúc: ${formatTime(p.thoiGianTamNgung)}</div>
-                        ${p.thoiGianLamLai ? `<div class="text-[10px] text-emerald-600 font-bold">▶️ Làm tiếp lúc: ${formatTime(p.thoiGianLamLai)} (Ngày: ${p.ngayLamTiepTheo || 'N/A'})</div>` : '<div class="text-[10px] text-rose-500 italic">Đang tạm ngưng...</div>'}
-                    </div>`;
-            });
-            historyPauseHtml += `</div>`;
-        }
-
-        let historyTangCaHtml = '';
-        if (tangCaList.length > 0) {
-            historyTangCaHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
-                <div class="font-bold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Lịch sử tăng ca (${tangCaList.length} lần):</div>`;
-            tangCaList.forEach((ses, idx) => {
-                const isDone = ses.trangThai === 'Đã kết thúc';
-                historyTangCaHtml += `
-                    <div class="pl-2 border-l-2 ${isDone ? 'border-emerald-400' : 'border-amber-400'} space-y-0.5">
-                        <div>• Lần ${idx+1}: <span class="font-medium text-slate-700">${ses.lyDo}</span> (${ses.thoiGianDuKien}p) - <span class="font-bold ${isDone ? 'text-emerald-600' : 'text-amber-600'}">${ses.trangThai}</span></div>
-                        <div class="text-[10px] text-slate-400">Bắt đầu: ${formatTime(ses.batDau)} (${ses.gpsBatDau || 'N/A'})</div>
-                        ${isDone ? `<div class="text-[10px] text-slate-400">Kết thúc: ${formatTime(ses.ketThuc)} (${ses.gpsKetThuc || 'N/A'})</div>` : ''}
-                    </div>`;
-            });
-            historyTangCaHtml += `</div>`;
-        }
+        
         // 👉 Xây dựng chi tiết từng lần Tạm ngưng (Thời gian & GPS ngưng, Thời gian & GPS làm lại)
         let pauseDetailsHtml = '';
         if (task.pauseHistory && task.pauseHistory.length > 0) {
@@ -912,7 +882,6 @@ function renderAssignedTasks() {
                         </div>
                     ` : ''}
 
-                    ${historyTangCaHtml ? `<div class="space-y-2 pt-1 border-t border-slate-100">${historyTangCaHtml}</div>` : ''}
                 </div>
 
                 <div class="pt-1">${actionButtons}</div>

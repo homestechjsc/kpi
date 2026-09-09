@@ -870,7 +870,7 @@ function renderAssignedTasks() {
                     <div class="flex justify-between items-start">
                         <div>
                             <span class="font-black text-emerald-700 text-sm tracking-tight">${task.maCv || ''} - ${task.khachHang || ''}</span>
-                            <div class="text-slate-400 text-[10px] font-bold">Ngày tạo: ${task.ngayTao || ''}</div>
+                            <div class="text-slate-400 text-[10px] font-bold">Ngày tạo: ${formatTime(task.ngayTao) || ''}</div>
                         </div>
                         <div class="flex flex-col items-end gap-1">
                             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${statusColor}">${task.tinhTrang}</span>

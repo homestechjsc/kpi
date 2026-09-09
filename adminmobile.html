@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Admin Mobile Dashboard | Quản Trị KPI</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,16 +20,13 @@
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        /* Đã sửa position: fixed thành relative để không bị lệch tọa độ input trên PWA */
-        body.overflow-hidden {
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            height: 100vh;
-            position: relative;
-            width: 100%;
-        }
+        /* Khóa cuộn trang nền khi mở modal hoặc thao tác */
+body.overflow-hidden {
+    overflow: hidden;
+    height: 100vh;
+    position: fixed;
+    width: 100%;
+}
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-500 selection:text-white">

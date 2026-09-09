@@ -536,23 +536,38 @@ window.loadMonthlyReport = () => {
                     taskHasOvertime = true;
                     let sesMins = 0;
                     
-                    // 👉 Tính chính xác thời gian = Thời gian kết thúc - Thời gian bắt đầu
                     if (ses.batDau && ses.ketThuc) {
                         const otStart = new Date(ses.batDau).getTime();
                         const otEnd = new Date(ses.ketThuc).getTime();
                         sesMins = Math.max(0, Math.round((otEnd - otStart) / 60000));
                     } else {
-                        // Nếu chưa kết thúc thì lấy tạm thời gian dự kiến
                         sesMins = Number(ses.thoiGianDuKien) || 0;
                     }
                     
                     taskOtMinutes += sesMins;
                     totalOvertimeMinutes += sesMins;
+                    let approvalBadge = '';
+                    if (ses.trangThaiDuyet === 'Đã duyệt') {
+                        approvalBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-black text-[10px]"><i class="fa-solid fa-check"></i> Đã duyệt</span>`;
+                    } else if (ses.trangThaiDuyet === 'Từ chối') {
+                        approvalBadge = `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md font-black text-[10px]"><i class="fa-solid fa-xmark"></i> Bị từ chối</span>`;
+                    } else {
+                        approvalBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold text-[10px]"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>`;
+                    }
+
+                    const approvalNoteHtml = ses.ghiChuDuyet 
+                        ? `<div class="text-[10px] text-slate-500 italic mt-0.5">💬 Ghi chú quản lý: ${ses.ghiChuDuyet}</div>` 
+                        : '';
+
+                    
 
                     otDetailsHtml += `
-                        <div class="text-[11px] text-amber-800 bg-amber-50/70 p-1.5 rounded-lg border border-amber-200 mt-1 flex justify-between items-center">
-                            <span><i class="fa-solid fa-business-time text-amber-600 mr-1"></i> <strong>Lần ${idx+1}:</strong> ${ses.lyDo} (${sesMins} phút)</span>
-                            <span class="text-[10px] text-slate-500">${ses.trangThai || ''}</span>
+                        <div class="text-[11px] text-amber-900 bg-amber-50/70 p-2 rounded-xl border border-amber-200 mt-1.5 space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span><i class="fa-solid fa-business-time text-amber-600 mr-1"></i> <strong>Lần ${idx+1}:</strong> ${ses.lyDo} (${sesMins} phút)</span>
+                                ${approvalBadge}
+                            </div>
+                            ${approvalNoteHtml}
                         </div>
                     `;
                 }
@@ -771,7 +786,7 @@ function renderAssignedTasks() {
             editDeleteButtons = `<div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-2"><button onclick="window.openEditTaskModal('${id}')" class="bg-blue-50 text-blue-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-pen mr-1"></i> Sửa</button><button onclick="window.deleteTaskByTech('${id}')" class="bg-rose-50 text-rose-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-trash mr-1"></i> Xóa</button></div>`;
         }
 
-        
+                
         // 👉 Xây dựng chi tiết từng lần Tạm ngưng (Thời gian & GPS ngưng, Thời gian & GPS làm lại)
         let pauseDetailsHtml = '';
         if (task.pauseHistory && task.pauseHistory.length > 0) {

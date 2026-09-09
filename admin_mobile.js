@@ -412,6 +412,12 @@ function renderAdminMasterTaskList(entries) {
         if (item.tinhTrang === 'Đã hoàn thành') statusColor = 'bg-emerald-100 text-emerald-800';
         if (item.tinhTrang === 'Tạm ngưng') statusColor = 'bg-rose-100 text-rose-800';
 
+        // 👉 Kiểm tra xem công việc có tăng ca hay không để đổi màu nhận diện
+        const hasOvertime = item.tangCaList && item.tangCaList.length > 0;
+        const cardHighlightClass = hasOvertime 
+            ? 'bg-amber-50/40 border-amber-400 shadow-md ring-1 ring-amber-300' 
+            : 'bg-white border-slate-200/80 shadow-sm';
+
         let supportHtml = item.ktHoTro ? ` + ${item.ktHoTro}` : '';
 
         const formatTime = (timeStr) => {
@@ -436,43 +442,63 @@ function renderAdminMasterTaskList(entries) {
             timeDisplayStr = mins > 0 ? `${hours}h ${mins}p` : `${hours}h`;
         }
 
-        // Xác định Badge Icon hình thức xử lý (Tính phí, Bảo hành, Hỗ trợ) nằm ở bên phải
-        let modeBadgeHtml = '';
-        const hinhThuc = item.hinhThucThanhToan || item.hinhThucXuLy || '';
-        
-        if (item.tinhTrang === 'Đã hoàn thành') {
-            if (hinhThuc.toLowerCase().includes('bảo hành') || item.chiPhi === 0) {
-                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-shield-halved"></i> Bảo hành</span>`;
-            } else if (hinhThuc.toLowerCase().includes('hỗ trợ')) {
-                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-handshake-angle"></i> Hỗ trợ</span>`;
-            } else {
-                const soTienStr = item.soTienThanhToan ? ` • ${Number(item.soTienThanhToan).toLocaleString()}đ` : '';
-                modeBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1 shadow-xs"><i class="fa-solid fa-file-invoice-dollar"></i> Có phí${soTienStr}</span>`;
-            }
-        }
-
-        // Tổng hợp lịch sử tăng ca (nếu có)
-        let tangCaHtml = '';
-        if (item.tangCaList && item.tangCaList.length > 0) {
+        // 👉 Xây dựng chi tiết từng phiên Tăng ca kèm trạng thái phê duyệt
+        let overtimeDetailsHtml = '';
+        if (hasOvertime) {
             item.tangCaList.forEach((ses, idx) => {
-                tangCaHtml += `
-                    <div class="bg-white p-2.5 rounded-xl border border-amber-100 space-y-1 text-[11px]">
-                        <div class="font-bold text-amber-900">Phiên tăng ca #${idx + 1} (Dự kiến: ${ses.thoiGianDuKien || 0} phút)</div>
-                        <div>Lý do: ${ses.lyDo || 'Không có'}</div>
-                        <div class="text-slate-500">Bắt đầu: ${formatTime(ses.batDau)}</div>
-                        <div class="text-slate-500">Kết thúc: ${formatTime(ses.ketThuc)}</div>
-                    </div>`;
+                const mapBatDauTC = ses.gpsBatDau && ses.gpsBatDau.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ses.gpsBatDau)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : (ses.gpsBatDau || 'Chưa có');
+                const mapKetThucTC = ses.gpsKetThuc && ses.gpsKetThuc.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ses.gpsKetThuc)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : (ses.gpsKetThuc || 'Chưa có');
+
+                // Xây dựng giao diện nút bấm dựa theo trạng thái duyệt hiện tại
+                let approveBtnHtml = '';
+                if (ses.trangThaiDuyet === 'Đã duyệt') {
+                    approveBtnHtml = `
+                        <div class="space-y-1 text-right">
+                            <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-xl text-[10px] font-black inline-block"><i class="fa-solid fa-check"></i> Đã duyệt TC</span>
+                            ${ses.ghiChuDuyet ? `<div class="text-[10px] text-emerald-700 italic font-medium">💬 Ghi chú: ${ses.ghiChuDuyet}</div>` : ''}
+                        </div>`;
+                } else if (ses.trangThaiDuyet === 'Từ chối') {
+                    approveBtnHtml = `
+                        <div class="space-y-1 text-right">
+                            <span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-xl text-[10px] font-black inline-block"><i class="fa-solid fa-xmark"></i> Đã từ chối</span>
+                            ${ses.ghiChuDuyet ? `<div class="text-[10px] text-rose-700 italic font-medium">💬 Lý do: ${ses.ghiChuDuyet}</div>` : ''}
+                            <button onclick="window.approveTaskOvertime('${id}', ${idx})" class="text-[10px] text-blue-600 underline font-bold block mt-1">Duyệt lại?</button>
+                        </div>`;
+                } else {
+                    // Trạng thái chờ duyệt: Hiển thị cả 2 nút Duyệt và Từ chối
+                    approveBtnHtml = `
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="window.approveTaskOvertime('${id}', ${idx})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition shadow-xs" title="Duyệt"><i class="fa-solid fa-check"></i> Duyệt</button>
+                            <button onclick="window.rejectTaskOvertime('${id}', ${idx})" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition shadow-xs" title="Từ chối"><i class="fa-solid fa-xmark"></i> Từ chối</button>
+                        </div>`;
+                }
+
+                overtimeDetailsHtml += `
+                    <div class="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5 text-[11px] my-1.5">
+                        <div class="flex justify-between items-start font-bold text-amber-900">
+                            <div>
+                                <div>Phiên tăng ca #${idx + 1} (Dự kiến: ${ses.thoiGianDuKien || 0} phút)</div>
+                                <div class="text-slate-600 font-normal mt-0.5">Lý do: ${ses.lyDo || 'Không có'}</div>
+                            </div>
+                            <div>${approveBtnHtml}</div>
+                        </div>
+                        <div class="text-slate-500 pt-1 border-t border-slate-100">Bắt đầu: ${formatTime(ses.batDau)} | GPS: ${mapBatDauTC}</div>
+                        <div class="text-slate-500">Kết thúc: ${ses.ketThuc ? formatTime(ses.ketThuc) : '<span class="text-amber-600 italic">Đang tăng ca...</span>'} | GPS: ${ses.ketThuc ? mapKetThucTC : 'Chưa có'}</div>
+                    </div>
+                `;
             });
         } else {
-            tangCaHtml = `<div class="text-slate-400 italic text-[11px]">Không có lịch sử tăng ca</div>`;
+            overtimeDetailsHtml = `<div class="text-slate-400 italic text-[11px]">Không có lịch sử tăng ca</div>`;
         }
-
         container.innerHTML += `
-            <!-- Thẻ công việc chính -->
-            <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-2.5 transition">
+            <!-- Thẻ công việc chính (Đổi màu viền và nền nếu có tăng ca) -->
+            <div class="${cardHighlightClass} border rounded-2xl p-4 space-y-2.5 transition">
                 <div class="flex justify-between items-start gap-2">
                     <div onclick="window.toggleMobileRowDetail('${id}')" class="cursor-pointer flex-1">
-                        <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-mono">${item.maCv || 'N/A'}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-mono">${item.maCv || 'N/A'}</span>
+                            ${hasOvertime ? `<span class="bg-amber-500 text-white font-black px-2 py-0.5 rounded-full text-[9px] animate-pulse flex items-center gap-1"><i class="fa-solid fa-business-time"></i> Có Tăng Ca</span>` : ''}
+                        </div>
                         <h4 class="font-black text-slate-800 text-sm mt-1">${item.khachHang || 'Khách hàng'}</h4>
                     </div>
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black ${statusColor} shrink-0">${item.tinhTrang || 'Chờ triển khai'}</span>
@@ -481,77 +507,37 @@ function renderAdminMasterTaskList(entries) {
                 <p onclick="window.toggleMobileRowDetail('${id}')" class="text-xs text-slate-600 line-clamp-2 font-medium cursor-pointer">${item.noiDung || ''}</p>
 
                 <!-- Thông tin phụ trách -->
-                <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100" onclick="window.toggleMobileRowDetail('${id}')">
-                    Phụ trách: <strong class="text-slate-700">${item.ktPhuTrach || 'Chưa phân công'}${supportHtml}</strong>
+                <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex justify-between items-center" onclick="window.toggleMobileRowDetail('${id}')">
+                    <span>Phụ trách: <strong class="text-slate-700">${item.ktPhuTrach || 'Chưa phân công'}${supportHtml}</strong></span>
+                    <span class="text-emerald-600 font-bold flex items-center gap-1 text-[10px]"><i class="fa-solid fa-chevron-down"></i> Chi tiết</span>
                 </div>
 
-                <!-- DÒNG CUỐI: Tổng thời gian (trái) & Badge phí/bảo hành (phải) & Mũi tên mở rộng -->
-                <div class="flex justify-between items-center pt-1.5 cursor-pointer" onclick="window.toggleMobileRowDetail('${id}')">
-                    <!-- Góc trái: Tổng thời gian hoàn thành -->
-                    <div>
-                        ${item.tinhTrang === 'Đã hoàn thành' ? `
-                            <span class="bg-emerald-50 text-emerald-700 font-black px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1 text-[11px]">
-                                <i class="fa-solid fa-clock-rotate-left"></i> TG: ${timeDisplayStr}
-                            </span>` : '<span class="text-[10px] text-slate-400 italic">Chưa xong</span>'
-                        }
-                    </div>
-
-                    <!-- Góc phải: Badge thu phí/bảo hành và icon mũi tên mở rộng -->
-                    <div class="flex items-center gap-2">
-                        ${modeBadgeHtml}
-                        <button class="bg-slate-100 hover:bg-slate-200 text-slate-600 w-7 h-7 rounded-xl font-bold transition flex items-center justify-center" title="Xem chi tiết">
-                            <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- PHẦN CHI TIẾT MỞ RỘNG (Đã chuyển nút Sửa/Xóa vào đây) -->
+                <!-- PHẦN CHI TIẾT MỞ RỘNG -->
                 <div id="mobile_detail_${id}" class="hidden space-y-3 pt-3 mt-2 border-t border-slate-100 text-xs text-slate-700" onclick="event.stopPropagation()">
                     
-                    <!-- Nút thao tác Sửa / Xóa đưa vào trong phần mở rộng -->
                     <div class="flex gap-2 pb-1">
                         <button onclick="window.openEditAdminTaskModal('${id}')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
-                            <i class="fa-solid fa-pen"></i> Sửa Công Việc
+                            <i class="fa-solid fa-pen"></i> Sửa CV
                         </button>
                         <button onclick="window.deleteAdminTask('${id}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
-                            <i class="fa-solid fa-trash"></i> Xóa Công Việc
+                            <i class="fa-solid fa-trash"></i> Xóa CV
                         </button>
                     </div>
 
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
-                        <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-info text-emerald-600"></i> Thông Tin Chi Tiết
-                        </div>
-                        <div><strong>SĐT:</strong> <a href="tel:${item.dienThoai}" class="text-blue-600 font-bold">${item.dienThoai || 'N/A'}</a></div>
-                        <div><strong>Loại CV:</strong> <span class="text-blue-600 font-bold">${item.loaiCv || 'N/A'}</span></div>
-                        <div><strong>Ưu tiên:</strong> ${item.uuTien || 'N/A'}</div>
-                        <div><strong>Deadline:</strong> <span class="text-rose-600 font-bold">${item.deadline ? formatTime(item.deadline) : 'N/A'}</span></div>
-                        <div><strong>Ghi chú:</strong> ${item.ghiChu || 'Không có'}</div>
-                    </div>
-
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
-                        <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-user-gear text-emerald-600"></i> Phân Công Nhân Sự
-                        </div>
-                        <div><strong>Phụ trách chính:</strong> ${item.ktPhuTrach || 'N/A'}</div>
-                        <div><strong>Kỹ thuật hỗ trợ:</strong> ${item.ktHoTro || 'Không có'}</div>
-                        <div><strong>Người tạo:</strong> ${item.nguoiTao || 'N/A'}</div>
-                    </div>
-
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
-                        <div class="font-extrabold text-slate-800 border-b pb-1 mb-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-location-crosshairs text-emerald-600"></i> Thời Gian & GPS
-                        </div>
-                        <div><strong>Bắt đầu:</strong> ${formatTime(item.thoiGianBatDau)}</div>
-                        <div><strong>Kết thúc:</strong> ${formatTime(item.thoiGianKetThuc)}</div>
-                        <div><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">${item.gpsThucHien}</a>` : 'Chưa có'}</div>
-                    </div>
-
-                    <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-200 space-y-2">
+                    <!-- KHUNG NHẬT KÝ TĂNG CA (ĐƯỢC ĐƯA LÊN TRÊN CHO DỄ DUYỆT) -->
+                    <div class="bg-amber-50/70 p-3 rounded-xl border border-amber-200 space-y-2">
                         <div class="font-extrabold text-amber-900 border-b border-amber-200 pb-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-business-time text-amber-600"></i> Nhật Ký Tăng Ca
+                            <i class="fa-solid fa-business-time text-amber-600"></i> Quản Lý & Phê Duyệt Tăng Ca
                         </div>
-                        ${tangCaHtml}
+                        ${overtimeDetailsHtml}
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-2xl border text-[11px] space-y-2">
+                        <div class="font-bold text-slate-700 border-b pb-1 flex items-center gap-1.5"><i class="fa-solid fa-clock text-emerald-600"></i> Thời Gian & GPS Thực Tế:</div>
+                        <div><strong>Bắt đầu CV:</strong> ${formatTime(item.thoiGianBatDau)}</div>
+                        <div><strong>GPS Thực hiện:</strong> ${item.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
+                        <div class="pt-1.5 border-t border-slate-200"><strong>Kết thúc CV:</strong> ${formatTime(item.thoiGianKetThuc)}</div>
+                        <div><strong>GPS Hoàn thành:</strong> ${item.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
                     </div>
                 </div>
             </div>`;
@@ -581,7 +567,50 @@ function updateStaffSelectOptions(selectedPhuTrach = '', selectedHoTro = '') {
         if (selectedHoTro) hoTroEl.value = selectedHoTro;
     }, { onlyOnce: true });
 }
+// Hàm phê duyệt phiên tăng ca của công việc
+window.approveTaskOvertime = (taskId, sessionIndex) => {
+    const approvalNote = prompt("Nhập ghi chú phê duyệt tăng ca (nếu có):", "");
+    if (approvalNote === null) return;
 
+    const task = allManagementTasks[taskId];
+    if (!task || !task.tangCaList || !task.tangCaList[sessionIndex]) return;
+
+    let tangCaList = task.tangCaList;
+    tangCaList[sessionIndex].trangThaiDuyet = 'Đã duyệt';
+    tangCaList[sessionIndex].ghiChuDuyet = approvalNote.trim();
+
+    update(ref(db, `managementTasks/${taskId}`), { tangCaList })
+        .then(() => {
+            alert("Đã phê duyệt phiên tăng ca thành công!");
+        })
+        .catch(err => {
+            alert("Lỗi khi phê duyệt: " + err.message);
+        });
+};
+
+// 👉 Hàm từ chối phiên tăng ca kèm lý do
+window.rejectTaskOvertime = (taskId, sessionIndex) => {
+    const rejectReason = prompt("Nhập lý do từ chối phiên tăng ca này:", "");
+    if (rejectReason === null || rejectReason.trim() === "") {
+        alert("Vui lòng nhập lý do từ chối!");
+        return;
+    }
+
+    const task = allManagementTasks[taskId];
+    if (!task || !task.tangCaList || !task.tangCaList[sessionIndex]) return;
+
+    let tangCaList = task.tangCaList;
+    tangCaList[sessionIndex].trangThaiDuyet = 'Từ chối';
+    tangCaList[sessionIndex].ghiChuDuyet = rejectReason.trim();
+
+    update(ref(db, `managementTasks/${taskId}`), { tangCaList })
+        .then(() => {
+            alert("Đã từ chối phiên tăng ca!");
+        })
+        .catch(err => {
+            alert("Lỗi khi từ chối: " + err.message);
+        });
+};
 window.openAdminTaskModal = () => {
     document.getElementById('adminModalTaskId').value = '';
     document.getElementById('adminTaskModalTitle').innerHTML = '<i class="fa-solid fa-list-check text-emerald-600"></i> Tạo Mới Công Việc';

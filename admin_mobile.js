@@ -1212,9 +1212,4 @@ function renderPerformanceReport(entries) {
     // Gộp cả biểu đồ tổng quan và danh sách chi tiết vào container
     container.innerHTML = chartHtml + detailsHtml;
 }
-// Khắc phục triệt để lỗi không focus được input/textarea trên PWA standalone mode
-document.addEventListener('touchstart', function(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        e.target.focus();
-    }
-}, { passive: true });
+

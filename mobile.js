@@ -490,6 +490,10 @@ window.loadMonthlyReport = () => {
     let totalTime = 0;
     let totalScore = 0;
     let scoredCount = 0;
+    
+    // Biến thống kê tổng thời gian tăng ca (phút) trong tháng
+    let totalOvertimeMinutes = 0;
+    let tasksWithOvertime = [];
 
     const monthlyTaskListEl = document.getElementById('monthlyTaskList');
     if (monthlyTaskListEl) monthlyTaskListEl.innerHTML = '';
@@ -497,16 +501,15 @@ window.loadMonthlyReport = () => {
     // Lọc các công việc thuộc về user hiện tại (Phụ trách hoặc Hỗ trợ) và đúng tháng đã chọn
     const myMonthlyTasks = Object.entries(allAssignedTasks || {}).filter(([id, task]) => {
         const isAssigned = task.ktPhuTrach === currentUser.name || task.ktHoTro === currentUser.name;
-        // Kiểm tra theo ngày tạo hoặc thời gian kết thúc bắt đầu bằng tháng được chọn (YYYY-MM)
         const taskDate = task.ngayTao || task.thoiGianKetThuc || '';
         const matchesMonth = taskDate.startsWith(selectedMonth);
         return isAssigned && matchesMonth;
-    }).reverse(); // Mới nhất lên đầu
+    }).reverse();
 
     myMonthlyTasks.forEach(([id, task]) => {
         totalCv++;
         
-        // Tính thời gian hoàn thành (nếu có đủ thời gian bắt đầu và kết thúc)
+        // Tính thời gian hoàn thành CV
         let calculatedMinutes = Number(task.thoiGian) || 0;
         if (task.thoiGianBatDau && task.thoiGianKetThuc) {
             const startMs = new Date(task.thoiGianBatDau).getTime();
@@ -521,46 +524,93 @@ window.loadMonthlyReport = () => {
             scoredCount++;
         }
 
-        const badgeColor = score > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
-        const statusText = score > 0 ? `Điểm KPI: ${score}` : (task.tinhTrang === 'Đã hoàn thành' ? 'Chờ chấm' : task.tinhTrang);
+        // 👉 Kiểm tra xem công việc này có phát sinh phiên tăng ca nào trong tháng chọn không
+        let taskHasOvertime = false;
+        let taskOtMinutes = 0;
+        let otDetailsHtml = '';
 
-        let tuVanHtml = task.coTuVanBanHang ? `<div class="text-[11px] text-indigo-700 bg-indigo-50 p-2 rounded-xl mt-1 font-medium"><i class="fa-solid fa-comments mr-1"></i> <strong>Tư vấn:</strong> ${task.noiDungTuVan || 'Có'}</div>` : '';
-        let danhGiaHtml = task.danhGiaAdmin ? `<div class="text-[11px] text-slate-600 bg-slate-100 p-2 rounded-xl mt-1 italic"><i class="fa-solid fa-user-tie text-emerald-600 mr-1"></i> ${task.danhGiaAdmin}</div>` : '';
+        if (task.tangCaList && Array.isArray(task.tangCaList)) {
+            task.tangCaList.forEach((ses, idx) => {
+                const otDate = ses.batDau || '';
+                if (otDate.startsWith(selectedMonth)) {
+                    taskHasOvertime = true;
+                    let sesMins = 0;
+                    
+                    // 👉 Tính chính xác thời gian = Thời gian kết thúc - Thời gian bắt đầu
+                    if (ses.batDau && ses.ketThuc) {
+                        const otStart = new Date(ses.batDau).getTime();
+                        const otEnd = new Date(ses.ketThuc).getTime();
+                        sesMins = Math.max(0, Math.round((otEnd - otStart) / 60000));
+                    } else {
+                        // Nếu chưa kết thúc thì lấy tạm thời gian dự kiến
+                        sesMins = Number(ses.thoiGianDuKien) || 0;
+                    }
+                    
+                    taskOtMinutes += sesMins;
+                    totalOvertimeMinutes += sesMins;
 
-        if (monthlyTaskListEl) {
-            monthlyTaskListEl.innerHTML += `
-                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="font-extrabold text-slate-800">${(task.ngayTao || todayStr).split('-').reverse().join('/')} - <span class="text-blue-600">${task.maCv || 'CV'}</span></span>
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}">${statusText}</span>
-                    </div>
-                    <div class="font-bold text-slate-700">${task.khachHang || ''}</div>
-                    <div class="text-slate-600">${task.noiDung || ''}</div>
-                    ${tuVanHtml}
-                    ${danhGiaHtml}
-                    <div class="text-slate-400 text-[11px] pt-1 border-t border-slate-200/60 flex justify-between">
-                        <span>TG: <strong>${calculatedMinutes} phút</strong></span>
-                        <div class="flex gap-2">
-                            <span>Ảnh: <i class="fa-solid fa-camera ${task.chupAnh ? 'text-emerald-500':'text-slate-300'}"></i></span>
-                            <span>Maps: <i class="fa-solid fa-map ${task.danhGiaMaps ? 'text-blue-500':'text-slate-300'}"></i></span>
+                    otDetailsHtml += `
+                        <div class="text-[11px] text-amber-800 bg-amber-50/70 p-1.5 rounded-lg border border-amber-200 mt-1 flex justify-between items-center">
+                            <span><i class="fa-solid fa-business-time text-amber-600 mr-1"></i> <strong>Lần ${idx+1}:</strong> ${ses.lyDo} (${sesMins} phút)</span>
+                            <span class="text-[10px] text-slate-500">${ses.trangThai || ''}</span>
                         </div>
-                    </div>
-                </div>
-            `;
+                    `;
+                }
+            });
+        }
+
+        if (taskHasOvertime) {
+            tasksWithOvertime.push({
+                task: task,
+                id: id,
+                otMinutes: taskOtMinutes,
+                otHtml: otDetailsHtml
+            });
         }
     });
 
-    if (myMonthlyTasks.length === 0 && monthlyTaskListEl) {
-        monthlyTaskListEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border">Không có công việc nào trong tháng này.</p>';
-    }
-
+    // 👉 Đổ dữ liệu tổng thời gian tăng ca vào giao diện Báo Cáo
+    // (Nếu HTML Tab Báo Cáo chưa có thẻ chứa tổng giờ tăng ca, bạn có thể bổ sung thêm một ô hiển thị tổng thời gian TC)
     const avgScore = scoredCount > 0 ? (totalScore / scoredCount).toFixed(1) : 0;
 
-    // Cập nhật số liệu lên các ô tổng hợp phía trên Tab Báo Cáo
     document.getElementById('repTotalCv').textContent = totalCv;
     document.getElementById('repTotalTime').textContent = `${totalTime}p`;
     document.getElementById('repTotalScore').textContent = totalScore;
     document.getElementById('repAvgScore').textContent = avgScore;
+
+    // 👉 Render danh sách các công việc có phát sinh tăng ca trong tháng ra giao diện Tab Báo Cáo
+    if (monthlyTaskListEl) {
+        if (tasksWithOvertime.length > 0) {
+            let containerHtml = `
+                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl mb-3 flex justify-between items-center text-amber-900">
+                    <span class="font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-business-time text-amber-600 text-base"></i> Tổng thời gian tăng ca tháng:</span>
+                    <span class="text-sm font-black text-amber-700">${totalOvertimeMinutes} phút (${(totalOvertimeMinutes/60).toFixed(1)} giờ)</span>
+                </div>
+                <div class="space-y-2.5">
+            `;
+
+            tasksWithOvertime.forEach(item => {
+                const t = item.task;
+                containerHtml += `
+                    <div class="bg-white border border-slate-200/80 rounded-2xl p-3.5 text-xs space-y-2 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="font-extrabold text-blue-600">${t.maCv || 'CV'} - ${t.khachHang || ''}</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">Tổng TC: ${item.otMinutes} phút</span>
+                        </div>
+                        <div class="text-slate-700 font-medium">${t.noiDung || ''}</div>
+                        <div class="space-y-1 pt-1 border-t border-slate-100">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase">Chi tiết các phiên tăng ca:</div>
+                            ${item.otHtml}
+                        </div>
+                    </div>
+                `;
+            });
+            containerHtml += `</div>`;
+            monthlyTaskListEl.innerHTML = containerHtml;
+        } else {
+            monthlyTaskListEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border">Không có công việc nào phát sinh tăng ca trong tháng này.</p>';
+        }
+    }
 };
 // ================= QUẢN LÝ TAB "VIỆC ĐƯỢC GIAO" CHO KỸ THUẬT =================
 let allAssignedTasks = {};
@@ -601,7 +651,23 @@ function renderAssignedTasks() {
 
         return matchMonth && matchCustomer && matchType;
     }).reverse();
+    // 👉 Đưa đoạn mã sắp xếp theo đúng thứ tự ưu tiên trạng thái vào đây (thay thế cho .reverse() cũ)
+    myTasks.sort(([idA, taskA], [idB, taskB]) => {
+        const getStatusWeight = (status) => {
+            if (status === 'Chờ triển khai') return 1;
+            if (status === 'Đang thực hiện') return 2;
+            if (status === 'Tạm ngưng') return 3;
+            if (status === 'Đã hoàn thành') return 4;
+            return 5;
+        };
 
+        const weightA = getStatusWeight(taskA.tinhTrang);
+        const weightB = getStatusWeight(taskB.tinhTrang);
+
+        if (weightA !== weightB) return weightA - weightB;
+
+        return (taskB.ngayTaoTimestamp || 0) - (taskA.ngayTaoTimestamp || 0);
+    });
     // Đếm số việc chưa hoàn thành để hiển thị badge tổng
     const activeTasksCount = myTasks.filter(([id, task]) => task.tinhTrang !== 'Đã hoàn thành').length;
 
@@ -654,97 +720,150 @@ function renderAssignedTasks() {
         if (task.tinhTrang === 'Đã hoàn thành') statusColor = 'bg-emerald-100 text-emerald-800';
         if (task.tinhTrang === 'Tạm ngưng') statusColor = 'bg-rose-100 text-rose-800';
 
-        // Nút bấm hành động trạng thái chính
-        let actionButtons = '';
-        if (task.tinhTrang === 'Chờ triển khai') {
-            actionButtons = `<button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl font-black text-xs transition shadow-lg flex items-center justify-center gap-2 active:scale-[0.99]"><i class="fa-solid fa-play"></i> Nhận Việc & Bắt Đầu</button>`;
-        } else if (task.tinhTrang === 'Đang thực hiện') {
-            actionButtons = `<div class="grid grid-cols-2 gap-2.5">
-                <button onclick="window.updateAssignedTaskStatus('${id}', 'Tạm ngưng')" class="bg-amber-500 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-pause"></i> Tạm Ngưng</button>
-                <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-check"></i> Hoàn Thành</button>
-            </div>`;
-        } else if (task.tinhTrang === 'Tạm ngưng') {
-            actionButtons = `<div class="grid grid-cols-2 gap-2.5">
-                <button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="bg-blue-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-play"></i> Tiếp Tục</button>
-                <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs transition active:scale-[0.99]"><i class="fa-solid fa-check"></i> Hoàn Thành</button>
-            </div>`;
-        } else {
-            // 👉 TÍNH TOÁN TỔNG THỜI GIAN HOÀN THÀNH (Tính theo phút hoặc giờ + phút)
-            let totalMinutes = 0;
-            if (task.thoiGianBatDau && task.thoiGianKetThuc) {
-                const startMs = new Date(task.thoiGianBatDau).getTime();
-                const endMs = new Date(task.thoiGianKetThuc).getTime();
-                totalMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
-            }
-
-            let timeDisplayStr = `${totalMinutes} phút`;
-            if (totalMinutes >= 60) {
-                const hours = Math.floor(totalMinutes / 60);
-                const mins = totalMinutes % 60;
-                timeDisplayStr = mins > 0 ? `${hours} giờ ${mins} phút` : `${hours} giờ`;
-            }
-
-            actionButtons = `
-                <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 shadow-sm">
-                    <div class="flex items-center gap-2 text-emerald-800 font-extrabold text-xs">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i> Đã hoàn thành
-                    </div>
-                    <div class="bg-white px-3 py-1 rounded-xl border border-emerald-200 text-emerald-700 font-black text-xs flex items-center gap-1.5 shadow-xs">
-                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> Tổng TG: ${timeDisplayStr}
-                    </div>
-                </div>`;
-        }
-        // Logic Sửa/Xóa công việc khi chưa hoàn thành
-        let editDeleteButtons = '';
-        if (task.tinhTrang !== 'Đã hoàn thành') {
-            editDeleteButtons = `
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-2">
-                    <button onclick="window.openEditTaskModal('${id}')" class="bg-blue-50 text-blue-600 py-2 rounded-xl font-bold text-[10px] hover:bg-blue-100 transition"><i class="fa-solid fa-pen mr-1"></i> Sửa</button>
-                    <button onclick="window.deleteTaskByTech('${id}')" class="bg-rose-50 text-rose-600 py-2 rounded-xl font-bold text-[10px] hover:bg-rose-100 transition"><i class="fa-solid fa-trash mr-1"></i> Xóa</button>
-                </div>`;
-        }
-
-        // Xử lý thông tin tăng ca
-        let tangCaSectionHtml = '';
-        const isOvertimeWindow = checkIsOvertime();
-        const isCompleted = task.tinhTrang === 'Đã hoàn thành';
+        // 1. Xử lý nút tăng ca
         let tangCaList = task.tangCaList || [];
         let activeTangCa = tangCaList.find(s => s.trangThai === 'Đang tăng ca');
+        let tangCaActionBtn = activeTangCa 
+            ? `<button onclick="window.endTangCaSession('${id}', '${activeTangCa.id}')" class="bg-rose-600 text-white py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs animate-pulse"><i class="fa-solid fa-stop"></i> Kết thúc TC</button>`
+            : `<button onclick="window.openTangCaModal('${id}')" class="bg-amber-500 text-white py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs"><i class="fa-solid fa-business-time"></i> Tăng ca</button>`;
 
-        if (!isCompleted && isOvertimeWindow) {
-            if (activeTangCa) {
-                tangCaSectionHtml = `
-                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3 rounded-2xl space-y-1.5 shadow-sm">
-                        <div class="flex justify-between items-center text-amber-900 font-bold">
-                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-business-time text-amber-600"></i> Đang tăng ca: ${activeTangCa.lyDo}</span>
-                            <button onclick="window.endTangCaSession('${id}', '${activeTangCa.id}')" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-[10px] font-black transition shadow-sm">Kết thúc TC</button>
-                        </div>
-                        <div class="text-[10px] text-slate-500">Dự kiến: ${activeTangCa.thoiGianDuKien} phút • Bắt đầu: ${formatTime(activeTangCa.batDau)}</div>
+        // 2. Xử lý nút hành động chính
+        let actionButtons = '';
+        if (task.tinhTrang === 'Chờ triển khai') {
+            actionButtons = `
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 px-2 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs">
+                        <i class="fa-solid fa-play text-[10px] text-emerald-400"></i> Nhận Việc
+                    </button>
+                    ${tangCaActionBtn}
+                </div>`;
+        } else if (task.tinhTrang === 'Đang thực hiện') {
+            actionButtons = `
+                <div class="grid grid-cols-3 gap-1.5 pt-1">
+                    <button onclick="currentPauseTaskId = '${id}'; document.getElementById('inputPauseReason').value = ''; document.getElementById('pauseReasonModal').classList.remove('hidden');" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-pause"></i> Tạm ngưng
+                    </button>
+                    ${tangCaActionBtn}
+                    <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-check"></i> Hoàn thành
+                    </button>
+                </div>`;
+        } else if (task.tinhTrang === 'Tạm ngưng') {
+            actionButtons = `
+                <div class="grid grid-cols-3 gap-1.5 pt-1">
+                    <button onclick="window.updateAssignedTaskStatus('${id}', 'Đang thực hiện')" class="bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-play"></i> Tiếp tục
+                    </button>
+                    ${tangCaActionBtn}
+                    <button onclick="window.openPaymentModal('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-1 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-check"></i> Hoàn thành
+                    </button>
+                </div>`;
+        } else {
+            actionButtons = `
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-2 text-xs">
+                    <span class="text-emerald-700 font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Đã hoàn thành</span>
+                </div>`;
+        }
+        // 3. Xử lý nút Sửa/Xóa
+        let editDeleteButtons = '';
+        if (task.tinhTrang !== 'Đã hoàn thành') {
+            editDeleteButtons = `<div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-2"><button onclick="window.openEditTaskModal('${id}')" class="bg-blue-50 text-blue-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-pen mr-1"></i> Sửa</button><button onclick="window.deleteTaskByTech('${id}')" class="bg-rose-50 text-rose-600 py-2 rounded-xl font-bold text-[10px] transition"><i class="fa-solid fa-trash mr-1"></i> Xóa</button></div>`;
+        }
+
+        // 4. 👉 ĐỊNH NGHĨA BIẾN historyPauseHtml TẠI ĐÂY TRƯỚC KHI ĐƯA VÀO TEMPLATE
+        let historyPauseHtml = '';
+        if (task.pauseHistory && task.pauseHistory.length > 0) {
+            historyPauseHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
+                <div class="font-bold text-amber-700 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Lịch sử tạm ngưng (${task.pauseHistory.length} lần):</div>`;
+            task.pauseHistory.forEach((p, idx) => {
+                historyPauseHtml += `
+                    <div class="pl-2 border-l-2 border-amber-400 space-y-0.5 bg-amber-50/50 p-2 rounded-xl">
+                        <div><strong>• Lần ${idx+1}:</strong> ${p.lyDo}</div>
+                        <div class="text-[10px] text-slate-500">⏳ Tạm ngưng lúc: ${formatTime(p.thoiGianTamNgung)}</div>
+                        ${p.thoiGianLamLai ? `<div class="text-[10px] text-emerald-600 font-bold">▶️ Làm tiếp lúc: ${formatTime(p.thoiGianLamLai)} (Ngày: ${p.ngayLamTiepTheo || 'N/A'})</div>` : '<div class="text-[10px] text-rose-500 italic">Đang tạm ngưng...</div>'}
                     </div>`;
-            } else {
-                tangCaSectionHtml = `
-                    <button onclick="window.openTangCaModal('${id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-2.5 rounded-2xl font-extrabold text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 active:scale-[0.99]">
-                        <i class="fa-solid fa-business-time"></i> Bắt Đầu Tăng Ca Mới
-                    </button>`;
-            }
+            });
+            historyPauseHtml += `</div>`;
         }
 
         let historyTangCaHtml = '';
-if (tangCaList.length > 0) {
-    historyTangCaHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
-        <div class="font-bold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Lịch sử tăng ca (${tangCaList.length} lần):</div>`;
-    tangCaList.forEach((ses, idx) => {
-        const isDone = ses.trangThai === 'Đã kết thúc';
-        historyTangCaHtml += `
-            <div class="pl-2 border-l-2 ${isDone ? 'border-emerald-400' : 'border-amber-400'} space-y-0.5">
-                <div>• Lần ${idx+1}: <span class="font-medium text-slate-700">${ses.lyDo}</span> (${ses.thoiGianDuKien}p) - <span class="font-bold ${isDone ? 'text-emerald-600' : 'text-amber-600'}">${ses.trangThai}</span></div>
-                <div class="text-[10px] text-slate-400">Bắt đầu: ${formatTime(ses.batDau)} (${ses.gpsBatDau || 'N/A'})</div>
-                ${isDone ? `<div class="text-[10px] text-slate-400">Kết thúc: ${formatTime(ses.ketThuc)} (${ses.gpsKetThuc || 'N/A'})</div>` : ''}
-            </div>`;
-    });
-    historyTangCaHtml += `</div>`;
-}
+        if (tangCaList.length > 0) {
+            historyTangCaHtml = `<div class="text-[11px] text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
+                <div class="font-bold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Lịch sử tăng ca (${tangCaList.length} lần):</div>`;
+            tangCaList.forEach((ses, idx) => {
+                const isDone = ses.trangThai === 'Đã kết thúc';
+                historyTangCaHtml += `
+                    <div class="pl-2 border-l-2 ${isDone ? 'border-emerald-400' : 'border-amber-400'} space-y-0.5">
+                        <div>• Lần ${idx+1}: <span class="font-medium text-slate-700">${ses.lyDo}</span> (${ses.thoiGianDuKien}p) - <span class="font-bold ${isDone ? 'text-emerald-600' : 'text-amber-600'}">${ses.trangThai}</span></div>
+                        <div class="text-[10px] text-slate-400">Bắt đầu: ${formatTime(ses.batDau)} (${ses.gpsBatDau || 'N/A'})</div>
+                        ${isDone ? `<div class="text-[10px] text-slate-400">Kết thúc: ${formatTime(ses.ketThuc)} (${ses.gpsKetThuc || 'N/A'})</div>` : ''}
+                    </div>`;
+            });
+            historyTangCaHtml += `</div>`;
+        }
+        // 👉 Xây dựng chi tiết từng lần Tạm ngưng (Thời gian & GPS ngưng, Thời gian & GPS làm lại)
+        let pauseDetailsHtml = '';
+        if (task.pauseHistory && task.pauseHistory.length > 0) {
+            task.pauseHistory.forEach((p, idx) => {
+                const mapTamNgung = p.gpsTamNgung && p.gpsTamNgung.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.gpsTamNgung)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : (p.gpsTamNgung || 'Chưa có');
+                const mapLamLai = p.gpsLamLai && p.gpsLamLai.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.gpsLamLai)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : (p.gpsLamLai || 'Chưa có');
+                
+                pauseDetailsHtml += `
+                    <div class="pl-2 border-l-2 border-amber-400 my-1.5 space-y-0.5">
+                        <div class="font-bold text-amber-700">Tạm ngưng lần ${idx+1}: (${p.lyDo})</div>
+                        <div>• Bắt đầu ngưng: ${formatTime(p.thoiGianTamNgung)} | GPS: ${mapTamNgung}</div>
+                        <div>• Làm tiếp lúc: ${p.thoiGianLamLai ? formatTime(p.thoiGianLamLai) : '<span class="text-rose-500 italic">Đang tạm ngưng...</span>'} | GPS: ${p.thoiGianLamLai ? mapLamLai : 'Chưa có'}</div>
+                    </div>
+                `;
+            });
+        } else {
+            pauseDetailsHtml = '<div class="text-slate-400 pl-2">Không có lần tạm ngưng nào</div>';
+        }
 
+        // 👉 Xây dựng chi tiết từng phiên Tăng ca (Thời gian & GPS bắt đầu, Thời gian & GPS kết thúc)
+        let overtimeDetailsHtml = '';
+        if (task.tangCaList && task.tangCaList.length > 0) {
+            task.tangCaList.forEach((ses, idx) => {
+                const mapBatDauTC = ses.gpsBatDau && ses.gpsBatDau.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ses.gpsBatDau)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : (ses.gpsBatDau || 'Chưa có');
+                const mapKetThucTC = ses.gpsKetThuc && ses.gpsKetThuc.includes(',') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ses.gpsKetThuc)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : (ses.gpsKetThuc || 'Chưa có');
+
+                overtimeDetailsHtml += `
+                    <div class="pl-2 border-l-2 border-orange-400 my-1.5 space-y-0.5">
+                        <div class="font-bold text-orange-700">Tăng ca lần ${idx+1}: (${ses.lyDo})</div>
+                        <div>• Bắt đầu TC: ${formatTime(ses.batDau)} | GPS: ${mapBatDauTC}</div>
+                        <div>• Kết thúc TC: ${ses.ketThuc ? formatTime(ses.ketThuc) : '<span class="text-amber-600 italic">Đang tăng ca...</span>'} | GPS: ${ses.ketThuc ? mapKetThucTC : 'Chưa có'}</div>
+                    </div>
+                `;
+            });
+        } else {
+            overtimeDetailsHtml = '<div class="text-slate-400 pl-2">Không có phiên tăng ca nào</div>';
+        }
+
+        // 👉 Khung tổng hợp hiển thị đầy đủ theo chuẩn bắt đầu và kết thúc
+        let timeGpsBoxHtml = `
+            <div class="bg-slate-50 p-3 rounded-2xl border text-[11px] space-y-2">
+                <div class="font-bold text-slate-700 border-b pb-1 flex items-center gap-1.5"><i class="fa-solid fa-clock text-emerald-600"></i> Thời gian & GPS thực tế:</div>
+                
+                <div><strong>Bắt đầu CV:</strong> ${formatTime(task.thoiGianBatDau)}</div>
+                <div><strong>GPS Thực hiện:</strong> ${task.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
+
+                <div class="pt-1.5 border-t border-slate-200">
+                    <strong class="text-amber-700">Nhật ký Tạm ngưng & Làm lại:</strong>
+                    ${pauseDetailsHtml}
+                </div>
+
+                <div class="pt-1.5 border-t border-slate-200">
+                    <strong class="text-orange-700">Nhật ký Tăng ca:</strong>
+                    ${overtimeDetailsHtml}
+                </div>
+
+                <div class="pt-1.5 border-t border-slate-200"><strong>Kết thúc CV:</strong> ${formatTime(task.thoiGianKetThuc)}</div>
+                <div><strong>GPS Hoàn thành:</strong> ${task.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
+            </div>
+        `;
+        
+        // 5. Render vào container chính
         container.innerHTML += `
             <div class="bg-white border border-slate-200/90 rounded-3xl p-4 text-xs space-y-3 shadow-sm hover:shadow transition">
                 <div onclick="window.toggleMobileAccordion('${id}')" class="cursor-pointer space-y-2">
@@ -766,7 +885,6 @@ if (tangCaList.length > 0) {
 
                 <!-- PHẦN CHI TIẾT MỞ RỘNG ĐẦY ĐỦ -->
                 <div id="accordion_${id}" class="hidden space-y-3 pt-2 border-t border-slate-100">
-                    <!-- Thông tin chung -->
                     <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-3 rounded-2xl border">
                         <div><strong>SĐT:</strong> <a href="tel:${task.dienThoai}" class="text-blue-600 font-bold">${task.dienThoai || 'N/A'}</a></div>
                         <div><strong>Loại CV:</strong> <span class="text-blue-600 font-bold">${task.loaiCv || 'Khác'}</span></div>
@@ -778,16 +896,7 @@ if (tangCaList.length > 0) {
                         <div class="col-span-2"><strong>Ghi chú:</strong> ${task.ghiChu || 'Không có'}</div>
                     </div>
 
-                    <!-- Thời gian & GPS -->
-                    <div class="bg-slate-50 p-3 rounded-2xl border text-[11px] space-y-1">
-                        <div class="font-bold text-slate-700 border-b pb-1 mb-1"><i class="fa-solid fa-clock text-emerald-600"></i> Thời gian & GPS thực tế:</div>
-                        <div><strong>Bắt đầu CV:</strong> ${formatTime(task.thoiGianBatDau)}</div>
-                        <div><strong>Kết thúc CV:</strong> ${formatTime(task.thoiGianKetThuc)}</div>
-                        <div><strong>GPS Thực hiện:</strong> ${task.gpsThucHien ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsThucHien)}" target="_blank" class="text-blue-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
-                        <div><strong>GPS Hoàn thành:</strong> ${task.gpsHoanThanh ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.gpsHoanThanh)}" target="_blank" class="text-emerald-600 underline font-bold">Xem Map</a>` : 'Chưa có'}</div>
-                    </div>
-
-                    <!-- THÔNG TIN THANH TOÁN (Chỉ hiện khi hoàn thành) -->
+                    ${timeGpsBoxHtml}
                     ${task.tinhTrang === 'Đã hoàn thành' && task.hinhThucThanhToan ? `
                         <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 text-[11px] space-y-1 text-slate-700">
                             <div class="font-bold text-emerald-800 border-b border-emerald-200 pb-1 mb-1 flex items-center gap-1">
@@ -803,12 +912,7 @@ if (tangCaList.length > 0) {
                         </div>
                     ` : ''}
 
-                    <!-- KHU VỰC TĂNG CA -->
-                    ${(tangCaSectionHtml || historyTangCaHtml) ? `
-                        <div class="space-y-2 pt-1 border-t border-slate-100">
-                            ${tangCaSectionHtml}
-                            ${historyTangCaHtml}
-                        </div>` : ''}
+                    ${historyTangCaHtml ? `<div class="space-y-2 pt-1 border-t border-slate-100">${historyTangCaHtml}</div>` : ''}
                 </div>
 
                 <div class="pt-1">${actionButtons}</div>
@@ -860,17 +964,36 @@ function getLocalISOString(date = new Date()) {
 }
 
 function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
-    // ❌ Sửa từ dòng: const nowTime = new Date().toISOString();
-    // ✅ Thành:
     const nowTime = getLocalISOString(new Date());
+    const task = allAssignedTasks[taskId] || {};
     
     let updatePayload = { tinhTrang: newStatus };
 
     if (newStatus === 'Đang thực hiện') {
-        updatePayload.thoiGianBatDau = nowTime;
-        updatePayload.gpsThucHien = gpsCoords;
+        // Nếu trước đó đang tạm ngưng và chuyển lại "Đang thực hiện" (Tiếp tục)
+        if (task.tinhTrang === 'Tạm ngưng' && task.pauseHistory && task.pauseHistory.length > 0) {
+            let pauseHistory = task.pauseHistory;
+            // Cập nhật thời gian làm lại vào phiên tạm ngưng đang mở gần nhất
+            let lastPause = pauseHistory[pauseHistory.length - 1];
+            if (!lastPause.thoiGianLamLai) {
+                lastPause.thoiGianLamLai = nowTime;
+                lastPause.gpsLamLai = gpsCoords;
+                lastPause.ngayLamTiepTheo = nowTime.split('T')[0]; // Ngày tiếp tục làm
+            }
+            updatePayload.pauseHistory = pauseHistory;
+        } else {
+            // Trường hợp nhận việc mới hoàn toàn
+            updatePayload.thoiGianBatDau = nowTime;
+            updatePayload.gpsThucHien = gpsCoords;
+        }
     } else if (newStatus === 'Tạm ngưng') {
-        updatePayload.gpsTamNgung = gpsCoords;
+        // 👉 Đảm bảo gán đúng task ID hiện tại vào biến toàn cục trước khi mở modal
+        currentPauseTaskId = taskId;
+        const input = document.getElementById('inputPauseReason');
+        if (input) input.value = '';
+        const modal = document.getElementById('pauseReasonModal');
+        if (modal) modal.classList.remove('hidden');
+        return; 
     } else if (newStatus === 'Đã hoàn thành') {
         updatePayload.thoiGianKetThuc = nowTime;
         updatePayload.gpsHoanThanh = gpsCoords;
@@ -879,14 +1002,9 @@ function executeAssignedStatusUpdate(taskId, newStatus, gpsCoords) {
     update(ref(db, `managementTasks/${taskId}`), updatePayload)
         .then(() => {
             alert(`Cập nhật trạng thái thành công: "${newStatus}"`);
-
-            const currentTaskData = allAssignedTasks[taskId] || {};
-            const mergedData = { ...currentTaskData, ...updatePayload };
-            
+            const mergedData = { ...task, ...updatePayload };
             if (newStatus === 'Đang thực hiện') {
-                sendMobileTelegramNotification('inprogress', mergedData, 'Kỹ thuật viên đã nhận việc và bắt đầu triển khai.');
-            } else if (newStatus === 'Tạm ngưng') {
-                sendMobileTelegramNotification('pause', mergedData, 'Công việc đã bị tạm ngưng.');
+                sendMobileTelegramNotification('inprogress', mergedData, 'Kỹ thuật viên đã tiếp tục triển khai công việc.');
             }
         })
         .catch((err) => {
@@ -1058,50 +1176,34 @@ window.switchTab = (tab) => {
         if (textSpan) textSpan.className = "text-[10px] font-black";
     }
 };
-// ================= QUẢN LÝ TĂNG CA (HỖ TRỢ NHIỀU LẦN/NGÀY) =================
-
-// Hàm kiểm tra ngoài giờ làm việc chuẩn xác (Sáng 07h30-11h30 & Chiều 13h30-17h30, Chủ Nhật nghỉ)
+// ================= QUẢN LÝ TĂNG CA =================
 function checkIsOvertime() {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const currentTimeVal = hours * 60 + minutes;
-
-    if (dayOfWeek === 0) return true; // Chủ Nhật nghỉ tính cả ngày là ngoài giờ
-
-    const morningEnd = 11 * 60 + 30; // 11h30
-    const afternoonStart = 13 * 60 + 30; // 13h30
-    const afternoonEnd = 17 * 60 + 30; // 17h30
-
-    // Ngoài giờ: từ 11h30 đến 13h30 HOẶC sau 17h30 (đến trước 07h30 sáng hôm sau)
-    const isLunchBreakOvertime = (currentTimeVal > morningEnd && currentTimeVal < afternoonStart);
-    const isEveningOvertime = (currentTimeVal > afternoonEnd || currentTimeVal < 7 * 60 + 30);
-
-    return isLunchBreakOvertime || isEveningOvertime;
+    return true; // Luôn trả về true để luôn hiển thị nút tăng ca cho kỹ thuật thao tác
 }
 
-// Mở Modal nhập lý do khi kỹ thuật bấm nút Bắt đầu tăng ca
 window.openTangCaModal = (taskId) => {
-    document.getElementById('tangCaTaskId').value = taskId;
-    document.getElementById('tangCaForm').reset();
-    document.getElementById('tangCaModal').classList.remove('hidden');
+    const taskIdEl = document.getElementById('tangCaTaskId');
+    const formEl = document.getElementById('tangCaForm');
+    const modalEl = document.getElementById('tangCaModal');
+
+    if (taskIdEl) taskIdEl.value = taskId;
+    if (formEl) formEl.reset();
+    if (modalEl) modalEl.classList.remove('hidden');
 };
 
 window.closeTangCaModal = () => {
-    document.getElementById('tangCaModal').classList.add('hidden');
+    const modalEl = document.getElementById('tangCaModal');
+    if (modalEl) modalEl.classList.add('hidden');
 };
 
-// Xử lý khi kỹ thuật submit thông tin bắt đầu tăng ca
 window.submitStartTangCa = (e) => {
     e.preventDefault();
-    const taskId = document.getElementById('tangCaTaskId').value;
-    const lyDo = document.getElementById('tangCaLyDo').value.trim();
-    const thoiGianDuKien = Number(document.getElementById('tangCaThoiGianDuKien').value) || 0;
+    const taskId = document.getElementById('tangCaTaskId')?.value;
+    const lyDo = document.getElementById('tangCaLyDo')?.value.trim();
+    const thoiGianDuKien = Number(document.getElementById('tangCaThoiGianDuKien')?.value) || 0;
     
     if (!taskId || !lyDo) return;
 
-    // Lấy GPS chính xác mới nhất ngay khi bấm
     getFreshGPS((freshGps) => {
         saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, freshGps);
     });
@@ -1112,28 +1214,37 @@ function saveTangCaToFirebase(taskId, lyDo, thoiGianDuKien, gpsStart) {
     if (!task) return;
 
     let tangCaList = task.tangCaList || [];
+    const nowISO = getLocalISOString(new Date());
+
     const newSession = {
         id: 'TC-' + Date.now(),
         lyDo: lyDo,
         thoiGianDuKien: thoiGianDuKien,
-        batDau: new Date().toISOString(),
+        batDau: nowISO,
         gpsBatDau: gpsStart,
         trangThai: 'Đang tăng ca'
     };
 
     tangCaList.push(newSession);
 
-    update(ref(db, `managementTasks/${taskId}`), { tangCaList })
+    // 👉 Tự động chuyển trạng thái thành "Đang thực hiện" nếu công việc vẫn đang "Chờ triển khai"
+    let updatePayload = { tangCaList };
+    if (task.tinhTrang === 'Chờ triển khai') {
+        updatePayload.tinhTrang = 'Đang thực hiện';
+        updatePayload.thoiGianBatDau = nowISO;
+        updatePayload.gpsThucHien = gpsStart;
+    }
+
+    update(ref(db, `managementTasks/${taskId}`), updatePayload)
         .then(() => {
-            alert("Đã bắt đầu phiên tăng ca!");
+            alert("Đã nhận việc và bắt đầu phiên tăng ca thành công!");
             window.closeTangCaModal();
-            // Gửi thông báo Telegram khi bắt đầu tăng ca
-            sendMobileTelegramNotification('start_overtime', task, `Bắt đầu phiên tăng ca mới.\n- Lý do: ${lyDo}\n- Dự kiến: ${thoiGianDuKien} phút`);
+            
+            const mergedData = { ...task, ...updatePayload };
+            sendMobileTelegramNotification('start_overtime', mergedData, `Đã nhận việc và bắt đầu tăng ca.\n- Lý do: ${lyDo}\n- Dự kiến: ${thoiGianDuKien} phút`);
         })
         .catch(err => alert("Lỗi: " + err.message));
 }
-
-// Hàm kết thúc một phiên tăng ca đang diễn ra
 window.endTangCaSession = (taskId, sessionId) => {
     const task = allAssignedTasks[taskId];
     if (!task || !task.tangCaList) return;
@@ -1152,7 +1263,7 @@ function processEndTangCa(taskId, sessionId, gpsEnd) {
         if (s.id === sessionId) {
             endedSession = {
                 ...s,
-                ketThuc: new Date().toISOString(),
+                ketThuc: getLocalISOString(new Date()), // Sử dụng hàm lấy chuẩn giờ địa phương
                 gpsKetThuc: gpsEnd,
                 trangThai: 'Đã kết thúc'
             };
@@ -1164,13 +1275,12 @@ function processEndTangCa(taskId, sessionId, gpsEnd) {
     update(ref(db, `managementTasks/${taskId}`), { tangCaList })
         .then(() => {
             alert("Đã kết thúc phiên tăng ca!");
-            // Gửi thông báo Telegram khi kết thúc tăng ca an toàn không bị lỗi
             if (endedSession) {
                 const durationMins = Math.round((new Date(endedSession.ketThuc) - new Date(endedSession.batDau)) / 60000);
                 sendMobileTelegramNotification('end_overtime', task, `Đã kết thúc phiên tăng ca "${endedSession.lyDo}". Thời gian thực tế: ${durationMins} phút.`);
             }
         })
-        .catch(err => alert("Lỗi: " + err.message));
+        .catch(err => alert("Lỗi kết thúc tăng ca: " + err.message));
 }
 // 1. Mở Modal sửa tiêu chí checkbox cho kỹ thuật
 window.openTechEditModal = (taskId) => {
@@ -1596,9 +1706,6 @@ window.checkForAppUpdates = () => {
     }
 };
 
-// ================= 1. XỬ LÝ TẠM NGƯNG CÓ LÝ DO =================
-let currentPauseTaskId = null;
-
 window.promptPauseTask = (taskId) => {
     currentPauseTaskId = taskId;
     const input = document.getElementById('inputPauseReason');
@@ -1619,23 +1726,74 @@ window.submitPauseTaskWithReason = () => {
         alert("Vui lòng nhập lý do tạm ngưng công việc!");
         return;
     }
-    if (!currentPauseTaskId) return;
+    if (!currentPauseTaskId) {
+        alert("Không tìm thấy mã công việc cần tạm ngưng!");
+        return;
+    }
 
-    // Lấy GPS thực tế khi tạm ngưng nếu có thể, sau đó cập nhật Firebase
-    getFreshGPS((freshGps) => {
-        update(ref(db, `managementTasks/${currentPauseTaskId}`), {
-            tinhTrang: 'Tạm ngưng',
-            lyDoTamNgung: reason,
-            gpsTamNgung: freshGps
-        }).then(() => {
-            alert("Đã cập nhật trạng thái tạm ngưng thành công!");
-            window.closePauseModal();
-        }).catch(err => {
-            alert("Lỗi: " + err.message);
-        });
-    });
+    // Hiển thị thông báo đang xử lý để kỹ thuật biết
+    alert("Đang ghi nhận lý do và định vị, vui lòng chờ...");
+
+    // Gọi lấy GPS có cơ chế dự phòng (timeout sau 3 giây để không bị treo máy nếu mất sóng GPS)
+    let isGpsDone = false;
+    const timeoutFallback = setTimeout(() => {
+        if (!isGpsDone) {
+            isGpsDone = true;
+            executeFinalPause(currentPauseTaskId, reason, "Không lấy được GPS (Timeout)");
+        }
+    }, 3000);
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                if (!isGpsDone) {
+                    isGpsDone = true;
+                    clearTimeout(timeoutFallback);
+                    const freshGps = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+                    executeFinalPause(currentPauseTaskId, reason, freshGps);
+                }
+            },
+            (error) => {
+                if (!isGpsDone) {
+                    isGpsDone = true;
+                    clearTimeout(timeoutFallback);
+                    executeFinalPause(currentPauseTaskId, reason, "Lỗi GPS: " + error.message);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
+        );
+    } else {
+        clearTimeout(timeoutFallback);
+        executeFinalPause(currentPauseTaskId, reason, "Không hỗ trợ GPS");
+    }
 };
+function executeFinalPause(taskId, reason, freshGps) {
+    const task = allAssignedTasks[taskId] || {};
+    let pauseHistory = task.pauseHistory || [];
+    
+    // Đảm bảo hàm getLocalISOString hoạt động ổn định
+    const nowISO = typeof getLocalISOString === 'function' ? getLocalISOString(new Date()) : new Date().toISOString();
 
+    const newPauseSession = {
+        id: 'PAUSE-' + Date.now(),
+        lyDo: reason,
+        thoiGianTamNgung: nowISO,
+        gpsTamNgung: freshGps
+    };
+
+    pauseHistory.push(newPauseSession);
+
+    update(ref(db, `managementTasks/${taskId}`), {
+        tinhTrang: 'Tạm ngưng',
+        lyDoTamNgung: reason,
+        pauseHistory: pauseHistory
+    }).then(() => {
+        alert("Đã ghi nhận nhật ký tạm ngưng công việc thành công!");
+        window.closePauseModal();
+    }).catch(err => {
+        alert("Lỗi lưu Firebase: " + err.message);
+    });
+}
 
 // ================= 2. XỬ LÝ 3 NÚT HOÀN THÀNH (TÍNH PHÍ, BẢO HÀNH, HỖ TRỢ) =================
 let activeCompletionMode = 'tinhphi'; // Mặc định là tính phí
